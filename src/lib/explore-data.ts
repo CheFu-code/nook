@@ -17,4 +17,4 @@ export const explorePosts: Post[] = [
   { id: 'explore-hike', name: 'alex.rivera', avatar: media.alex, photo: require('../../assets/images/profile/photo-8.png'), title: 'A little further outdoors', tags: ['travel', 'nature'], likes: 143 },
   { id: 'explore-peaks', name: 'jordan.k', avatar: media.jordan, photo: require('../../assets/images/profile/photo-9.png'), title: 'Chasing the last light', tags: ['nature', 'travel'], likes: 167 },
   { id: 'explore-greece', name: 'taylor.b', avatar: media.taylor, photo: require('../../assets/images/explore/santorini.png'), title: 'Blue skies in Santorini', tags: ['travel', 'design'], likes: 119 },
-].map(post => ({ ...post, location: '', time: 'Today', caption: 'A moment from the Codexgram demo community.', comments: 0 }));
+].map(post => ({ ...post, location: '', time: 'Today', caption: 'A moment from the nook demo community.', comments: 0 }));

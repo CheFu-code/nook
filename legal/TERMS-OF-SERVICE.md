@@ -1,4 +1,4 @@
-# Codexgram Terms of Service
+# nook Terms of Service
 
 **Testing draft — not effective terms.** Bracketed fields and the proposed legal allocations require confirmation before publication. Prepared 12 September 2026 for the current testing release.
 
@@ -7,7 +7,7 @@ Last updated: [LAST UPDATED DATE]
 
 ## 1. About these terms
 
-These Terms of Service govern your use of the Codexgram application and its related social features (the “Service”), operated by [OPERATOR LEGAL NAME], [ENTITY TYPE AND REGISTRATION JURISDICTION], at [REGISTERED / BUSINESS ADDRESS] (“we,” “us,” or “our”).
+These Terms of Service govern your use of the nook application and its related social features (the “Service”), operated by [OPERATOR LEGAL NAME], [ENTITY TYPE AND REGISTRATION JURISDICTION], at [REGISTERED / BUSINESS ADDRESS] (“we,” “us,” or “our”).
 
 By selecting a sign-in or sign-up option that clearly presents these Terms and states that continuing constitutes agreement, you agree to these Terms. If you do not agree, do not continue to create an account or use the Service. The published Terms will be available at [TERMS URL].
 
@@ -15,7 +15,7 @@ Our separate Privacy Policy at [PRIVACY POLICY URL] explains how personal inform
 
 ## 2. Eligibility and testing access
 
-Codexgram is currently provided for testing. You must be at least [MINIMUM AGE], meet [MINOR / GUARDIAN POLICY, IF APPLICABLE], and have the legal capacity or authorization required to agree to these Terms. Testing is offered in [PERMITTED TESTING COUNTRIES / TERRITORIES], subject to [TESTER ELIGIBILITY / ACCESS CONDITIONS].
+nook is currently provided for testing. You must be at least [MINIMUM AGE], meet [MINOR / GUARDIAN POLICY, IF APPLICABLE], and have the legal capacity or authorization required to agree to these Terms. Testing is offered in [PERMITTED TESTING COUNTRIES / TERRITORIES], subject to [TESTER ELIGIBILITY / ACCESS CONDITIONS].
 
 The presence of a sign-in button does not verify your age or eligibility. You must also be eligible to use the Google or Apple account you select for sign-in.
 
@@ -23,7 +23,7 @@ The presence of a sign-in button does not verify your age or eligibility. You mu
 
 You sign in or sign up through Google or Apple using Clerk authentication. You then choose a unique username and a display name. You may edit your profile and add a profile photo, bio, website and location. A provider-supplied name or picture may be used to help set up your profile. Usernames and profile details are not identity verification.
 
-Use an account you are authorized to access. Keep your sign-in credentials and devices secure, and do not impersonate another person or attempt to access someone else's account. Contact [SUPPORT EMAIL] if you believe your Codexgram account has been compromised. Authentication availability and recovery also depend on your sign-in provider.
+Use an account you are authorized to access. Keep your sign-in credentials and devices secure, and do not impersonate another person or attempt to access someone else's account. Contact [SUPPORT EMAIL] if you believe your nook account has been compromised. Authentication availability and recovery also depend on your sign-in provider.
 
 You can sign out in Settings. Signing out or uninstalling the app does not delete your account or server-stored content. Section 10 explains account deletion.
 
@@ -71,7 +71,7 @@ You grant us a nonexclusive, worldwide, royalty-free license to host, store, rep
 
 This permission does not authorize us to sell Your Content, use it in unrelated advertising, or train AI models on it. Those uses would require a separate lawful basis and any necessary permission. Local demo content that is not uploaded does not require a server-hosting license merely because you use the demo.
 
-The operational license ends for content removed from the Service when the applicable deletion process is complete, except to the extent storage or handling remains necessary to comply with applicable law. [CONFIRM PROVIDER AGREEMENTS AND RETENTION POLICY BEFORE ADOPTING THIS LICENSE.] This does not promise to erase copies other people have made or material you chose to share outside Codexgram.
+The operational license ends for content removed from the Service when the applicable deletion process is complete, except to the extent storage or handling remains necessary to comply with applicable law. [CONFIRM PROVIDER AGREEMENTS AND RETENTION POLICY BEFORE ADOPTING THIS LICENSE.] This does not promise to erase copies other people have made or material you chose to share outside nook.
 
 The share feature can send a post author's username, caption and app link to a destination selected by the sharing member. The linked post's media still requires app authentication. A bookmark is a reference to a post, not an independent archival copy. If a post is deleted, its comments and other associated interactions can be deleted with it, including content submitted by others.
 
@@ -81,19 +81,19 @@ Other members retain their rights in their content. Being able to view, like, bo
 
 The Service's software, design and branding belong to their respective rights holders. Subject to these Terms, you may use the Service's available functionality. Any separately applicable open-source licenses continue to govern the code they cover; these Terms do not revoke rights granted under those licenses.
 
-Clerk provides authentication and session infrastructure, Google and Apple provide the sign-in options you choose, and Convex provides application data and media infrastructure. Their outages or account restrictions may affect access to Codexgram. Your use of a Google or Apple account remains subject to the terms applicable to that external account. A destination you select through the device share sheet may have its own terms and privacy practices.
+Clerk provides authentication and session infrastructure, Google and Apple provide the sign-in options you choose, and Convex provides application data and media infrastructure. Their outages or account restrictions may affect access to nook. Your use of a Google or Apple account remains subject to the terms applicable to that external account. A destination you select through the device share sheet may have its own terms and privacy practices.
 
 [REQUIRED PROVIDER-SPECIFIC END-USER TERMS, IF ANY — VERIFY THE OPERATOR'S EXECUTED CLERK, CONVEX AND DISTRIBUTION AGREEMENTS BEFORE PUBLICATION.] Provider contracts are not automatically incorporated in full into these Terms, and do not automatically impose the operator's infrastructure fees on you.
 
 ## 9. Charges
 
-[WORKING ASSUMPTION TO CONFIRM: THE CURRENT TESTING RELEASE IS PROVIDED WITHOUT A CODEXGRAM ACCESS FEE.] There are no paid plans, subscriptions, in-app purchases or payment collection features in this release. These Terms do not authorize recurring charges or future purchases. Your own internet or mobile provider may charge for connectivity under your agreement with it.
+[WORKING ASSUMPTION TO CONFIRM: THE CURRENT TESTING RELEASE IS PROVIDED WITHOUT A nook ACCESS FEE.] There are no paid plans, subscriptions, in-app purchases or payment collection features in this release. These Terms do not authorize recurring charges or future purchases. Your own internet or mobile provider may charge for connectivity under your agreement with it.
 
 ## 10. Stopping use and deleting content or an account
 
 You may stop using the Service at any time. You can delete your own posts, stories and comments using their available controls. Deleting a post removes its media and starts removal of related comments, likes and bookmarks. You cannot independently delete another person's comment; removing your entire post also removes its associated comments. Replacing an uploaded profile photo removes the old uploaded photo from active storage.
 
-To delete your account, choose **Settings → Delete Account** and confirm. This requests deletion of your Codexgram sign-in account and associated application data. It does not delete your Google or Apple account. Accepted deletion requests cannot currently be cancelled through the app.
+To delete your account, choose **Settings → Delete Account** and confirm. This requests deletion of your nook sign-in account and associated application data. It does not delete your Google or Apple account. Accepted deletion requests cannot currently be cancelled through the app.
 
 **Account deletion removes your profile, posts, photos, videos, stories, comments, likes, bookmarks and follows, and deletes your entire conversations for both participants, including messages the other participant sent.** Copies outside the Service are not recalled. This operation cannot be undone through the app.
 

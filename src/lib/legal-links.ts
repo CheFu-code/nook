@@ -2,8 +2,8 @@ import { Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
 const legalUrls = {
-  'Privacy Policy': 'https://codexgram-legal.pages.dev/privacy',
-  'Terms of Service': 'https://codexgram-legal.pages.dev/terms',
+  'Privacy Policy': 'https://nook-legal.pages.dev/privacy',
+  'Terms of Service': 'https://nook-legal.pages.dev/terms',
 } as const;
 
 export async function openLegalDocument(document: keyof typeof legalUrls) {

@@ -36,17 +36,17 @@ def build(source="TERMS-OF-SERVICE.md", output="terms.html"):
 
     page = '''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex"><meta name="description" content="Codexgram Terms of Service: a testing draft for review, with unconfirmed legal fields clearly marked.">
-<meta name="theme-color" content="#087eff"><title>Terms of Service — Codexgram testing draft</title>
+<meta name="robots" content="noindex"><meta name="description" content="nook Terms of Service: a testing draft for review, with unconfirmed legal fields clearly marked.">
+<meta name="theme-color" content="#087eff"><title>Terms of Service — nook testing draft</title>
 <link rel="icon" href="assets/logo.png"><link rel="stylesheet" href="styles.css"><script src="site.js" defer></script></head>
 <body><a class="skip-link" href="#terms-content">Skip to terms</a>
-<header class="site-header wrap"><a class="brand" href="index.html"><img src="assets/logo.png" width="36" height="36" alt=""><span>Codexgram.</span></a><nav aria-label="Main navigation"><a class="nav-cta" href="index.html">Back to the preview ↗</a></nav></header>
-<main><div class="legal-header wrap"><p class="eyebrow">THE CODEXGRAM TESTING RELEASE</p><h1>Terms of Service<span class="brand-dot">.</span></h1>
+<header class="site-header wrap"><a class="brand" href="index.html"><img src="assets/logo.png" width="36" height="36" alt=""><span>nook.</span></a><nav aria-label="Main navigation"><a class="nav-cta" href="index.html">Back to the preview ↗</a></nav></header>
+<main><div class="legal-header wrap"><p class="eyebrow">THE nook TESTING RELEASE</p><h1>Terms of Service<span class="brand-dot">.</span></h1>
 <p>A clear account of how the app works, and what using it means. This is a review draft. Highlighted fields are unconfirmed.</p>
 <div class="legal-tools"><a class="button" href="TERMS-OF-SERVICE.md" download>Download Markdown ↓</a><button class="button" type="button" data-print>Print / save PDF ↗</button></div></div>
 <div class="legal-layout wrap"><aside class="legal-nav"><p>IN THIS DOCUMENT</p><nav aria-label="Terms sections" style="display:block">NAVIGATION</nav></aside>
 <article id="terms-content" class="legal-prose">CONTENT</article></div></main>
-<footer class="site-footer wrap"><a class="brand" href="index.html"><span>Codexgram.</span></a><p>Testing draft · Qualified attorney review required before publication.</p><a href="index.html">Back to Codexgram ↗</a></footer></body></html>
+<footer class="site-footer wrap"><a class="brand" href="index.html"><span>nook.</span></a><p>Testing draft · Qualified attorney review required before publication.</p><a href="index.html">Back to nook ↗</a></footer></body></html>
 '''
     page = page.replace("NAVIGATION", "\n".join(navigation)).replace("CONTENT", "\n".join(content))
     if privacy:

@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "codexgram",
-    "slug": "codexgram",
+    "name": "nook",
+    "slug": "nook",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "codexgram",
+    "scheme": "nook",
     "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/images/logo.png",
-      "bundleIdentifier": "com.burakorkmez.codexgram",
+      "bundleIdentifier": "com.burakorkmez.nook",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/images/logo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.burakorkmez.codexgram"
+      "package": "com.burakorkmez.nook"
     },
     "web": {
       "output": "static",
@@ -42,8 +42,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Choose photos and videos for your Codexgram posts, stories, and profile.",
-          "cameraPermission": "Take photos for your Codexgram posts and stories.",
+          "photosPermission": "Choose photos and videos for your nook posts, stories, and profile.",
+          "cameraPermission": "Take photos for your nook posts and stories.",
           "microphonePermission": false
         }
       ],
@@ -52,7 +52,7 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "codexgram",
+          "project": "nook",
           "organization": "codesistency-gs"
         }
       ]

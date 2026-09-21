@@ -19,7 +19,7 @@ export function useSocialAuth() {
     try {
       const result = await startSSOFlow({
         strategy: provider === 'Google' ? 'oauth_google' : 'oauth_apple',
-        redirectUrl: makeRedirectUri({ scheme: 'codexgram', path: 'sso-callback' }),
+        redirectUrl: makeRedirectUri({ scheme: 'nook', path: 'sso-callback' }),
       });
       // A dismissed browser is an intentional cancellation, not a failed login.
       if (result.authSessionResult?.type === 'cancel' || result.authSessionResult?.type === 'dismiss') return;
@@ -27,7 +27,7 @@ export function useSocialAuth() {
         await result.setActive({ session: result.createdSessionId });
         // Root route guards transition only after Clerk confirms the active session.
       } else if (result.signUp?.status === 'missing_requirements') {
-        Alert.alert('More information needed', 'Your account needs additional details. Please contact the Codexgram team to finish signing up.');
+        Alert.alert('More information needed', 'Your account needs additional details. Please contact the nook team to finish signing up.');
       } else {
         Alert.alert('Sign-in incomplete', 'We couldn’t finish verifying your account. Please try signing in again.');
       }

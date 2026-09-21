@@ -51,7 +51,7 @@ export function SettingsScreen({ onClose, onEdit, onSaved, onDelete, onSignOut, 
     { label: 'Report a problem', icon: 'support', action: Sentry.showFeedbackForm },
     { label: 'Privacy Policy', icon: 'document', action: () => { void openLegalDocument('Privacy Policy'); } },
     { label: 'Terms of Service', icon: 'document', action: () => { void openLegalDocument('Terms of Service'); } },
-    { label: 'About', icon: 'info', detail: 'Version 1.0 (2026)', action: unavailable('Codexgram', 'Version 1.0 (2026)') },
+    { label: 'About', icon: 'info', detail: 'Version 1.0 (2026)', action: unavailable('nook', 'Version 1.0 (2026)') },
   ];
   const group = (rows: Row[]) => <View style={[styles.card, { borderRadius: 14 * s }]}>{rows.map((row, index) => <Pressable key={row.label} accessibilityRole="button" accessibilityLabel={row.detail ? `${row.label}, ${row.detail}` : row.label} onPress={row.action} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', minHeight: Math.max(44, 40.5 * v), backgroundColor: pressed ? '#F0F5FF' : 'transparent' })}>
     <View style={{ width: 64 * s, alignItems: 'center' }}><FeedIcon name={row.icon} size={21 * s} color={ink} /></View>
@@ -68,10 +68,10 @@ export function SettingsScreen({ onClose, onEdit, onSaved, onDelete, onSignOut, 
       <Text accessibilityRole="header" style={{ color: ink, fontSize: 34 * s, lineHeight: 43 * s, fontWeight: '700', letterSpacing: -1.2 * s, marginHorizontal: 8 * s, marginBottom: 11 * v }}>Settings</Text>
       <Text accessibilityRole="header" style={[styles.section, { fontSize: 16 * s, marginHorizontal: 8 * s, marginBottom: 9 * v }]}>Account</Text>
       {group(account)}
-      <Pressable accessibilityRole="button" accessibilityLabel="Share feedback" accessibilityHint="Opens a form to send feedback about Codexgram" onPress={Sentry.showFeedbackForm} style={({ pressed }) => [styles.feedbackCard, { marginTop: 18 * v, padding: 18 * s, gap: 14 * s, opacity: pressed ? 0.75 : 1 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Share feedback" accessibilityHint="Opens a form to send feedback about nook" onPress={Sentry.showFeedbackForm} style={({ pressed }) => [styles.feedbackCard, { marginTop: 18 * v, padding: 18 * s, gap: 14 * s, opacity: pressed ? 0.75 : 1 }]}>
         <View style={styles.feedbackIcon}><FeedIcon name="comment" size={25} color="#007AFF" /></View>
         <View style={{ flex: 1, gap: 5 }}>
-          <Text style={{ color: ink, fontSize: 17 * s, fontWeight: '700', letterSpacing: -0.4 }}>Help shape Codexgram</Text>
+          <Text style={{ color: ink, fontSize: 17 * s, fontWeight: '700', letterSpacing: -0.4 }}>Help shape nook</Text>
           <Text style={{ color: '#526A90', fontSize: 13 * s, lineHeight: 19 * s }}>An idea, a little hiccup, or something you love? We’re listening.</Text>
           <Text style={{ color: '#007AFF', fontSize: 14 * s, fontWeight: '600', marginTop: 5 }}>Share feedback →</Text>
         </View>

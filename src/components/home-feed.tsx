@@ -68,7 +68,7 @@ export function HomeFeed({ userName, onExplore }: Props) {
           <View style={styles.actions}>
             {action('heart', `${liked ? 'Unlike' : 'Like'} ${post.name}'s post`, () => setUnliked(toggle(unliked, post.id)), post.likes - (liked ? 0 : 1), liked)}
             {action('comment', `Comments on ${post.name}'s post`, () => open({ kind: 'comments', post }), post.comments + (comments[post.id]?.length ?? 0))}
-            {action('send', 'Share post', () => { void Share.share({ message: `${post.title}\n${post.caption}\n— Codexgram demo` }).catch(() => Alert.alert('Unable to share', 'Please try again.')); })}
+            {action('send', 'Share post', () => { void Share.share({ message: `${post.title}\n${post.caption}\n— nook demo` }).catch(() => Alert.alert('Unable to share', 'Please try again.')); })}
             <View style={{ flex: 1 }} />
             <Pressable accessibilityRole="button" accessibilityLabel={isSaved ? 'Unsave post' : 'Save post'} accessibilityState={{ selected: isSaved }} hitSlop={10} onPress={() => setSaved(toggle(saved, post.id))} style={{ padding: fs(2) }}><FeedIcon name="bookmark" size={fs(18)} filled={isSaved} /></Pressable>
           </View>
@@ -82,7 +82,7 @@ export function HomeFeed({ userName, onExplore }: Props) {
       <StatusBar style="dark" />
       <View style={[styles.header, { height: 50 * v, paddingHorizontal: fs(14), gap: fs(10) }]}>
         <Image source={require('../../assets/images/logo.png')} style={{ width: fs(38), height: fs(38) }} />
-        <Text style={{ flex: 1, fontSize: fs(23), fontWeight: '700', letterSpacing: -1, color: '#070D1C' }}>Codexgram</Text>
+        <Text style={{ flex: 1, fontSize: fs(23), fontWeight: '700', letterSpacing: -1, color: '#070D1C' }}>nook</Text>
         {roundButton('search', 'Search people and posts', onExplore)}
         {roundButton('plus', 'Create a post', () => open({ kind: 'compose' }), true)}
       </View>
@@ -103,7 +103,7 @@ export function HomeFeed({ userName, onExplore }: Props) {
         <KeyboardAvoidingView style={styles.sheet} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{sheet?.kind === 'search' ? 'Explore' : sheet?.kind === 'compose' ? 'Create a demo post' : sheet?.kind === 'comments' ? 'Comments' : sheet?.name ?? 'Post options'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSheet(null)} style={{ padding: 10 }}><FeedIcon name="close" /></Pressable></View>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, gap: 18 }}>
-            {sheet?.kind === 'story' && <><Image source={sheet.image ?? media.lake} style={{ width: '100%', aspectRatio: 1, borderRadius: 22 }} /><Text style={styles.sheetBody}>A preview from the Codexgram demo community.</Text></>}
+            {sheet?.kind === 'story' && <><Image source={sheet.image ?? media.lake} style={{ width: '100%', aspectRatio: 1, borderRadius: 22 }} /><Text style={styles.sheetBody}>A preview from the nook demo community.</Text></>}
             {sheet?.kind === 'search' && <><TextInput autoFocus value={input} onChangeText={setInput} placeholder="Search people or hashtags" style={styles.input} accessibilityLabel="Search people or hashtags" />{posts.filter(post => `${post.name} ${post.tags.join(' ')} ${post.title}`.toLowerCase().includes(input.toLowerCase().replace('#', ''))).map(post => <Pressable key={post.id} onPress={() => open({ kind: 'story', name: post.name, image: post.photo })} style={styles.searchResult}><Image source={post.avatar} style={{ width: 48, height: 48, borderRadius: 24 }} /><View><Text style={styles.sheetTitle}>{post.name}</Text><Text style={styles.sheetBody}>Fictional demo profile</Text></View></Pressable>)}</>}
             {sheet?.kind === 'menu' && <><Text style={styles.sheetBody}>This is a fictional demo post. Likes, saves, and comments are stored for this preview session.</Text><Pressable style={styles.primaryButton} onPress={() => { if (sheet.post) setSaved(toggle(saved, sheet.post.id)); setSheet(null); }}><Text style={styles.primaryLabel}>{sheet.post && saved.includes(sheet.post.id) ? 'Remove from saved' : 'Save post'}</Text></Pressable></>}
             {sheet?.kind === 'comments' && <><Text style={styles.sheetBody}>Comments added here stay in this preview session.</Text>{(comments[sheet.post!.id] ?? []).map((comment, index) => <View key={index} style={styles.comment}><Text style={{ fontWeight: '700' }}>You</Text><Text>{comment}</Text></View>)}<TextInput value={input} onChangeText={setInput} placeholder="Add a comment…" style={styles.input} accessibilityLabel="Add a comment" /><Pressable accessibilityRole="button" disabled={!input.trim()} style={[styles.primaryButton, !input.trim() && { opacity: 0.4 }]} onPress={() => { const id = sheet.post!.id; setComments(current => ({ ...current, [id]: [...(current[id] ?? []), input.trim()] })); setInput(''); }}><Text style={styles.primaryLabel}>Post comment</Text></Pressable></>}

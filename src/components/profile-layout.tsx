@@ -13,8 +13,8 @@ export function useProfileScale() {
 export function ProfileHeader({ onSettings, back = false }: { onSettings: () => void; back?: boolean }) {
   const { s, v } = useProfileScale(); const router = useRouter();
   return <View style={{ height: 52 * v, paddingHorizontal: 20 * s, gap: 6 * s, flexDirection: 'row', alignItems: 'center' }}>
-    {back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={{ width: 28 * s, minHeight: 44, justifyContent: 'center' }}><FeedIcon name="back" size={23 * s} /></Pressable> : <Image source={require('../../assets/images/logo.png')} accessibilityLabel="Codexgram logo" style={{ width: 28 * s, height: 28 * s }} />}
-    <Text style={{ flex: 1, color: '#0D1529', fontSize: 21.5 * s, fontWeight: '700', letterSpacing: -0.8 }}>Codexgram</Text>
+    {back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={{ width: 28 * s, minHeight: 44, justifyContent: 'center' }}><FeedIcon name="back" size={23 * s} /></Pressable> : <Image source={require('../../assets/images/logo.png')} accessibilityLabel="nook logo" style={{ width: 28 * s, height: 28 * s }} />}
+    <Text style={{ flex: 1, color: '#0D1529', fontSize: 21.5 * s, fontWeight: '700', letterSpacing: -0.8 }}>nook</Text>
     <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={onSettings} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><FeedIcon name="settings" size={23 * s} /></Pressable>
   </View>;
 }

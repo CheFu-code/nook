@@ -1,4 +1,4 @@
-# Codexgram legal packet and landing page
+# nook legal packet and landing page
 
 Everything added for this task is in this folder. The owner confirmed testing-only use and requested placeholders for unconfirmed legal/business details. **This is a testing and attorney-review draft, not final effective terms.**
 

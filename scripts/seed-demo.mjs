@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 const target = 'dev:savory-raven-325';
 const local = readFileSync('.env.local', 'utf8');
 const configured = local.match(/^CONVEX_DEPLOYMENT\s*=\s*([^\s#]+)/m)?.[1];
-if (configured !== target || process.env.CONVEX_DEPLOY_KEY || (process.env.CONVEX_DEPLOYMENT && process.env.CONVEX_DEPLOYMENT !== target)) throw new Error('Refusing to seed: expected the existing codexgram development deployment, without a deploy-key override.');
+if (configured !== target || process.env.CONVEX_DEPLOY_KEY || (process.env.CONVEX_DEPLOYMENT && process.env.CONVEX_DEPLOYMENT !== target)) throw new Error('Refusing to seed: expected the existing nook development deployment, without a deploy-key override.');
 const username = process.argv[2] || 'burakorkmez';
 function run(name, args) {
   let output;

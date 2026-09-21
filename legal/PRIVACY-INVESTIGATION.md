@@ -1,4 +1,4 @@
-# Privacy investigation — Codexgram
+# Privacy investigation — nook
 
 Reviewed 12 September 2026. This is a source audit of the testing application, not a certification of a deployed service. Read this inventory before the policy. The owner has confirmed testing purposes and requested placeholders. The application source matches the earlier terms audit snapshot; this review additionally examines installed authentication dependencies and native declarations. See `source-manifest.json` and `privacy-source-manifest.json` for reproducible hashes. References are repository-relative, with inclusive line ranges; vendor references require the inspected installed versions.
 
@@ -36,7 +36,7 @@ All database documents also carry Convex system identifiers and creation times. 
 | Destination selected in OS share sheet | Post author's username, caption and deep link. | [share action](../src/components/social/post-detail-actions.tsx#L7), 7–11. Shared text can leave the member boundary; app cannot recall recipient copies. |
 | Hosting/network operators | Requests expose ordinary connection metadata such as IP and requested resource; actual retained logs and processing purposes unknown. | HTTPS endpoints in EAS and upload/media code establish requests, not server log policy. Static legal site has local assets, no forms, analytics, cookies or storage calls: [index](index.html), [script](site.js). A chosen web host may add logging/features independently. |
 
-Clerk's [public privacy policy](https://clerk.com/legal/privacy) distinguishes its own controller activities from Customer Data processed under customer agreements. Do not treat a link to that policy as a substitute for Codexgram's notice or its processor contracts. No contractual role, DPA or international-transfer mechanism was verified.
+Clerk's [public privacy policy](https://clerk.com/legal/privacy) distinguishes its own controller activities from Customer Data processed under customer agreements. Do not treat a link to that policy as a substitute for nook's notice or its processor contracts. No contractual role, DPA or international-transfer mechanism was verified.
 
 ## SDK telemetry, tracking and local storage
 
@@ -53,7 +53,7 @@ The collector can use browser localStorage for event throttling, with memory fal
 - Identity-derived profile lookup and deletion locks: [auth helpers](../convex/lib/auth.ts#L4), 4–15; Clerk JWT issuer/audience configuration above. Owner checks for mutation/deletion and participant checks for messaging are implemented. These are source findings, not a penetration-test certification.
 - Upload bearer authentication, ownership, MIME/byte/size checks and duration validation: [HTTP](../convex/http.ts#L9), 9–48; [uploads](../convex/uploads.ts#L7), 7–25. Validation is not malware scanning, moderation or metadata sanitization.
 - Authenticated media retrieval uses `Cache-Control: private, no-store`; image clients disable their configured image cache: [HTTP](../convex/http.ts#L50), 50–71; [media](../src/components/social/media.tsx#L28), 28–53. OS/browser memory, screenshots and recipient copies are outside this guarantee.
-- EAS service URLs are HTTPS. Native ATS disables arbitrary loads but permits local networking: [Info.plist](../ios/codexgram/Info.plist#L53), 53–69. Do not extrapolate universal transport configuration from one test build.
+- EAS service URLs are HTTPS. Native ATS disables arbitrary loads but permits local networking: [Info.plist](../ios/nook/Info.plist#L53), 53–69. Do not extrapolate universal transport configuration from one test build.
 - Convex [describes encryption at rest](https://www.convex.dev/can-do/encryption), while backend functions can read decrypted data. App message storage has no client-side encryption layer. Avoid “only you and the recipient can ever read messages,” “zero knowledge,” or claims of the app's own security certification.
 - No code evidence establishes operator access restrictions, access reviews, incident response, vendor retention, disaster recovery or deletion from backups. Those require operational evidence.
 
@@ -75,7 +75,7 @@ Implemented: edit profile, replace avatar, delete own posts/comments, manage fol
 
 Not implemented: data export/download, privacy request portal, private profiles, blocking, notification preferences, consent/cookie manager, user telemetry preference, age/DOB checks or a published in-app policy. Settings Privacy/Blocked/Notifications/Support/Report/Terms/Privacy Policy actions are alerts: [settings](../src/components/settings-screen.tsx#L36), 36–49. Sign-in policy/terms links are alerts, not accessible notices or versioned consent records: [entry](../src/app/index.tsx#L22), 22–24, 131–143. Missing UI does **not** remove statutory privacy rights; an actual staffed request channel is needed if applicable.
 
-[app.json](../app.json#L48), 48–60 declares camera/photo permission text and disables microphone permission. [iOS Info.plist](../ios/codexgram/Info.plist#L64), 64–71 additionally contains Face ID and development local-network strings. A Face ID usage string alone does not establish collection of biometric templates by Codexgram. The reviewed token cache does not request biometric authentication. [PrivacyInfo.xcprivacy](../ios/codexgram/PrivacyInfo.xcprivacy#L5), 5–35 lists required-reason APIs but has empty collected-data types and tracking=false. **An empty declaration does not override actual personal-data collection.** Reconcile native manifests, merged dependency declarations and store disclosures for the actual distributed build. No equivalent final Android artifact was verified.
+[app.json](../app.json#L48), 48–60 declares camera/photo permission text and disables microphone permission. [iOS Info.plist](../ios/nook/Info.plist#L64), 64–71 additionally contains Face ID and development local-network strings. A Face ID usage string alone does not establish collection of biometric templates by nook. The reviewed token cache does not request biometric authentication. [PrivacyInfo.xcprivacy](../ios/nook/PrivacyInfo.xcprivacy#L5), 5–35 lists required-reason APIs but has empty collected-data types and tracking=false. **An empty declaration does not override actual personal-data collection.** Reconcile native manifests, merged dependency declarations and store disclosures for the actual distributed build. No equivalent final Android artifact was verified.
 
 ## Decisions required before publication
 

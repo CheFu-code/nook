@@ -99,7 +99,7 @@ export function SentryTestScreen({ onClose }: { onClose: () => void }) {
       <Text style={styles.subtitle}>Explore errors, context, and logs in your dashboard. These simulations use made-up data and keep the app running.</Text>
       <View style={styles.guide}>
         <Text style={styles.guideTitle}>Find your test events</Text>
-        <Text style={styles.body}>Select the codexgram project. In Issues or Logs, filter by source:sentry_test. Use test_run_id to match a button press across errors and logs. Log-only tests appear in Logs.</Text>
+        <Text style={styles.body}>Select the nook project. In Issues or Logs, filter by source:sentry_test. Use test_run_id to match a button press across errors and logs. Log-only tests appear in Logs.</Text>
       </View>
       {scenarios.map(scenario => <Pressable key={scenario.id} accessibilityRole="button" accessibilityLabel={scenario.title} accessibilityState={{ disabled: running !== null, busy: running === scenario.id }} disabled={running !== null} onPress={() => { void run(scenario.id); }} style={({ pressed }) => [styles.card, { opacity: pressed || (running !== null && running !== scenario.id) ? 0.55 : 1 }]}>
         <Text style={styles.badge}>{scenario.badge}</Text>

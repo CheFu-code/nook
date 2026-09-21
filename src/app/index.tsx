@@ -54,11 +54,11 @@ export default function Index() {
         >
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="About Codexgram"
+            accessibilityLabel="About nook"
             hitSlop={8}
             onPress={() =>
               Alert.alert(
-                "Codexgram",
+                "nook",
                 "A social app for trusted testers.\nReal people. Real content. A brighter tomorrow.",
               )
             }
@@ -70,9 +70,9 @@ export default function Index() {
             source={require("../../assets/images/logo.png")}
             style={styles.logo}
             contentFit="contain"
-            accessibilityLabel="Codexgram logo"
+            accessibilityLabel="nook logo"
           />
-          <Text style={styles.wordmark}>Codexgram</Text>
+          <Text style={styles.wordmark}>nook</Text>
           <View style={styles.headline}>
             <Text style={styles.heading}>Real people.</Text>
             <Text style={styles.heading}>Real content.</Text>

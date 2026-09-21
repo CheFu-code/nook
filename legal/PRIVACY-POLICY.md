@@ -1,21 +1,21 @@
-# Codexgram Privacy Policy
+# nook Privacy Policy
 
 **Testing draft — not ready for publication until bracketed fields and reviewer issues are resolved.**
 
 Effective date: [EFFECTIVE DATE]
 Operator: [OPERATOR LEGAL NAME], established in [COUNTRY OF ESTABLISHMENT]
-Applies to: Codexgram and [APP AND SITE URLS]
+Applies to: nook and [APP AND SITE URLS]
 Privacy contact: [PRIVACY EMAIL] · [POSTAL ADDRESS]
 
 ## 1. About this policy
 
-Codexgram is a testing social application for profiles, photo and video posts, image stories, social interactions and text conversations. This policy explains how its implemented features process personal information. “We” means the operator named above. Our intended testers and countries are [INTENDED TESTER AUDIENCE AND COUNTRIES].
+nook is a testing social application for profiles, photo and video posts, image stories, social interactions and text conversations. This policy explains how its implemented features process personal information. “We” means the operator named above. Our intended testers and countries are [INTENDED TESTER AUDIENCE AND COUNTRIES].
 
 This notice explains data processing; it is not a request for blanket consent. [CONFIRM APPLICABLE PRIVACY LAWS AND STATE PURPOSE-SPECIFIC LEGAL BASES WHERE REQUIRED, INCLUDING ANY SEPARATE CONSENT PROCESS.]
 
 ## 2. Information we receive
 
-**Account and sign-in information.** You sign in through Google or Apple using Clerk, our authentication provider. This involves authentication identifiers, tokens and session information. Depending on your provider and its settings, Clerk may receive information such as your name, email address and profile picture. The app uses identity information to connect your session to your Codexgram profile and may use provider details to prefill or display account information. We do not provide a separate Codexgram password-entry flow.
+**Account and sign-in information.** You sign in through Google or Apple using Clerk, our authentication provider. This involves authentication identifiers, tokens and session information. Depending on your provider and its settings, Clerk may receive information such as your name, email address and profile picture. The app uses identity information to connect your session to your nook profile and may use provider details to prefill or display account information. We do not provide a separate nook password-entry flow.
 
 **Profile information.** To create a profile, you provide a username and display name. You may add a bio, website, location text and profile image. We store profile identifiers, an authentication identifier, profile fields, avatar references, searchable name/username text and activity counts. The location field is information you enter; the implemented features do not request device GPS location.
 
@@ -71,7 +71,7 @@ Stories are set to expire 24 hours after publication, with scheduled removal of 
 
 You can delete your own posts and comments. Post deletion removes its uploaded media and schedules associated interaction cleanup. Replacing an uploaded profile image deletes the prior image. Some published-upload metadata can remain until account cleanup.
 
-Choosing Delete Account in Settings starts a staged process. The app restricts account use, requests deletion of your Clerk user, and then removes associated application records and uploaded files in batches. This includes entire conversations and their messages for both participants, including messages written by the other participant. A failed step can leave deletion pending and the account restricted; the app provides retry handling. Deleting Codexgram does not delete your Google or Apple account.
+Choosing Delete Account in Settings starts a staged process. The app restricts account use, requests deletion of your Clerk user, and then removes associated application records and uploaded files in batches. This includes entire conversations and their messages for both participants, including messages written by the other participant. A failed step can leave deletion pending and the account restricted; the app provides retry handling. Deleting nook does not delete your Google or Apple account.
 
 After completion, a deletion record containing your authentication identifier, profile reference and job metadata remains. There is no automatic purge schedule for this record. It helps prevent account recreation using still-valid tokens. [CONFIRM AND IMPLEMENT AN APPROPRIATE RETENTION PERIOD FOR THIS IDENTIFIABLE RECORD AND FAILED JOBS.]
 
@@ -87,7 +87,7 @@ Contact [PRIVACY EMAIL] to make a privacy request or raise a concern. [CONFIRM T
 
 ## 10. Intended audience
 
-Codexgram is currently for testing. The intended audience and minimum age are [INTENDED TESTER AUDIENCE AND MINIMUM AGE]. The current app does not verify age or provide a parental-consent flow. [CONFIRM WHETHER CHILDREN MAY USE THE SERVICE, ANY REQUIRED ELIGIBILITY CONTROLS, AND THE PROCEDURE FOR HANDLING CHILDREN'S INFORMATION BEFORE DISTRIBUTION.]
+nook is currently for testing. The intended audience and minimum age are [INTENDED TESTER AUDIENCE AND MINIMUM AGE]. The current app does not verify age or provide a parental-consent flow. [CONFIRM WHETHER CHILDREN MAY USE THE SERVICE, ANY REQUIRED ELIGIBILITY CONTROLS, AND THE PROCEDURE FOR HANDLING CHILDREN'S INFORMATION BEFORE DISTRIBUTION.]
 
 ## 11. Changes and contact
 

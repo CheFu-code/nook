@@ -68,7 +68,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           <Pressable accessibilityRole="button" disabled={picking} onPress={changePhoto} style={{ marginTop: 9 * v, paddingVertical: 2 * v }}><Text style={{ color: '#087EFF', fontSize: fs(13.5), fontWeight: '500' }}>Change Photo</Text></Pressable>
           <Text style={{ color: '#818CA5', fontSize: fs(10.5), marginTop: 2 * v }}>JPG, PNG up to 5MB</Text>
         </View>
-        {field('username', 'Username', '@', 'This is how people find you on Codexgram.')}
+        {field('username', 'Username', '@', 'This is how people find you on nook.')}
         {field('name', 'Display Name', 'profile', 'This is your public name.')}
         {field('bio', 'Bio', 'bio')}
         {field('website', 'Website', 'link')}

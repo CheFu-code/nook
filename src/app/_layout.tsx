@@ -23,7 +23,7 @@ Sentry.init({
       emailPlaceholder: 'So we can follow up with you',
       isNameRequired: false,
       isEmailRequired: false,
-      successMessageText: 'Thanks for helping improve Codexgram!',
+      successMessageText: 'Thanks for helping improve nook!',
       styles: {
         container: { backgroundColor: '#FCFDFE' },
         title: { color: '#080E3B', fontWeight: '700' },
@@ -48,7 +48,7 @@ const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) throw new Error('Set EXPO_PUBLIC_CONVEX_URL in .env.local and restart Expo.');
 const convex = new ConvexReactClient(convexUrl);
 
-Sentry.logger.info('Codexgram initialized', { platform: Platform.OS });
+Sentry.logger.info('nook initialized', { platform: Platform.OS });
 
 function AuthenticatedRoutes() {
   const { isLoaded, isSignedIn, userId } = useAuth();

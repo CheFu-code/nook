@@ -85,12 +85,12 @@
       "sha256": "f200ec17330ca2ea7debea9daed54dd25e7e9db46099bf9f99830d005b9103b7"
     },
     {
-      "path": "ios/codexgram/Info.plist",
+      "path": "ios/nook/Info.plist",
       "lines": 100,
       "sha256": "f6a0539601cf4b55423f84d9dd020404c5f9948907008f0cb77cb746834a7423"
     },
     {
-      "path": "ios/codexgram/PrivacyInfo.xcprivacy",
+      "path": "ios/nook/PrivacyInfo.xcprivacy",
       "lines": 37,
       "sha256": "b9289ecfec677540a293fba948db7268c02b1d44943fa66b1e7a85ba0c31a252"
     },
