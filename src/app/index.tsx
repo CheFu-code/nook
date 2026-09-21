@@ -10,10 +10,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useState } from 'react';
 
 const palette = { background: "#FCFDFE", ink: "#080F25", blue: "#1680FF", muted: "#8290AB" };
 const googleMark = {
@@ -27,6 +29,8 @@ export default function Index() {
   const scale = Math.min(width / 390, 1.3);
   const canvasHeight = 837 * scale;
   const top = Math.max(0, insets.top - 62 * scale);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   // Reference coordinates describe the screen content, excluding the device frame.
   // A proportional canvas preserves the artwork; short screens can scroll.
   return (
@@ -98,32 +102,37 @@ export default function Index() {
             style={styles.note}
             accessibilityLabel="Good people are built with great people."
           />
-          <View style={styles.buttons}>
-            {(["Google", "Apple"] as const).map((provider) => (
-              <Pressable
-                key={provider}
-                accessibilityRole="button"
-                accessibilityLabel={`Continue with ${provider}`} accessibilityState={{ disabled: !isReady || !!pendingProvider, busy: pendingProvider === provider }} disabled={!isReady || !!pendingProvider} onPress={() => signIn(provider)}
-                style={({ pressed }) => [
-                  styles.button,
-                  provider === "Apple" && styles.appleButton,
-                  pressed && styles.pressed,
-                ]}
-              >
-                {provider === "Google" ? (
-                  <Image source={googleMark} style={styles.providerIcon} />
-                ) : (
-                  <Text style={styles.appleIcon}>{Platform.OS === "ios" ? "\uF8FF" : "●"}</Text>
-                )}
-                <Text style={[styles.buttonLabel, provider === "Apple" && styles.white]}>
-                  Continue with {provider}
-                </Text>
-                <View style={styles.arrow}>
-                  <View style={[styles.arrowShaft, provider === "Apple" && styles.lightArrow]} />
-                  <View style={[styles.arrowTip, provider === "Apple" && styles.lightArrowTip]} />
-                </View>
-              </Pressable>
-            ))}
+          <View style={styles.form}>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Chefu account"
+              accessibilityState={{ disabled: !isReady || !!pendingProvider || !email.trim() || !password.trim(), busy: !!pendingProvider }}
+              disabled={!isReady || !!pendingProvider || !email.trim() || !password.trim()}
+              onPress={() => void signIn('Email', email, password)}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.pressed,
+                (!email.trim() || !password.trim()) && styles.disabledButton,
+              ]}
+            >
+              <Text style={styles.primaryButtonLabel}>{pendingProvider ? 'Signing in…' : 'Sign in with Chefu'}</Text>
+            </Pressable>
           </View>
           <Text style={styles.legal}>
             By continuing, you agree to our{" "}
@@ -202,6 +211,27 @@ const styles = StyleSheet.create({
   mountain: { position: "absolute", left: -25, top: 22, width: 404, height: 250, opacity: 0.67 },
   fade: { position: "absolute", bottom: -1, width: "100%", height: 76 },
   note: { position: "absolute", top: 364, right: 10, width: 118, height: 72 },
+  form: { position: "absolute", top: 615, left: 27, right: 27, gap: 11 },
+  input: {
+    backgroundColor: "#F4F7FB",
+    borderWidth: 1,
+    borderColor: "#E6EBF2",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: palette.ink,
+  },
+  primaryButton: {
+    height: 55,
+    borderRadius: 30,
+    backgroundColor: palette.blue,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 3px 12px rgba(26, 39, 65, 0.09)",
+  },
+  primaryButtonLabel: { color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: -0.25 },
+  disabledButton: { opacity: 0.5 },
   buttons: { position: "absolute", top: 615, left: 27, right: 27, gap: 11 },
   button: {
     height: 55,

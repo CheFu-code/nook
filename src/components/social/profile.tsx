@@ -1,4 +1,4 @@
-import { useClerk } from '@clerk/expo';
+import { useClerk } from '@/lib/chefu-auth';
 import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -57,12 +57,12 @@ function MemberProfile({ id, back = false }: { id: Id<'profiles'>; back?: boolea
 
 function Connections({ profileId, kind, close }: { profileId: Id<'profiles'>; kind: 'followers' | 'following'; close: () => void }) {
   const result = usePaginatedQuery(api.social.connections, { profileId, kind }, { initialNumItems: 20 }); const router = useRouter(); const insets = useSafeAreaInsets();
-  return <View style={[ui.screen, { paddingTop: insets.top }]}><View style={ui.header}><Text style={[ui.title, { flex: 1 }]}>{kind === 'followers' ? 'Followers' : 'Following'}</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={ui.link}>Done</Text></Pressable></View><FlatList data={result.results} keyExtractor={item => item._id} renderItem={({ item }) => <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}><Pressable onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Avatar profile={item} size={48} /></Pressable><Pressable style={{ flex: 1 }} onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Text style={ui.text}>{item.username}</Text><Text style={ui.muted}>{item.name}</Text></Pressable><FollowButton profile={item} /></View>} ListEmptyComponent={result.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 24 }]}>No {kind} yet.</Text> : null} ListFooterComponent={<LoadMore status={result.status} loadMore={result.loadMore} />} /></View>;
+  return <View style={[ui.screen, { paddingTop: insets.top }]}><View style={ui.header}><Text style={[ui.title, { flex: 1 }]}>{kind === 'followers' ? 'Followers' : 'Following'}</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={ui.link}>Done</Text></Pressable></View><FlatList data={result.results} keyExtractor={item => item._id} renderItem={({ item }) => <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}><Pressable onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Avatar profile={item as any} size={48} /></Pressable><Pressable style={{ flex: 1 }} onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Text style={ui.text}>{item.username ?? 'User'}</Text><Text style={ui.muted}>{item.name ?? item.username ?? 'User'}</Text></Pressable><FollowButton profile={item as SocialProfile} /></View>} ListEmptyComponent={result.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 24 }]}>No {kind} yet.</Text> : null} ListFooterComponent={<LoadMore status={result.status} loadMore={result.loadMore} />} /></View>;
 }
 function LiveEdit({ profile, close }: { profile: SocialProfile; close: () => void }) {
   const update = useMutation(api.profiles.update); const begin = useMutation(api.uploads.begin); const setAvatar = useMutation(api.uploads.setAvatar); const cancel = useMutation(api.uploads.cancel); const getToken = useBackendToken();
   const { source } = useMediaSource(profile._id, 'avatar', profile.hasAvatar, profile.avatarVersion); const [saving, setSaving] = useState(false);
-  const initial: ProfileDraft = { username: profile.username, name: profile.name, bio: profile.bio, website: profile.website, location: profile.location, photoUri: '' };
+  const initial: ProfileDraft = { username: profile.username, name: profile.name, bio: profile.bio ?? '', website: profile.website ?? '', location: profile.location ?? '', photoUri: '' };
   async function save(draft: ProfileDraft) {
     if (saving) return; setSaving(true); let uploadId: Id<'uploads'> | null = null;
     try {
@@ -72,13 +72,14 @@ function LiveEdit({ profile, close }: { profile: SocialProfile; close: () => voi
         const blob = raw.slice(0, raw.size, raw.type || (/\.png$/i.test(draft.photoUri) ? 'image/png' : 'image/jpeg'));
         const token = await getToken(); if (!token) throw new Error('Session expired.');
         uploadId = await begin({ purpose: 'avatar', kind: 'image', width: 1, height: 1 });
+        if (!uploadId) throw new Error('Unable to start the avatar upload.');
         await sendUpload(uploadId, blob, token, () => {});
       }
-      await update({ username: draft.username, name: draft.name, bio: draft.bio, website: draft.website, location: draft.location });
-      if (uploadId) { await setAvatar({ uploadId }); uploadId = null; }
+      await update({ username: draft.username, name: draft.name, bio: draft.bio ?? '', website: draft.website ?? '', location: draft.location ?? '' });
+      if (uploadId !== null) { await setAvatar({ uploadId }); uploadId = null; }
       close();
     } catch (e) { Alert.alert('Could not save profile', errorMessage(e)); }
-    finally { if (uploadId) void cancel({ id: uploadId }).catch(() => {}); setSaving(false); }
+    finally { if (uploadId !== null) void cancel({ id: uploadId }).catch(() => {}); setSaving(false); }
   }
   return <View style={{ flex: 1 }}><EditProfileScreen initial={initial} avatar={source ?? (profile.avatarUrl ? { uri: profile.avatarUrl } : require('../../../assets/images/logo.png'))} onSave={draft => void save(draft)} onClose={() => { if (!saving) close(); }} />{saving && <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFFDD', gap: 12 }}><ActivityIndicator color="#087EFF" /><Text style={ui.text}>Saving your profile…</Text></View>}</View>;
 }

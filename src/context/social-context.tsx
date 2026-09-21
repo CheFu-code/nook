@@ -1,5 +1,5 @@
-import { useAuth, useClerk, useUser } from '@clerk/expo';
-import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { useAuth, useClerk, useConvexAuth, useUser } from '@/lib/chefu-auth';
+import { useMutation, useQuery } from 'convex/react';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { api, errorMessage, type SocialProfile } from '@/lib/social';
@@ -17,7 +17,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
   const deletion = useQuery(api.accounts.status, isAuthenticated ? {} : 'skip');
   const me = useQuery(api.profiles.me, isAuthenticated ? {} : 'skip');
   if (isLoading || (isAuthenticated && me === undefined)) return <View style={ui.center}><ActivityIndicator color="#087EFF" /><Text style={ui.muted}>Loading your profile…</Text></View>;
-  if (!isAuthenticated) return <View style={ui.center}><Text style={ui.title}>Connecting your account</Text><Text style={ui.muted}>Unable to authenticate with Convex. Check your connection and that the Clerk Convex integration is enabled, then sign in again.</Text><Pressable style={ui.button} onPress={() => void signOut()}><Text style={ui.buttonText}>Back to sign in</Text></Pressable></View>;
+  if (!isAuthenticated) return <View style={ui.center}><Text style={ui.title}>Connecting your account</Text><Text style={ui.muted}>Unable to authenticate with the Chefu backend. Check your connection and sign in again.</Text><Pressable style={ui.button} onPress={() => void signOut()}><Text style={ui.buttonText}>Back to sign in</Text></Pressable></View>;
   if (deletion) return <DeletionProgress state={deletion.state} error={deletion.error} />;
   if (deletion === undefined) return <View style={ui.center}><ActivityIndicator color="#087EFF" /></View>;
   if (!me) return <Onboarding />;
@@ -33,10 +33,9 @@ function Onboarding() {
   }
   return <KeyboardAvoidingView style={ui.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><View style={ui.center}><Text style={ui.title}>Make yourself at home</Text><Text style={ui.muted}>Choose a unique username so friends can find you.</Text><TextInput accessibilityLabel="Username" placeholder="Username" autoCapitalize="none" autoCorrect={false} maxLength={30} value={username} onChangeText={setUsername} style={[ui.input, { width: '100%' }]} /><TextInput accessibilityLabel="Display name" placeholder="Display name" maxLength={60} value={name} onChangeText={setName} style={[ui.input, { width: '100%' }]} />{!!error && <Text accessibilityRole="alert" style={ui.error}>{error}</Text>}<Pressable disabled={busy || !username.trim() || !name.trim()} style={[ui.button, (busy || !username.trim() || !name.trim()) && ui.disabled]} onPress={() => void submit()}><Text style={ui.buttonText}>{busy ? 'Creating profile…' : 'Continue'}</Text></Pressable><Pressable disabled={busy} onPress={() => void signOut()}><Text style={ui.link}>Sign out</Text></Pressable></View></KeyboardAvoidingView>;
 }
-// Match ConvexProviderWithClerk's integration/template selection for HTTP media.
 export function useBackendToken() {
-  const { getToken, sessionClaims } = useAuth();
-  return () => getToken(sessionClaims?.aud === 'convex' ? {} : { template: 'convex' });
+  const { getToken } = useAuth();
+  return () => getToken();
 }
 
 function DeletionProgress({ state, error }: { state: 'pending' | 'cleanup' | 'complete' | 'failed'; error?: string }) {

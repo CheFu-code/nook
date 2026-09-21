@@ -27,7 +27,7 @@ export function Composer({ story = false }: { story?: boolean }) {
       if (phase === 'publishing') { Alert.alert('Finishing publication', `Keep this screen open while the server confirms your ${story ? 'story' : 'post'}.`); return; }
       Alert.alert('Cancel upload?', story ? 'Your unfinished upload will be discarded.' : 'Your unfinished upload and caption will be discarded.', [{ text: 'Keep uploading', style: 'cancel' }, { text: 'Cancel upload', style: 'destructive', onPress: () => {
         controller.current?.abort();
-        if (uploadId.current) void cancel({ id: uploadId.current }).catch(() => {});
+        if (uploadId.current !== null !== null !== null !== null) void cancel({ id: uploadId.current }).catch(() => {});
         router.back();
       } }]); return;
     }
@@ -66,18 +66,22 @@ export function Composer({ story = false }: { story?: boolean }) {
       if (!uploadId.current) uploadId.current = await begin({ purpose: story ? 'story' : 'post', kind: meta.kind, width: meta.width, height: meta.height, ...(meta.duration ? { duration: meta.duration } : {}) });
       if (signal.aborted) { if (uploadId.current) void cancel({ id: uploadId.current }).catch(() => {}); return; }
       if (!uploaded.current) {
+        const activeId = uploadId.current;
+        if (!activeId) throw new Error('Upload session is missing. Please try again.');
         const local = await fetch(asset.uri); const raw = await local.blob();
         if (!raw.size || raw.size > meta.max) throw new Error('This file is empty or exceeds the upload size limit.');
         const blob = raw.slice(0, raw.size, meta.mime);
         const token = await getToken(); if (!token) throw new Error('Session expired. Sign in again.');
         if (signal.aborted) return; setPhase('uploading');
-        await sendUpload(uploadId.current, blob, token, setProgress, signal);
+        await sendUpload(activeId, blob, token, setProgress, signal);
         uploaded.current = true;
       }
       if (signal.aborted) return;
       setPhase('publishing');
-      if (story) await publishStory({ uploadId: uploadId.current, caption: '' });
-      else await publish({ uploadId: uploadId.current, caption });
+      const activeId = uploadId.current;
+      if (!activeId) throw new Error('Upload session is missing. Please try again.');
+      if (story) await publishStory({ uploadId: activeId, caption: '' });
+      else await publish({ uploadId: activeId, caption });
       uploadId.current = null; uploaded.current = false; busy.current = false; router.back();
     } catch (e) { if (mounted.current) setError(e instanceof Error && !(e as { data?: unknown }).data ? e.message : errorMessage(e)); }
     finally { busy.current = false; if (mounted.current) setPhase('idle'); }

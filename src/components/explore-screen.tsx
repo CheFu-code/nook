@@ -1,4 +1,4 @@
-import { useUser } from '@clerk/expo';
+import { useUser } from '@/lib/chefu-auth';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';

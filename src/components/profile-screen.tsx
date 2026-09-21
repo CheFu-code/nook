@@ -1,4 +1,4 @@
-import { useClerk, useUser } from '@clerk/expo';
+import { useClerk, useUser } from '@/lib/chefu-auth';
 import { Image, type ImageSource } from 'expo-image';
 import { usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

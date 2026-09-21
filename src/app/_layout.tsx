@@ -1,8 +1,5 @@
 import { MessagesProvider } from '@/context/messages-context';
-import { ClerkProvider, useAuth } from '@clerk/expo';
-import { ConvexReactClient } from 'convex/react';
-import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { tokenCache } from '@clerk/expo/token-cache';
+import { useAuth, ChefuAuthProvider } from '@/lib/chefu-auth';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
@@ -39,15 +36,6 @@ Sentry.init({
   ],
 });
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-if (!publishableKey) {
-  throw new Error('Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in .env and restart Expo.');
-}
-
-const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
-if (!convexUrl) throw new Error('Set EXPO_PUBLIC_CONVEX_URL in .env.local and restart Expo.');
-const convex = new ConvexReactClient(convexUrl);
-
 Sentry.logger.info('nook initialized', { platform: Platform.OS });
 
 function AuthenticatedRoutes() {
@@ -78,11 +66,9 @@ function AuthenticatedRoutes() {
 
 function RootLayout() {
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <AuthenticatedRoutes />
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ChefuAuthProvider>
+      <AuthenticatedRoutes />
+    </ChefuAuthProvider>
   );
 }
 
