@@ -1,4 +1,5 @@
 import { createContext, createElement, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 export type ChefuUser = {
@@ -23,8 +24,34 @@ export type ChefuAuthSession = {
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.chefu.co.za';
 const SESSION_KEY = 'chefu_auth_session';
 
+async function getStoredValue(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(key);
+  }
+
+  return SecureStore.getItemAsync(key);
+}
+
+async function setStoredValue(key: string, value: string | null) {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage === 'undefined') return;
+    if (value === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+    return;
+  }
+
+  if (value === null) {
+    await SecureStore.deleteItemAsync(key);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
 async function readStoredSession(): Promise<ChefuAuthSession | null> {
-  const raw = await SecureStore.getItemAsync(SESSION_KEY);
+  const raw = await getStoredValue(SESSION_KEY);
   if (!raw) return null;
 
   try {
@@ -37,12 +64,7 @@ async function readStoredSession(): Promise<ChefuAuthSession | null> {
 }
 
 async function writeStoredSession(session: ChefuAuthSession | null) {
-  if (!session) {
-    await SecureStore.deleteItemAsync(SESSION_KEY);
-    return;
-  }
-
-  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+  await setStoredValue(SESSION_KEY, session ? JSON.stringify(session) : null);
 }
 
 async function fetchChefuJson<T>(path: string, session: ChefuAuthSession | null, init?: RequestInit): Promise<T> {
