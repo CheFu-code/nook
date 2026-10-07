@@ -14,13 +14,21 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/lib/chefu-auth";
 import { errorMessage, type SocialStory } from "@/lib/social";
 import { useNookApi, useNookQuery } from "@/hooks/use-nook-api";
+import { useProfile } from "@/context/social-context";
 import { FeedIcon } from "../feed-icon";
 import { Avatar, useMediaSource } from "./media";
 
 type Story = SocialStory;
 export function Stories() {
+    const { user } = useAuth();
+    const profile = useProfile();
+    const ownProfile = {
+        ...profile,
+        avatarUrl: profile.avatarUrl ?? user?.photoURL ?? user?.imageUrl,
+    };
     const [now, setNow] = useState(() => Date.now());
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 30000);
@@ -40,7 +48,6 @@ export function Stories() {
     const { width, height } = useWindowDimensions();
     const s = width / 390;
     const v = height / 916;
-    type StoryItem = Story;
     const active = (stories ?? []).filter((story) => story.expiresAt > now);
     const people = [
         ...new Map(
@@ -80,17 +87,23 @@ export function Stories() {
                     onPress={() => router.push("/story-compose")}
                     style={{ width: 50 * s, alignItems: "center", gap: 6 * v }}
                 >
-                    <View
-                        style={{
-                            width: 50 * s,
-                            height: 50 * s,
-                            borderRadius: 26 * s,
-                            backgroundColor: "#EAF2FF",
+                    <View style={{ width: 50 * s, height: 50 * s }}>
+                        <Avatar profile={ownProfile} size={50 * s} />
+                        <View style={{
+                            position: "absolute",
+                            right: -2 * s,
+                            bottom: -1 * s,
+                            width: 21 * s,
+                            height: 21 * s,
+                            borderRadius: 11 * s,
+                            backgroundColor: "#087EFF",
+                            borderWidth: 2 * s,
+                            borderColor: "white",
                             alignItems: "center",
                             justifyContent: "center",
-                        }}
-                    >
-                        <FeedIcon name="plus" size={23 * s} color="#087EFF" />
+                        }}>
+                            <FeedIcon name="plus" size={13 * s} color="white" />
+                        </View>
                     </View>
                     <Text style={{ color: "#7C879F", fontSize: 9.5 * s }}>
                         Your story
@@ -170,6 +183,7 @@ export function Stories() {
                     <StoryViewer
                         key={current._id}
                         story={current}
+                        now={now}
                         index={index}
                         count={ordered.length}
                         onNext={next}
@@ -185,6 +199,7 @@ export function Stories() {
 }
 function StoryViewer({
     story,
+    now,
     index,
     count,
     onNext,
@@ -192,6 +207,7 @@ function StoryViewer({
     onClose,
 }: {
     story: Story;
+    now: number;
     index: number;
     count: number;
     onNext: () => void;
@@ -312,7 +328,7 @@ function StoryViewer({
                         Story ·{" "}
                         {Math.max(
                             1,
-                            Math.ceil((Date.now() - story._creationTime) / 3600000),
+                            Math.ceil((now - story._creationTime) / 3600000),
                         )}
                         h ago
                     </Text>
