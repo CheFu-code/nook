@@ -1,256 +1,239 @@
-import { useSocialAuth } from '@/hooks/use-social-auth';
-import { openLegalDocument } from '@/lib/legal-links';
+import { useSocialAuth } from "@/hooks/use-social-auth";
+import { openLegalDocument } from "@/lib/legal-links";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { useMemo } from "react";
 import {
-    Alert,
+    ActivityIndicator,
+    KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+    useColorScheme,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useState } from 'react';
 
-const palette = { background: "#FCFDFE", ink: "#080F25", blue: "#1680FF", muted: "#8290AB" };
 
-export default function Index() {
-    const { signIn, pendingProvider, isReady } = useSocialAuth();
-    const { width, height } = useWindowDimensions();
-    const insets = useSafeAreaInsets();
-    const scale = Math.min(width / 390, 1.3);
-    const canvasHeight = 837 * scale;
-    const top = Math.max(0, insets.top - 62 * scale);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    // Reference coordinates describe the screen content, excluding the device frame.
-    // A proportional canvas preserves the artwork; short screens can scroll.
-    return (
-        <View style={styles.screen}>
-            <StatusBar style="dark" />
-            <View nativeID="clerk-captcha" />
-            <ScrollView
-                bounces={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                    minHeight: height,
-                    paddingBottom: Math.max(0, insets.bottom - 18),
-                }}
-            >
-                <View
-                    style={{
-                        width: 390,
-                        height: 837,
-                        alignSelf: "center",
-                        marginTop: top,
-                        transformOrigin: "top center",
-                        transform: [{ scale }],
-                        marginBottom: canvasHeight - 837,
-                    }}
-                >
-                   
-                   
-                    <Text style={styles.wordmark}>Nook</Text>
-                    
-
-                    <View pointerEvents="none" style={styles.artwork}>
-                        <View style={styles.blueShape} />
-                        <Image
-                            source={require("../../assets/images/auth-demo-img.png")}
-                            style={styles.mountain}
-                            contentFit="fill"
-                        />
-                        <LinearGradient
-                            colors={["#FCFDFE00", "#FCFDFE99", palette.background]}
-                            locations={[0, 0.65, 1]}
-                            style={styles.fade}
-                        />
-                    </View>
-                    <Image
-                        source={require("../../assets/images/community-note.png")}
-                        contentFit="contain"
-                        style={styles.note}
-                        accessibilityLabel="Good people are built with great people."
-                    />
-                    <View style={styles.form}>
-                        <TextInput
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            keyboardType="email-address"
-                            placeholder="Email"
-                            value={email}
-                            onChangeText={setEmail}
-                            style={styles.input}
-                        />
-                        <TextInput
-                            placeholder="Password"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            style={styles.input}
-                        />
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Continue with Chefu account"
-                            accessibilityState={{ disabled: !isReady || !!pendingProvider || !email.trim() || !password.trim(), busy: !!pendingProvider }}
-                            disabled={!isReady || !!pendingProvider || !email.trim() || !password.trim()}
-                            onPress={() => void signIn('Email', email, password)}
-                            style={({ pressed }) => [
-                                styles.primaryButton,
-                                pressed && styles.pressed,
-                                (!email.trim() || !password.trim()) && styles.disabledButton,
-                            ]}
-                        >
-                            <Text style={styles.primaryButtonLabel}>{pendingProvider ? 'Signing in…' : 'Sign in with Chefu'}</Text>
-                        </Pressable>
-                    </View>
-                    <Text style={styles.legal}>
-                        By continuing, you agree to our{" "}
-                        <Text accessibilityRole="link" onPress={() => { void openLegalDocument('Terms of Service'); }} style={styles.blue}>
-                            Terms
-                        </Text>{" "}
-                        and acknowledge{"\n"}our{" "}
-                        <Text
-                            accessibilityRole="link"
-                            onPress={() => { void openLegalDocument('Privacy Policy'); }}
-                            style={styles.blue}
-                        >
-                            Privacy Policy.
-                        </Text>
-                    </Text>
-                </View>
-            </ScrollView>
-        </View>
-    );
+interface Theme {
+  background: string;
+  surface: string;
+  ink: string;
+  body: string;
+  muted: string;
+  border: string;
+  borderFocus: string;
+  placeholder: string;
+  buttonBackground: string;
+  buttonText: string;
 }
 
-const styles = StyleSheet.create({
-    screen: { flex: 1, backgroundColor: palette.background },
-    more: {
-        position: "absolute",
-        top: 58,
-        right: 24,
-        width: 35,
-        height: 35,
-        borderRadius: 20,
-        backgroundColor: "#F0F3F8",
-        alignItems: "center",
-        justifyContent: "center",
+const themes: Record<"light" | "dark", Theme> = {
+  light: {
+    background: "#FFFFFF",
+    surface: "#FAFAFA",
+    ink: "#09090B",
+    body: "#3F3F46",
+    muted: "#71717A",
+    border: "#E4E4E7",
+    borderFocus: "#09090B",
+    placeholder: "#A1A1AA",
+    buttonBackground: "#09090B",
+    buttonText: "#FFFFFF",
+  },
+  dark: {
+    background: "#09090B",
+    surface: "#111113",
+    ink: "#FAFAFA",
+    body: "#D4D4D8",
+    muted: "#A1A1AA",
+    border: "#27272A",
+    borderFocus: "#FAFAFA",
+    placeholder: "#71717A",
+    buttonBackground: "#FAFAFA",
+    buttonText: "#09090B",
+  },
+};
+
+type Styles = ReturnType<typeof createStyles>;
+
+export default function Index() {
+  const { signIn, pendingProvider, isReady } = useSocialAuth();
+  const insets = useSafeAreaInsets();
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
+  const theme = themes[isDark ? "dark" : "light"];
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const isBusy = Boolean(pendingProvider);
+  const canSubmit = isReady && !isBusy;
+
+  const submit = () => {
+    if (!canSubmit) return;
+    void signIn();
+  };
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: insets.top + 56,
+              paddingBottom: insets.bottom + 24,
+            },
+          ]}
+        >
+          <View style={styles.column}>
+            <Image
+              source={require("../../assets/images/ct-logo.png")}
+              contentFit="contain"
+              tintColor={theme.ink}
+              style={styles.logo}
+              accessibilityLabel="Logo"
+            />
+
+            <View style={styles.header}>
+              <Text accessibilityRole="header" style={styles.heading}>
+                Sign in
+              </Text>
+              <Text style={styles.subtitle}>
+                Sign in securely with your Chefu Account.
+              </Text>
+            </View>
+
+            <View style={styles.form}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Continue with Chefu Account"
+                accessibilityState={{ disabled: !canSubmit, busy: isBusy }}
+                disabled={!canSubmit}
+                onPress={submit}
+                style={({ pressed }) => [
+                  styles.primaryButton,
+                  pressed && styles.pressed,
+                  !canSubmit && styles.disabledButton,
+                ]}
+              >
+                {isBusy ? (
+                  <View style={styles.busyRow}>
+                    <ActivityIndicator color={theme.buttonText} size="small" />
+                    <Text style={styles.primaryButtonLabel}>Connecting</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.primaryButtonLabel}>Continue with Chefu Account</Text>
+                )}
+              </Pressable>
+              
+            </View>
+          </View>
+
+          <View style={styles.column}>
+            <Text style={styles.legal}>
+              By continuing, you agree to our{" "}
+              <Text
+                accessibilityRole="link"
+                onPress={() => {
+                  void openLegalDocument("Terms of Service");
+                }}
+                style={styles.legalLink}
+              >
+                Terms of Service
+              </Text>{" "}
+              and acknowledge our{" "}
+              <Text
+                accessibilityRole="link"
+                onPress={() => {
+                  void openLegalDocument("Privacy Policy");
+                }}
+                style={styles.legalLink}
+              >
+                Privacy Policy
+              </Text>
+              .
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+function createStyles(theme: Theme) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    screen: { flex: 1, backgroundColor: theme.background },
+    content: {
+      flexGrow: 1,
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 24,
     },
-    dots: { color: "#71809D", fontSize: 13, letterSpacing: 2, marginLeft: 2, marginTop: -2 },
-    logo: { position: "absolute", top: 78, left: 157, width: 78, height: 76 },
-    wordmark: {
-        position: "absolute",
-        top: 157,
-        width: "100%",
-        textAlign: "center",
-        fontSize: 27.5,
-        fontWeight: "800",
-        letterSpacing: -1.25,
-        color: "#050505",
-    },
-    headline: { position: "absolute", top: 212, left: 71, right: 12 },
+    column: { width: "100%", maxWidth: 420 },
+    logo: { width: 48, aspectRatio: 512 / 359 },
+    header: { marginTop: 40, marginBottom: 36 },
     heading: {
-        fontSize: 28.5,
-        lineHeight: 30,
-        fontWeight: "700",
-        letterSpacing: -0.7,
-        color: palette.ink,
+      fontSize: 30,
+      lineHeight: 36,
+      fontWeight: "600",
+      letterSpacing: -0.6,
+      color: theme.ink,
     },
-    blue: { color: palette.blue },
     subtitle: {
-        position: "absolute",
-        top: 312,
-        width: "100%",
-        textAlign: "center",
-        fontSize: 15,
-        letterSpacing: -0.3,
-        color: palette.muted,
+      marginTop: 10,
+      fontSize: 15,
+      lineHeight: 22,
+      color: theme.muted,
     },
-    artwork: { position: "absolute", top: 338, left: 0, width: 390, height: 280, overflow: "hidden" },
-    blueShape: {
-        position: "absolute",
-        top: 9,
-        left: -82,
-        width: 165,
-        height: 210,
-        borderRadius: 64,
-        backgroundColor: "#E4F0FF",
-        transform: [{ rotate: "23deg" }],
+    form: { gap: 16 },
+    accountLinks: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 2,
     },
-    mountain: { position: "absolute", left: -25, top: 22, width: 404, height: 250, opacity: 0.67 },
-    fade: { position: "absolute", bottom: -1, width: "100%", height: 76 },
-    note: { position: "absolute", top: 364, right: 10, width: 118, height: 72 },
-    form: { position: "absolute", top: 615, left: 27, right: 27, gap: 11 },
-    input: {
-        backgroundColor: "#F4F7FB",
-        borderWidth: 1,
-        borderColor: "#E6EBF2",
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 15,
-        color: palette.ink,
+    forgotLabel: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: "500",
+      color: theme.ink,
     },
     primaryButton: {
-        height: 55,
-        borderRadius: 30,
-        backgroundColor: palette.blue,
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 3px 12px rgba(26, 39, 65, 0.09)",
+      height: 52,
+      marginTop: 4,
+      borderRadius: 12,
+      backgroundColor: theme.buttonBackground,
+      alignItems: "center",
+      justifyContent: "center",
     },
-    primaryButtonLabel: { color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: -0.25 },
-    disabledButton: { opacity: 0.5 },
-    buttons: { position: "absolute", top: 615, left: 27, right: 27, gap: 11 },
-    button: {
-        height: 55,
-        borderRadius: 30,
-        backgroundColor: "#FCFDFE",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 3px 12px rgba(26, 39, 65, 0.09)",
+    primaryButtonLabel: {
+      fontSize: 15,
+      fontWeight: "600",
+      letterSpacing: -0.1,
+      color: theme.buttonText,
     },
-    appleButton: { backgroundColor: "#0D0F11" },
-    pressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
-    providerIcon: { position: "absolute", left: 25, width: 29, height: 29 },
-    appleIcon: {
-        position: "absolute",
-        left: 29,
-        top: 8,
-        color: "#FFFFFF",
-        fontSize: 32,
-        lineHeight: 37,
-    },
-    buttonLabel: { color: palette.ink, fontSize: 15, fontWeight: "600", letterSpacing: -0.25 },
-    white: { color: "#FFFFFF" },
-    arrow: { position: "absolute", right: 28, width: 16, height: 20, justifyContent: "center" },
-    arrowShaft: { height: 1.6, width: 14, borderRadius: 1, backgroundColor: palette.muted },
-    arrowTip: {
-        position: "absolute",
-        right: 1,
-        width: 10,
-        height: 10,
-        borderTopWidth: 1.6,
-        borderRightWidth: 1.6,
-        borderColor: palette.muted,
-        transform: [{ rotate: "45deg" }],
-    },
-    lightArrow: { backgroundColor: "#BCC5D5" },
-    lightArrowTip: { borderColor: "#BCC5D5" },
+    busyRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+    disabledButton: { opacity: 0.4 },
+    pressed: { opacity: 0.85 },
     legal: {
-        position: "absolute",
-        top: 758,
-        width: "100%",
-        textAlign: "center",
-        fontSize: 10.5,
-        lineHeight: 14,
-        letterSpacing: -0.12,
-        color: palette.muted,
+      marginTop: 40,
+      textAlign: "center",
+      fontSize: 12,
+      lineHeight: 18,
+      color: theme.muted,
     },
-});
+    legalLink: {
+      color: theme.ink,
+      textDecorationLine: "underline",
+    },
+  });
+}

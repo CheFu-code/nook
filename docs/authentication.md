@@ -1,40 +1,31 @@
 # Authentication
 
-The welcome screen uses Clerk’s combined Google/Apple sign-in and sign-up flow. Existing users sign in; new users get an account through the same buttons.
+Nook uses the Chefu Account app as its centralized sign-in experience. The sign-in screen opens the account app's OAuth authorization flow; the account app handles credentials, passkeys, MFA, email verification, and backend session creation. Nook completes the authorization-code flow with PKCE and stores a Nook-scoped OAuth token.
 
 ## Local development
 
-1. Link this project to the nook Clerk app with `clerk init --app app_3J8A3Uze0XYTldcgAmx4FbqlQ7L`.
-2. Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in `.env` (the CLI writes it). Never prefix a secret key with `EXPO_PUBLIC_`. `.env` and local Clerk state are ignored by Git.
-3. Run `npm run ios` to build and launch the iOS development app. On subsequent runs use `npx expo start --dev-client`.
+1. Set `EXPO_PUBLIC_API_BASE_URL` to the Chefu API base URL in `.env` (the production default is `https://api.chefu.co.za`).
+2. Set the Convex environment variables used by the app in `.env` when working with Convex-backed features.
+3. Run `npm run ios` or `npm run android` to build and launch a native app. On subsequent runs use `npx expo start --dev-client`.
 
-The development app identifier is `com.burakorkmez.nook`. The callback is `nook://sso-callback`, registered with the development Clerk instance. The custom callback requires this app’s development build, not Expo Go.
-
-Clerk Native API, Google, and Apple are enabled on the linked development instance. No additional profile fields are required by this instance. Changing required fields, MFA, or session tasks requires extending the completion UI.
+The app scheme is `nook`; the bundle/package identifier is `com.burakorkmez.nook`.
 
 ## Session behavior
 
-- `ClerkProvider` uses Clerk’s `tokenCache` backed by the device secure store.
-- The app waits for session restoration before showing routes.
-- Signed-out users see the welcome screen; signed-in users see the protected account screen.
-- Sign-out revokes the active session and returns to the welcome screen.
-- Both buttons are locked while a provider flow is running. Cancellation is silent; errors show retryable feedback.
-- Client route guards are UI protection only. Future backend endpoints must verify Clerk tokens independently.
+- Nook uses the registered `nook-mobile` OAuth client, the `nook://sso-callback` redirect URI, PKCE, state, and nonce validation.
+- Nook exchanges the authorization code at `/oauth/token` and loads the account from `/oauth/userinfo`.
+- OAuth access and refresh tokens are stored with Expo SecureStore on native platforms. Web builds use local storage.
+- Nook requests refreshed OAuth access tokens when needed and sends `x-chefu-app: nook` with authenticated Nook API requests.
+- The centralized account app enforces account verification and MFA policies.
+- Signed-out users see the sign-in screen; signed-in users see protected routes.
+- Sign-out clears the local Nook session and asks the backend to clear its session cookies.
 
-## Native provider sheets
-
-The current implementation uses browser OAuth because provider-owned native credentials are not configured. It does not use native Google or Apple sheets.
-
-For native Google, configure your Google Cloud web and iOS OAuth clients, then add `@clerk/expo-google-signin`, its config plugin, and the native Clerk hook. Clerk Expo 4 requires this separate Google package. For native Apple, configure the Apple bundle identifier and Sign in with Apple credentials in Clerk, then use Clerk’s Apple hook. Rebuild after native configuration changes.
-
-See [Clerk Expo quickstart](https://clerk.com/docs/expo/getting-started/quickstart), [Google hook](https://clerk.com/docs/reference/expo/native-hooks/use-sign-in-with-google), and [Apple hook](https://clerk.com/docs/reference/expo/native-hooks/use-sign-in-with-apple).
+Account creation, password recovery, passkeys, and MFA challenges are handled by the Chefu Account app.
 
 ## Manual acceptance check
 
-1. Tap each provider and cancel; the welcome screen must remain usable.
-2. Complete Google or Apple authentication; verify the account name/email and sign-out control.
-3. Terminate and relaunch the app; the account must remain signed in.
-4. Sign out; navigating directly to `nook://home` must return to the welcome screen.
-5. Repeat with a new account to verify automatic signup.
-
-Provider credentials and account verification should be entered by the account owner. A provider round-trip is not verified until those steps have completed.
+1. Start sign-in and confirm the Chefu Account login opens in the system authentication browser.
+2. Sign in with a Chefu account, including an MFA-enabled account, and confirm that protected routes open.
+3. Terminate and relaunch the app; the stored session should be restored.
+4. Leave the app signed in until the access token expires; the refresh token should obtain a new ID token without prompting for credentials.
+5. Sign out and confirm that protected routes return to the sign-in screen.

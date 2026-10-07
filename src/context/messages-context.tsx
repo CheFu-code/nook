@@ -16,7 +16,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       if (!token) throw new Error('You must be signed in to send messages.');
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.chefu.co.za'}/nook/messages/${item.conversationId}/messages`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'x-chefu-app': 'nook' },
         body: JSON.stringify({ text: item.text, requestId: item.id }),
       });
       if (!response.ok) throw new Error('Unable to send message.');

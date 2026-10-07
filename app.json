@@ -7,21 +7,14 @@
     "icon": "./assets/images/logo.png",
     "scheme": "nook",
     "userInterfaceStyle": "light",
-    "ios": {
-      "icon": "./assets/images/logo.png",
-      "bundleIdentifier": "com.burakorkmez.nook",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      },
-      "appleTeamId": "9NSCVL7862"
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/logo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.burakorkmez.nook"
+      "package": "co.za.chefu.nook",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
@@ -46,15 +39,7 @@
           "microphonePermission": false
         }
       ],
-      "expo-video",
-      [
-        "@sentry/react-native/expo",
-        {
-          "url": "https://sentry.io/",
-          "project": "nook",
-          "organization": "codesistency-gs"
-        }
-      ]
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -63,8 +48,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "b4bbfd4e-acc0-4079-8584-78850ec873b9"
+        "projectId": "68f53682-efa6-49ce-996d-b25c48f0dea3"
       }
-    }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/68f53682-efa6-49ce-996d-b25c48f0dea3"
+    },
+    "ios": {}
   }
 }
