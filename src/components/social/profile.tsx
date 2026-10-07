@@ -7,7 +7,7 @@ import { useChefuAccessToken, useProfile } from '@/context/social-context';
 import { errorMessage, type Id, type SocialProfile, type SocialPost } from '@/lib/social';
 import { useNookApi, useNookPaginatedQuery, useNookQuery } from '@/hooks/use-nook-api';
 import type { ProfileDraft } from '@/lib/profile-form';
-import { sendUpload } from '@/lib/upload';
+import { readUploadBlob, sendUpload } from '@/lib/upload';
 import { EditProfileScreen } from '../edit-profile-screen';
 import { Avatar, PostMedia, useMediaSource } from './media';
 import { FollowButton } from './post-card';
@@ -70,9 +70,11 @@ function LiveEdit({ profile, close, onSaved }: { profile: SocialProfile; close: 
     if (saving) return; setSaving(true); let uploadId: Id<'uploads'> | null = null;
     try {
       if (draft.photoUri) {
-        const response = await fetch(draft.photoUri); const raw = await response.blob();
-        if (!raw.size || raw.size > 5 * 1024 * 1024) throw new Error('Choose a photo under 5 MB.');
-        const blob = raw.slice(0, raw.size, raw.type || (/\.png$/i.test(draft.photoUri) ? 'image/png' : 'image/jpeg'));
+        const blob = await readUploadBlob(
+          draft.photoUri,
+          5 * 1024 * 1024,
+          /\.png$/i.test(draft.photoUri) ? 'image/png' : 'image/jpeg',
+        );
         const token = await getToken(); if (!token) throw new Error('Session expired.');
         const created = await request<{ id: string }>('/nook/uploads', { method: 'POST', body: { purpose: 'avatar', kind: 'image', width: 1, height: 1 } });
         uploadId = created.id;

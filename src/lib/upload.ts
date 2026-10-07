@@ -1,5 +1,27 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
+import { Blob as ExpoBlob } from 'expo-blob';
+import { fetch } from 'expo/fetch';
+import { Platform } from 'react-native';
 import { siteUrl } from './social';
+
+if (Platform.OS !== 'web' && globalThis.Blob !== ExpoBlob) {
+  Object.defineProperty(globalThis, 'Blob', {
+    configurable: true,
+    writable: true,
+    value: ExpoBlob,
+  });
+}
+
+export async function readUploadBlob(uri: string, maxBytes: number, fallbackMime: string) {
+  const response = await fetch(uri);
+  if (!response.ok) throw new Error('Unable to read the selected file. Please choose it again.');
+  const raw = await response.blob();
+  if (!raw.size || raw.size > maxBytes) {
+    throw new Error(`Choose a file under ${maxBytes / 1024 / 1024} MB.`);
+  }
+  const mime = response.headers.get('content-type')?.split(';')[0]?.trim() || fallbackMime;
+  return raw.slice(0, raw.size, mime);
+}
 
 export function validateMedia(asset: ImagePickerAsset, avatar = false) {
   const video = asset.type === 'video';
