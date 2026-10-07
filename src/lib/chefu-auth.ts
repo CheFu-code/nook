@@ -292,30 +292,3 @@ export function useAuth() {
   if (!context) throw new Error('ChefuAuthProvider is required.');
   return context;
 }
-
-export function useUser() {
-  const { user } = useAuth();
-  return { user: user ?? null };
-}
-
-export function useClerk() {
-  const { signOut } = useAuth();
-  return { signOut };
-}
-
-export function useConvexAuth() {
-  const { isLoaded, isSignedIn } = useAuth();
-  return { isLoading: !isLoaded, isAuthenticated: isSignedIn };
-}
-
-export function useConvex() {
-  return { isAuthenticated: !!useAuth().session };
-}
-
-export function useSSO() {
-  return {
-    startSSOFlow: async () => {
-      throw new Error('Use the Chefu Account sign-in flow.');
-    },
-  };
-}

@@ -1,11 +1,11 @@
-import { usePaginatedQuery } from 'convex/react';
 import { Image, type ImageSource } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api } from '@/lib/social';
+import { useNookPaginatedQuery } from '@/hooks/use-nook-api';
+import { Conversation } from '@/lib/social';
 import { ChatScreen, chatAvatar, initialMessages, type ChatMessage } from './chat-screen';
 import { DemoMessageAvatar } from './demo-message-avatar';
 import { FeedIcon } from './feed-icon';
@@ -25,7 +25,7 @@ export function MessagesTab({ preview = false }: { preview?: boolean }) {
 }
 function LiveInbox() {
   const [unread, setUnread] = useState(false);
-  const rows = usePaginatedQuery(api.messaging.list, { unreadOnly: unread }, { initialNumItems: 20 }); const router = useRouter();
+  const rows = useNookPaginatedQuery<Conversation>(`/nook/conversations?unreadOnly=${unread}`); const router = useRouter();
   return <MessagesLayout onFilter={setUnread} liveRows={rows.results.map(item => <ConversationRow key={item._id} name={item.other.username} text={item.preview} time={inboxTime(item.lastMessageAt)} unread={item.unread} avatar={size => <Avatar profile={item.other} size={size} />} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: item._id } })} />)} footer={<LoadMore status={rows.status} loadMore={rows.loadMore} />} status={<ConnectionStatus />} />;
 }
 function MessagesLayout({ onFilter, liveRows, footer, status }: { onFilter?: (unread: boolean) => void; liveRows?: ReactNode[]; footer?: ReactNode; status?: ReactNode }) {

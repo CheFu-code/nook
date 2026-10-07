@@ -24,9 +24,9 @@ Backend changes were deployed to **development savory-raven-325**. No story fixt
 
 ## Validation
 
-`npm run typecheck`, `npm test` (23 passing tests), and `git diff --check` pass. New `convex/stories.test.ts` cases cover authenticated upload/viewing, cross-account visibility, rejected unauthorized publication/deletion, wrong upload purpose, caption limits, retry-safe publication, video rejection, expiry and storage/upload cleanup. Existing social, messaging and seed tests pass.
+`npm run typecheck` passes. The current social endpoints are CheFu REST calls; API integration and device publication still require a signed-in test account.
 
-The simulator verified the Home layout, live empty story rail, composer and native photo-library opening. End-to-end device publication and the full-screen viewer were not verified: the computer-use interface exposed no photo elements and coordinate selection repeatedly failed with `noWindowsAvailable`. The API upload-to-publication path was tested through convex-test's HTTP interface instead. This is a remaining manual device QA check, not a claimed passing UI test.
+The simulator verified the Home layout, story rail, composer and native photo-library opening. End-to-end publishing and the full-screen viewer remain manual device acceptance checks.
 
 Story publication sends an empty caption for compatibility with the existing backend contract, and the viewer never renders caption text. Camera permission is configured in `app.json`; installed development clients must be rebuilt to include it.
 

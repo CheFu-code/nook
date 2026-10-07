@@ -15,7 +15,7 @@ This notice explains data processing; it is not a request for blanket consent. [
 
 ## 2. Information we receive
 
-**Account and sign-in information.** You sign in through Google or Apple using Clerk, our authentication provider. This involves authentication identifiers, tokens and session information. Depending on your provider and its settings, Clerk may receive information such as your name, email address and profile picture. The app uses identity information to connect your session to your nook profile and may use provider details to prefill or display account information. We do not provide a separate nook password-entry flow.
+**Account and sign-in information.** You sign in through the CheFu Account app using its centralized OAuth service. Nook receives an account identifier and available account details such as your name, email address and profile picture, along with OAuth tokens and session information. The account app handles the sign-in methods it offers; Nook does not provide a separate password-entry flow.
 
 **Profile information.** To create a profile, you provide a username and display name. You may add a bio, website, location text and profile image. We store profile identifiers, an authentication identifier, profile fields, avatar references, searchable name/username text and activity counts. The location field is information you enter; the implemented features do not request device GPS location.
 
@@ -25,13 +25,13 @@ This notice explains data processing; it is not a request for blanket consent. [
 
 **Requests and local state.** Searching profiles sends your search text to the backend; some post filtering happens on your device. The app does not implement a saved search history. Pending message drafts and some viewing/demo state are held in app memory. Network and provider logs may have different retention, as addressed below.
 
-**Technical and deletion information.** Service connections expose request information, such as IP addresses and connection/request metadata, to the receiving service. Authentication software processes technical information described in Section 5. Account deletion creates a record containing identifying references, status, retry information and errors when needed. [CONFIRM ADDITIONAL HOSTING, SECURITY AND SUPPORT LOG DATA, PURPOSES AND RETENTION.]
+**Technical and deletion information.** Service connections expose request information, such as IP addresses and connection/request metadata, to the receiving service. The app includes Sentry crash/feedback tooling; confirm the deployed event collection, payloads and retention. Account deletion keeps a status record keyed by the CheFu account identifier to prevent an old access token from recreating the Nook profile. [CONFIRM ADDITIONAL HOSTING, SECURITY AND SUPPORT LOG DATA, PURPOSES AND RETENTION.]
 
 ## 3. How information is used
 
 The implemented processing supports signing you in, creating and finding profiles, showing posts and stories, selecting a Home feed using follows, recording social interactions, saving posts, delivering conversations, maintaining unread state, validating and serving uploads, and processing deletion requests. Authentication and ownership checks use identifiers to control access. Retained deletion identifiers help prevent still-valid authentication tokens from recreating a deleted account.
 
-Explore filters use ordinary matching rules; the application does not implement AI inference or send content to an AI model. The reviewed app does not implement payment collection, contact-list import, advertising targeting or a separate marketing analytics integration. Authentication-provider diagnostics are addressed separately below. [CONFIRM ANY OPERATOR PRACTICES OUTSIDE THE APP, INCLUDING SUPPORT, MARKETING, SALE OR ADVERTISING-RELATED SHARING, BEFORE PUBLICATION.]
+Explore filters use ordinary matching rules; the application does not implement AI inference or send content to an AI model. The reviewed app does not implement payment collection, contact-list import, advertising targeting or a separate marketing analytics integration. [CONFIRM ANY OPERATOR PRACTICES OUTSIDE THE APP, INCLUDING SUPPORT, MARKETING, SALE OR ADVERTISING-RELATED SHARING, BEFORE PUBLICATION.]
 
 ## 4. Who receives information
 
@@ -39,17 +39,17 @@ Explore filters use ordinary matching rules; the application does not implement 
 
 Conversation access through the app is restricted to participants. Messages are stored on the backend and are not end-to-end encrypted. Member-facing access restrictions do not prevent the backend from processing message text.
 
-**Service providers.** Clerk handles authentication and sessions. Convex hosts the application database, server functions and uploaded media. Google or Apple participates when you choose its sign-in option. These services receive information necessary for their respective flows, including technical request information. When the app displays a profile picture hosted by an external provider, your device may request it directly from that host. [CONFIRM PROVIDER ENTITIES, CONTRACTUAL ROLES, SUBPROCESSORS AND ANY ADDITIONAL OPERATIONAL RECIPIENTS.]
+**Service providers.** CheFu Account provides centralized sign-in and the CheFu API provides Nook's authenticated application endpoints. The backend uses its configured Firebase services for database records and uploaded media. These services receive information necessary for their respective flows, including technical request information. Media links are short-lived signed URLs. [CONFIRM PROVIDER ENTITIES, CONTRACTUAL ROLES, SUBPROCESSORS AND ANY ADDITIONAL OPERATIONAL RECIPIENTS.]
 
 **Sharing you choose.** Using the device share sheet can send a post author's username, caption and app link to the destination you select. Other people can also retain screenshots or copies. We cannot recall those external copies through an app deletion action. Visiting a profile website or another external destination subjects that interaction to the destination's own practices.
 
-## 5. Authentication storage and SDK diagnostics
+## 5. Authentication storage and app diagnostics
 
-On native devices, Clerk authentication tokens are stored using Expo SecureStore with an after-first-unlock setting. This is not a requirement to authenticate biometrically every time the app uses a token. Browser sign-in involves Clerk and the selected identity provider's browser/session storage. The app's web configuration does not use the native SecureStore token cache.
+On native devices, Nook stores its OAuth session using Expo SecureStore. Web builds use browser local storage. Sign-in opens the CheFu Account authorization flow in the system authentication browser. This is not a requirement to authenticate biometrically every time the app uses a token.
 
-The testing configuration uses a Clerk development instance and does not explicitly turn off its SDK telemetry. The installed SDK supports sending development feature-usage events, SDK versions, an instance identifier and event-specific technical information to Clerk. It also contains a diagnostic-log collection path; its actual use and payloads in distributed builds remain to be verified. The app has no user-facing telemetry switch. [CONFIRM ACTIVE SDK DIAGNOSTICS, DATA FIELDS, PURPOSES, RETENTION AND REQUIRED CHOICES FOR THE DISTRIBUTED BUILD.]
+The app initializes Sentry for crash/error reporting and provides an optional feedback flow. The Sentry configuration disables default PII, but event payloads, operational metadata, destinations and retention must be confirmed for the distributed build. The app has no user-facing diagnostics switch. [CONFIRM ACTIVE DIAGNOSTICS, DATA FIELDS, PURPOSES, RETENTION AND REQUIRED CHOICES FOR THE DISTRIBUTED BUILD.]
 
-The SDK can use browser local storage to limit repeated telemetry events. [ADD THE VERIFIED BROWSER COOKIE/STORAGE INVENTORY, PURPOSES, LIFETIMES AND ANY REQUIRED CONSENT CONTROLS.] The standalone preview/legal page supplied with this project adds no analytics, forms, cookies or browser-storage code. Its web host can still receive ordinary request information; [IDENTIFY WEBSITE HOST AND ITS LOGGING/RETENTION PRACTICES].
+The standalone preview/legal page supplied with this project adds no analytics, forms, cookies or browser-storage code. Its web host can still receive ordinary request information; [IDENTIFY WEBSITE HOST AND ITS LOGGING/RETENTION PRACTICES].
 
 ## 6. Device permissions
 
@@ -59,7 +59,7 @@ A device permission choice is separate from any legal consent that may be requir
 
 ## 7. Storage and security
 
-Profile, content, social, messaging and deletion records are stored in Convex; authentication records are handled by Clerk. Configured backend connections use HTTPS. The app checks authenticated identity, ownership for relevant changes, and conversation participation. Its authenticated media responses request private, non-persistent caching, and its image component disables its configured image cache. These settings do not erase screenshots, all operating-system caches or copies held by recipients.
+Profile, content, social, messaging and deletion records are stored by the CheFu backend in its configured Firebase database and storage services; CheFu Account handles OAuth identity and session issuance. Configured backend connections use HTTPS. The API checks authenticated identity, ownership for relevant changes, and conversation participation. Media URLs are short-lived signed links and can be used by anyone holding the link until expiry. These measures do not erase screenshots, all operating-system caches or copies held by recipients.
 
 These are specific implementation measures, not a promise that information can never be accessed improperly or lost. The app has no end-to-end message encryption. [CONFIRM ACTUAL STORAGE/PROCESSING COUNTRIES, OPERATOR ACCESS CONTROLS AND ANY REQUIRED INTERNATIONAL-TRANSFER SAFEGUARDS.] A regional development endpoint does not establish where all authentication data, logs, backups or support access reside.
 
@@ -67,13 +67,13 @@ These are specific implementation measures, not a promise that information can n
 
 Ordinary accounts, profiles, posts, messages and social records have no general automatic age or inactivity expiry in the current implementation. They remain until the applicable deletion action or cleanup. [SET AND DISCLOSE THE OPERATOR'S RETENTION PERIODS OR CRITERIA, INCLUDING INACTIVE ACCOUNTS.]
 
-Stories are set to expire 24 hours after publication, with scheduled removal of their record and uploaded file. Pending/unpublished uploads have a one-hour expiry and scheduled cleanup; cancellation also attempts removal. Scheduled work or failures can delay physical deletion. These periods are not guarantees about copies outside the active application storage.
+Stories stop appearing in the app 24 hours after publication; automated physical deletion of expired story records/files is not configured. Pending upload sessions become unusable after one hour, but automated removal of every abandoned uploaded file is not configured. Cancellation and account deletion attempt to remove the corresponding files. These periods are not guarantees about copies outside active application storage.
 
-You can delete your own posts and comments. Post deletion removes its uploaded media and schedules associated interaction cleanup. Replacing an uploaded profile image deletes the prior image. Some published-upload metadata can remain until account cleanup.
+You can delete your own posts and comments. Post deletion removes its uploaded media and associated interactions. [CONFIRM AND IMPLEMENT CLEANUP OF REPLACED PROFILE IMAGES AND ABANDONED UPLOAD METADATA.]
 
-Choosing Delete Account in Settings starts a staged process. The app restricts account use, requests deletion of your Clerk user, and then removes associated application records and uploaded files in batches. This includes entire conversations and their messages for both participants, including messages written by the other participant. A failed step can leave deletion pending and the account restricted; the app provides retry handling. Deleting nook does not delete your Google or Apple account.
+Choosing Delete Account in Settings removes your Nook profile, posts, media, stories, social interactions and entire conversations/messages for both participants, including messages written by the other participant. Cleanup is attempted synchronously; a failure leaves a retryable status. Deleting Nook data does not delete or disable your CheFu Account.
 
-After completion, a deletion record containing your authentication identifier, profile reference and job metadata remains. There is no automatic purge schedule for this record. It helps prevent account recreation using still-valid tokens. [CONFIRM AND IMPLEMENT AN APPROPRIATE RETENTION PERIOD FOR THIS IDENTIFIABLE RECORD AND FAILED JOBS.]
+After completion, a deletion-status record keyed by your CheFu account identifier remains. There is no automatic purge schedule for this record. It helps prevent account recreation using still-valid tokens. [CONFIRM AND IMPLEMENT AN APPROPRIATE RETENTION PERIOD FOR THIS IDENTIFIABLE RECORD AND FAILED JOBS.]
 
 The app cleanup does not establish deletion periods for provider logs, backups, authentication-provider records retained independently, device caches or copies kept by others. [SPECIFY VERIFIED PROVIDER/BACKUP RETENTION AND DELETION PROPAGATION.] Uninstalling or signing out is not the same as requesting account deletion.
 

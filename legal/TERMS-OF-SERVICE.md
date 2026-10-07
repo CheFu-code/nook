@@ -17,11 +17,11 @@ Our separate Privacy Policy at [PRIVACY POLICY URL] explains how personal inform
 
 nook is currently provided for testing. You must be at least [MINIMUM AGE], meet [MINOR / GUARDIAN POLICY, IF APPLICABLE], and have the legal capacity or authorization required to agree to these Terms. Testing is offered in [PERMITTED TESTING COUNTRIES / TERRITORIES], subject to [TESTER ELIGIBILITY / ACCESS CONDITIONS].
 
-The presence of a sign-in button does not verify your age or eligibility. You must also be eligible to use the Google or Apple account you select for sign-in.
+The presence of a sign-in button does not verify your age or eligibility. You must also be eligible to use the CheFu Account you select for sign-in.
 
 ## 3. Accounts
 
-You sign in or sign up through Google or Apple using Clerk authentication. You then choose a unique username and a display name. You may edit your profile and add a profile photo, bio, website and location. A provider-supplied name or picture may be used to help set up your profile. Usernames and profile details are not identity verification.
+You sign in or sign up through CheFu Account's centralized authentication service. You then choose a unique username and a display name. You may edit your profile and add a profile photo, bio, website and location. Account details may be used to help set up your profile. Usernames and profile details are not identity verification.
 
 Use an account you are authorized to access. Keep your sign-in credentials and devices secure, and do not impersonate another person or attempt to access someone else's account. Contact [SUPPORT EMAIL] if you believe your nook account has been compromised. Authentication availability and recovery also depend on your sign-in provider.
 
@@ -37,19 +37,19 @@ Home shows your posts and posts from accounts you follow, generally newest first
 
 **Messages.** Access to real conversations through the app is restricted to their participants. Messages are stored on the Service's backend and are not end-to-end encrypted. Current real messaging is text-only. Calls, group messaging, live online status, recipient read receipts, individual message editing, unsending and individual message deletion are not provided.
 
-**Stories and drafts.** Photo stories expire 24 hours after publication and are scheduled for deletion. This is not a guarantee that all copies cease to exist at that moment. Keep your own originals. Unfinished uploads, drafts and unsent messages are not a backup service and may be lost when you leave a screen, end a session or close the app.
+**Stories and drafts.** Photo stories stop appearing in the app 24 hours after publication. Automated physical deletion of expired story records/files is not configured. Keep your own originals. Unfinished uploads, drafts and unsent messages are not a backup service and may be lost when you leave a screen, end a session or close the app.
 
 **Demo content.** The testing experience includes fictional profiles and sample posts, likes, comments and follows. Their activity and counts are not evidence of real users or endorsements. Fictional profiles cannot receive real messages. Local demo conversations, including sample photos, online indicators and read indicators, are simulations; your additions remain local for that session and are not sent to the depicted person. Product-preview images may show these simulations and controls that do not provide live features.
 
 ## 5. Upload and text limits
 
-The current release accepts one photo or video per post. Photo posts and stories may be up to 10 MiB. Video posts must be MP4 or MOV, at most 30 seconds long and up to 50 MiB. Profile photos selected in the app must be JPG or PNG and up to 5 MiB. Post and story photos support JPEG, PNG, WebP, HEIC and HEIF, subject to device and format validation. The app labels these size limits “MB”; here one MiB means 1,048,576 bytes.
+The current release accepts one photo or video per post. Photo posts and stories may be up to 10 MiB. Video posts must be MP4 or MOV, at most 30 seconds long and up to 50 MiB. Profile photos selected in the app may be supported image types up to 5 MiB. Post and story photos support JPEG, PNG, WebP, HEIC and HEIF, subject to device and format validation. The app labels these size limits “MB”; here one MiB means 1,048,576 bytes.
 
 Post captions may contain up to 2,200 characters; comments and real messages must contain 1–2,000 characters after trimming. The story API accepts a caption up to 280 characters, although the current app does not offer story captions. Text limits use the application's string-length counting, which can count some displayed symbols as more than one character.
 
 Usernames must contain 3–30 letters, numbers, dots or underscores and are stored in lowercase. Display names may contain up to 60 characters, bios up to 150, and websites and locations up to 200 each. A website must begin with http:// or https://.
 
-Uploads are validated for size, supported format and metadata; video duration is also checked. Unpublished upload sessions expire after one hour. Invalid, incomplete or expired uploads cannot be published. These checks are not a guarantee that uploaded content is safe, lawful or accurate.
+The app and backend validate size and supported media types, and the app checks the selected video's duration. Unpublished upload sessions become unusable after one hour; automated cleanup of every abandoned uploaded file is not configured. Invalid, incomplete or expired sessions cannot be published. These checks are not a guarantee that uploaded content is safe, lawful or accurate.
 
 ## 6. Responsible use
 
@@ -81,9 +81,9 @@ Other members retain their rights in their content. Being able to view, like, bo
 
 The Service's software, design and branding belong to their respective rights holders. Subject to these Terms, you may use the Service's available functionality. Any separately applicable open-source licenses continue to govern the code they cover; these Terms do not revoke rights granted under those licenses.
 
-Clerk provides authentication and session infrastructure, Google and Apple provide the sign-in options you choose, and Convex provides application data and media infrastructure. Their outages or account restrictions may affect access to nook. Your use of a Google or Apple account remains subject to the terms applicable to that external account. A destination you select through the device share sheet may have its own terms and privacy practices.
+CheFu Account provides centralized authentication. The CheFu backend provides Nook application data and media services using its configured Firebase infrastructure. Outages or account restrictions may affect access to Nook. A destination you select through the device share sheet may have its own terms and privacy practices.
 
-[REQUIRED PROVIDER-SPECIFIC END-USER TERMS, IF ANY — VERIFY THE OPERATOR'S EXECUTED CLERK, CONVEX AND DISTRIBUTION AGREEMENTS BEFORE PUBLICATION.] Provider contracts are not automatically incorporated in full into these Terms, and do not automatically impose the operator's infrastructure fees on you.
+[REQUIRED PROVIDER-SPECIFIC END-USER TERMS, IF ANY — VERIFY THE OPERATOR'S EXECUTED AUTHENTICATION, BACKEND, HOSTING AND DISTRIBUTION AGREEMENTS BEFORE PUBLICATION.] Provider contracts are not automatically incorporated in full into these Terms, and do not automatically impose the operator's infrastructure fees on you.
 
 ## 9. Charges
 
@@ -93,13 +93,13 @@ Clerk provides authentication and session infrastructure, Google and Apple provi
 
 You may stop using the Service at any time. You can delete your own posts, stories and comments using their available controls. Deleting a post removes its media and starts removal of related comments, likes and bookmarks. You cannot independently delete another person's comment; removing your entire post also removes its associated comments. Replacing an uploaded profile photo removes the old uploaded photo from active storage.
 
-To delete your account, choose **Settings → Delete Account** and confirm. This requests deletion of your nook sign-in account and associated application data. It does not delete your Google or Apple account. Accepted deletion requests cannot currently be cancelled through the app.
+To delete your account, choose **Settings → Delete Account** and confirm. This deletes your Nook profile and associated application data. It does not delete or disable your CheFu Account. Accepted deletion requests cannot currently be cancelled through the app.
 
 **Account deletion removes your profile, posts, photos, videos, stories, comments, likes, bookmarks and follows, and deletes your entire conversations for both participants, including messages the other participant sent.** Copies outside the Service are not recalled. This operation cannot be undone through the app.
 
-Deletion is processed in stages. Normal account use is restricted after the request is accepted. The Service first requests deletion of your Clerk sign-in identity, then removes associated app data in background batches. Processing can continue after you sign out or close the app. Content may remain visible to other members until cleanup removes it. If identity deletion fails, app data is not removed at that stage, and the app can offer a retry. Missing configuration or service failures can delay or prevent completion; contact [SUPPORT EMAIL] if needed.
+Nook deletion removes your Nook data synchronously through the backend. It removes your profile, posts and media, stories, comments, likes, bookmarks, follows and entire conversations/messages for both participants. Service or cleanup failures can delay or prevent completion; the app offers a retry. Contact [SUPPORT EMAIL] if needed.
 
-A limited deletion record remains, including an authentication identifier, the deleted profile's identifier and processing status/metadata, to prevent reuse of an old authentication token to recreate the account. This record is not anonymous. [RETENTION POLICY FOR DELETION RECORDS AND BACKUPS]. Deletion is not a promise of instant removal from backups, external copies or records that applicable law requires to be retained.
+A limited deletion-status record keyed by your CheFu account identifier remains to prevent reuse of an old access token to recreate the Nook profile. This record is not anonymous. [RETENTION POLICY FOR DELETION RECORDS AND BACKUPS]. Deletion is not a promise of instant removal from backups, external copies or records that applicable law requires to be retained.
 
 [OPERATOR ENFORCEMENT POLICY, NOTICE AND REVIEW PROCESS — IF ADOPTED]. The current app does not provide an administrator suspension or appeals workflow. A service-wide outage, external authentication restriction or pending deletion may prevent access; that does not establish a discretionary account-ban procedure under these Terms.
 

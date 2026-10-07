@@ -19,7 +19,7 @@ def slug(value):
 
 def build(source="TERMS-OF-SERVICE.md", output="terms.html"):
     privacy = output == "privacy.html"
-    blocks = (ROOT / source).read_text().strip().split("\n\n")
+    blocks = (ROOT / source).read_text(encoding="utf-8").strip().split("\n\n")
     content, navigation = [], []
     for block in blocks:
         if block.startswith("# "):
@@ -54,7 +54,7 @@ def build(source="TERMS-OF-SERVICE.md", output="terms.html"):
         page = page.replace("A clear account of how the app works, and what using it means.", "How the testing app handles accounts, content, messages and deletion.")
     other = '<a href="terms.html">Terms of Service</a>' if privacy else '<a href="privacy.html">Privacy Policy</a>'
     page = page.replace('<a class="nav-cta" href="index.html">', other + '<a class="nav-cta" href="index.html">')
-    (ROOT / output).write_text(page)
+    (ROOT / output).write_text(page, encoding="utf-8")
     print(f"Generated {output}: {len(navigation)} sections from {source}")
 
 

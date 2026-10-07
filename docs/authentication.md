@@ -5,8 +5,7 @@ Nook uses the Chefu Account app as its centralized sign-in experience. The sign-
 ## Local development
 
 1. Set `EXPO_PUBLIC_API_BASE_URL` to the Chefu API base URL in `.env` (the production default is `https://api.chefu.co.za`).
-2. Set the Convex environment variables used by the app in `.env` when working with Convex-backed features.
-3. Run `npm run ios` or `npm run android` to build and launch a native app. On subsequent runs use `npx expo start --dev-client`.
+2. Run `npm run ios` or `npm run android` to build and launch a native app. On subsequent runs use `npx expo start --dev-client`.
 
 The app scheme is `nook`; the bundle/package identifier is `com.burakorkmez.nook`.
 

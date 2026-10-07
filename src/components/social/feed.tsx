@@ -1,9 +1,9 @@
-import { usePaginatedQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { FlatList, Pressable, Text, View, useWindowDimensions, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, type SocialPost } from '@/lib/social';
+import { type SocialPost } from '@/lib/social';
+import { useNookPaginatedQuery } from '@/hooks/use-nook-api';
 import { Header, ConnectionStatus, LoadMore, ui } from './ui';
 import { HomeHeader } from '../home-layout';
 import { Stories } from './stories';
@@ -11,7 +11,7 @@ import { PostCard } from './post-card';
 
 export function LiveHome() {
   const insets = useSafeAreaInsets(); const router = useRouter(); const { width } = useWindowDimensions(); const s = width / 390;
-  const { results, status, loadMore } = usePaginatedQuery(api.posts.list, { feed: 'home' }, { initialNumItems: 20 });
+  const { results, status, loadMore } = useNookPaginatedQuery<SocialPost>('/nook/posts?feed=home');
   const [visible, setVisible] = useState<string[]>([]);
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken<SocialPost>[] }) => setVisible(viewableItems.map(item => item.item._id))).current;
   return <View style={[ui.screen, { paddingTop: Math.max(40 * s, insets.top - 15 * s) }]}><HomeHeader /><ConnectionStatus />

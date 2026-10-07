@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useConvexConnectionState } from 'convex/react';
 import { palette as c } from '@/lib/social';
 import { FeedIcon } from '../feed-icon';
 
@@ -10,11 +9,11 @@ export function Header({ title = 'nook', back = false, compose = true }: { title
   return <View style={ui.header}>{back ? <Pressable accessibilityLabel="Go back" accessibilityRole="button" style={ui.round} onPress={() => router.back()}><FeedIcon name="back" /></Pressable> : <Image source={require('../../../assets/images/logo.png')} contentFit="contain" accessibilityLabel="nook logo" style={{ width: 38, height: 38 }} />}<Text numberOfLines={1} style={[ui.title, { flex: 1 }]}>{title}</Text>{!back && <Pressable accessibilityRole="button" accessibilityLabel="Search people" style={ui.round} onPress={() => router.navigate('/explore')}><FeedIcon name="search" /></Pressable>}{compose && <Pressable accessibilityRole="button" accessibilityLabel="Create a post" style={[ui.round, { backgroundColor: '#E8F1FF' }]} onPress={() => router.push('/compose')}><FeedIcon name="plus" color={c.blue} /></Pressable>}</View>;
 }
 export function ConnectionStatus() {
-  const state = useConvexConnectionState();
-  return state.isWebSocketConnected ? null : <Text accessibilityRole="alert" style={ui.connection}>Reconnecting… Your changes will sync when connected.</Text>;
+  return null;
 }
 export function LoadMore({ status, loadMore }: { status: string; loadMore: (n: number) => void }) {
   if (status === 'LoadingFirstPage' || status === 'LoadingMore') return <ActivityIndicator style={{ padding: 24 }} color={c.blue} />;
+  if (status === 'Error') return <Pressable accessibilityRole="button" onPress={() => loadMore(20)} style={{ padding: 24, alignItems: 'center' }}><Text style={ui.link}>Couldn’t load. Tap to retry.</Text></Pressable>;
   return status === 'CanLoadMore' ? <Pressable accessibilityRole="button" onPress={() => loadMore(20)} style={{ padding: 24, alignItems: 'center' }}><Text style={ui.link}>Load more</Text></Pressable> : null;
 }
 export const ui = StyleSheet.create({

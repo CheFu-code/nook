@@ -42,6 +42,5 @@ example
 /ios
 /android
 
-# Local Clerk credentials
+# Local environment secrets
 .env
-.clerk/

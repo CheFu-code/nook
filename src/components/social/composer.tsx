@@ -1,21 +1,19 @@
 import { Image } from 'expo-image';
 import * as Device from 'expo-device';
 import * as ImagePicker from 'expo-image-picker';
-import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useRef, useState, useEffect } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useBackendToken } from '@/context/social-context';
-import { api, errorMessage, type Id } from '@/lib/social';
+import { useChefuAccessToken } from '@/context/social-context';
+import { errorMessage, type Id } from '@/lib/social';
+import { useNookApi } from '@/hooks/use-nook-api';
 import { sendUpload, validateMedia } from '@/lib/upload';
 import { ui } from './ui';
 import { FeedIcon } from '../feed-icon';
 
 export function Composer({ story = false }: { story?: boolean }) {
-  const router = useRouter(); const insets = useSafeAreaInsets(); const getToken = useBackendToken();
-  const begin = useMutation(api.uploads.begin); const cancel = useMutation(api.uploads.cancel); const publish = useMutation(api.posts.publish);
-  const publishStory = useMutation(api.stories.publish);
+  const router = useRouter(); const insets = useSafeAreaInsets(); const getToken = useChefuAccessToken(); const request = useNookApi();
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null); const [caption, setCaption] = useState('');
   const [phase, setPhase] = useState<'idle' | 'preparing' | 'uploading' | 'publishing'>('idle'); const [progress, setProgress] = useState(0); const [error, setError] = useState(''); const [picking, setPicking] = useState(false);
   const pickerBusy = useRef(false);
@@ -27,11 +25,11 @@ export function Composer({ story = false }: { story?: boolean }) {
       if (phase === 'publishing') { Alert.alert('Finishing publication', `Keep this screen open while the server confirms your ${story ? 'story' : 'post'}.`); return; }
       Alert.alert('Cancel upload?', story ? 'Your unfinished upload will be discarded.' : 'Your unfinished upload and caption will be discarded.', [{ text: 'Keep uploading', style: 'cancel' }, { text: 'Cancel upload', style: 'destructive', onPress: () => {
         controller.current?.abort();
-        if (uploadId.current !== null !== null !== null !== null) void cancel({ id: uploadId.current }).catch(() => {});
+        if (uploadId.current) void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' }).catch(() => {});
         router.back();
       } }]); return;
     }
-    const discard = () => { if (uploadId.current) void cancel({ id: uploadId.current }).catch(() => {}); router.back(); };
+    const discard = () => { if (uploadId.current) void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' }).catch(() => {}); router.back(); };
     if (asset || caption) Alert.alert(story ? 'Discard story?' : 'Discard post?', story ? 'Your selected photo will be discarded.' : 'Your selected media and caption will be discarded.', [{ text: 'Keep editing', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: discard }]); else discard();
   }
   async function pick(source: 'library' | 'camera' = 'library') {
@@ -55,7 +53,7 @@ export function Composer({ story = false }: { story?: boolean }) {
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: story ? ['images'] : ['images', 'videos'], allowsMultipleSelection: false, quality: 1, videoMaxDuration: 30 });
       if (result.canceled) return;
       validateMedia(result.assets[0]);
-      if (uploadId.current) await cancel({ id: uploadId.current });
+      if (uploadId.current) await request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' });
       uploadId.current = null; uploaded.current = false; setAsset(result.assets[0]); setProgress(0);
     } catch (e) { setError(e instanceof Error ? e.message : errorMessage(e)); } finally { pickerBusy.current = false; if (mounted.current) setPicking(false); }
   }
@@ -63,8 +61,11 @@ export function Composer({ story = false }: { story?: boolean }) {
     if (!asset || busy.current) return; busy.current = true; controller.current = new AbortController(); const signal = controller.current.signal; setError(''); setPhase('preparing');
     try {
       const meta = validateMedia(asset);
-      if (!uploadId.current) uploadId.current = await begin({ purpose: story ? 'story' : 'post', kind: meta.kind, width: meta.width, height: meta.height, ...(meta.duration ? { duration: meta.duration } : {}) });
-      if (signal.aborted) { if (uploadId.current) void cancel({ id: uploadId.current }).catch(() => {}); return; }
+      if (!uploadId.current) {
+        const created = await request<{ id: string }>('/nook/uploads', { method: 'POST', body: { purpose: story ? 'story' : 'post', kind: meta.kind, width: meta.width, height: meta.height, ...(meta.duration ? { duration: meta.duration } : {}) } });
+        uploadId.current = created.id;
+      }
+      if (signal.aborted) { if (uploadId.current) void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' }).catch(() => {}); return; }
       if (!uploaded.current) {
         const activeId = uploadId.current;
         if (!activeId) throw new Error('Upload session is missing. Please try again.');
@@ -80,8 +81,8 @@ export function Composer({ story = false }: { story?: boolean }) {
       setPhase('publishing');
       const activeId = uploadId.current;
       if (!activeId) throw new Error('Upload session is missing. Please try again.');
-      if (story) await publishStory({ uploadId: activeId, caption: '' });
-      else await publish({ uploadId: activeId, caption });
+      if (story) await request('/nook/stories', { method: 'POST', body: { uploadId: activeId, caption: '' } });
+      else await request('/nook/posts', { method: 'POST', body: { uploadId: activeId, caption } });
       uploadId.current = null; uploaded.current = false; busy.current = false; router.back();
     } catch (e) { if (mounted.current) setError(e instanceof Error && !(e as { data?: unknown }).data ? e.message : errorMessage(e)); }
     finally { busy.current = false; if (mounted.current) setPhase('idle'); }

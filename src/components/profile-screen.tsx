@@ -1,4 +1,4 @@
-import { useClerk, useUser } from '@/lib/chefu-auth';
+import { useAuth } from '@/lib/chefu-auth';
 import { Image, type ImageSource } from 'expo-image';
 import { usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -25,8 +25,7 @@ const ink = '#0D1529';
 const muted = '#7E88A2';
 
 export function ProfileTab() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { user, signOut } = useAuth();
   const { posts, saved } = useFeed();
   const isPreview = usePathname().startsWith('/design-preview');
   const insets = useSafeAreaInsets();

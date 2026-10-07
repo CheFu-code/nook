@@ -1,4 +1,4 @@
-import { useUser } from '@/lib/chefu-auth';
+import { useAuth } from '@/lib/chefu-auth';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -13,7 +13,7 @@ const blue = '#087EFF';
 const ink = '#0D1529';
 const muted = '#7F89A4';
 export function ExploreTab() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { posts, setPosts } = useFeed();
   const [query, setQuery] = useState('');
   const [topic, setTopic] = useState('All');

@@ -42,9 +42,8 @@ example
 /ios
 /android
 
-# Local Clerk credentials
+# Local environment secrets
 .env
-.clerk/
 
 # Development artifacts and local tooling are not build inputs
 .git/
