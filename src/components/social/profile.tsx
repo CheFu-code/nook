@@ -30,7 +30,7 @@ function MemberProfile({ id, back = false }: { id: Id<'profiles'>; back?: boolea
   const [panel, setPanel] = useState<ProfilePanel>('posts');
   const gallery = panel === 'posts' ? posts.results : panel === 'videos' ? posts.results.filter(post => post.kind === 'video') : [];
   const hasPostFeed = panel === 'posts' || panel === 'videos';
-  if (sheet === 'settings') return <SettingsScreen accountName={profile?.username ?? 'Your account'} onClose={() => setSheet(null)} onEdit={() => setSheet('edit')} onSaved={() => { setPanel('saved'); setSheet(null); }} onSignOut={signOut} onDelete={async () => { await request('/nook/account/deletion', { method: 'POST' }); await signOut(); }} />;
+  if (sheet === 'settings') return <SettingsScreen accountName={profile?.username ?? 'Your account'} onClose={() => setSheet(null)} onEdit={() => setSheet('edit')} onSaved={() => { setPanel('saved'); setSheet(null); }} onSignOut={signOut} />;
   return <View style={[ui.screen, { paddingTop: Math.max(40, insets.top - 9), backgroundColor: theme.background }]}>
     <ProfileHeader back={back} onSettings={() => setSheet('settings')} /><ConnectionStatus />
     {!profile ? profile === undefined ? <ActivityIndicator color={theme.blue} /> : <View style={[ui.center, { backgroundColor: theme.background }]}><Text style={[ui.title, { color: theme.ink }]}>Profile unavailable</Text></View> : <>

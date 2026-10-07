@@ -1,8 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
-import { errorMessage } from '@/lib/social';
 import { openLegalDocument } from '@/lib/legal-links';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedIcon, type IconName } from './feed-icon';
@@ -13,31 +12,18 @@ type SettingsProps = {
   onClose: () => void;
   onEdit: () => void;
   onSaved: () => void;
-  onDelete?: () => Promise<unknown>;
   onSignOut: () => Promise<void>;
   accountName: string;
   preview?: boolean;
 };
 type Row = { label: string; icon: IconName; action: () => void; detail?: string };
 
-export function SettingsScreen({ onClose, onEdit, onSaved, onDelete, onSignOut, accountName, preview = false }: SettingsProps) {
+export function SettingsScreen({ onClose, onEdit, onSaved, onSignOut, accountName, preview = false }: SettingsProps) {
   const { width, height } = useWindowDimensions(); const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const s = width / 390; const v = (height - insets.top - insets.bottom) / 810;
   const [signingOut, setSigningOut] = useState(false);
   const [showSentryTest, setShowSentryTest] = useState(false);
-  const [deleting, setDeleting] = useState(false); const deleteBusy = useRef(false);
-  const confirmDeletion = () => {
-    if (preview || !onDelete) { Alert.alert('Preview account', 'Account deletion is only available in your live account settings.'); return; }
-    Alert.alert('Delete your account?', 'This permanently deletes your sign-in account, profile, posts, photos, videos, stories, comments, likes, saved posts, follows, and your conversations for both participants. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete Account', style: 'destructive', onPress: async () => {
-        if (deleteBusy.current) return; deleteBusy.current = true; setDeleting(true);
-        try { await onDelete(); } catch (error) { Alert.alert('Could not delete account', errorMessage(error)); }
-        finally { deleteBusy.current = false; setDeleting(false); }
-      } },
-    ]);
-  };
   const unavailable = (title: string, message: string) => () => Alert.alert(title, message);
   const account: Row[] = [
     { label: 'Edit profile', icon: 'profile', action: onEdit },
@@ -81,11 +67,10 @@ export function SettingsScreen({ onClose, onEdit, onSaved, onDelete, onSignOut, 
       {group(support)}
       <Text accessibilityRole="header" style={[styles.section, { color: theme.ink, fontSize: 16 * s, marginHorizontal: 8 * s, marginTop: 17 * v, marginBottom: 8 * v }]}>Diagnostics</Text>
       {group([{ label: 'Sentry test', icon: 'info', action: () => setShowSentryTest(true) }])}
-      <Pressable accessibilityRole="button" disabled={signingOut || deleting} onPress={async () => {
+      <Pressable accessibilityRole="button" disabled={signingOut} onPress={async () => {
         if (preview) { Alert.alert('Preview account', 'Sign out is available from your live profile.'); return; }
         setSigningOut(true); try { await onSignOut(); } catch { Alert.alert('Unable to sign out', 'Please try again.'); } finally { setSigningOut(false); }
       }} style={({ pressed }) => [styles.action, { height: Math.max(44, 46 * v), marginTop: 16 * v, borderRadius: 16 * s, backgroundColor: theme.blueSoft, opacity: pressed || signingOut ? 0.6 : 1, gap: 17 * s }]}><FeedIcon name="sign-out" size={24 * s} color={theme.blue} /><Text style={{ color: theme.blue, fontSize: 16 * s, fontWeight: '500', letterSpacing: -0.4 * s }}>{signingOut ? 'Signing out…' : 'Sign Out'}</Text></Pressable>
-      <Pressable accessibilityRole="button" disabled={deleting || signingOut} accessibilityState={{ disabled: deleting || signingOut, busy: deleting }} onPress={confirmDeletion} style={({ pressed }) => [styles.action, { height: Math.max(44, 44 * v), marginTop: 8 * v, borderRadius: 16 * s, backgroundColor: '#FDEAEF', opacity: pressed || deleting ? 0.6 : 1, gap: 18 * s }]}><FeedIcon name="trash" size={24 * s} color="#FF0000" /><Text style={{ color: '#FF0000', fontSize: 16 * s, fontWeight: '500', letterSpacing: -0.4 * s }}>{deleting ? 'Deleting account…' : 'Delete Account'}</Text></Pressable>
     </ScrollView>
   </View>;
 }
