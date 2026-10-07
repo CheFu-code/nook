@@ -180,7 +180,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 				if (!token) throw new Error("Session expired. Sign in again.");
 				if (signal.aborted) return;
 				setPhase("uploading");
-				await sendUpload(activeId, blob, token, setProgress, signal);
+				await sendUpload(activeId, asset.uri, blob, token, setProgress, signal);
 				uploaded.current = true;
 			}
 			if (signal.aborted) return;

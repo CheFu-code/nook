@@ -7,7 +7,7 @@ import { useChefuAccessToken, useProfile } from '@/context/social-context';
 import { errorMessage, type Id, type SocialProfile, type SocialPost } from '@/lib/social';
 import { useNookApi, useNookPaginatedQuery, useNookQuery } from '@/hooks/use-nook-api';
 import type { ProfileDraft } from '@/lib/profile-form';
-import { readUploadBlob, sendUpload } from '@/lib/upload';
+import { readUploadBlob, uploadProfilePicture } from '@/lib/upload';
 import { EditProfileScreen } from '../edit-profile-screen';
 import { Avatar, PostMedia, useMediaSource } from './media';
 import { FollowButton } from './post-card';
@@ -67,25 +67,34 @@ function LiveEdit({ profile, close, onSaved }: { profile: SocialProfile; close: 
   const { source } = useMediaSource(profile._id, 'avatar', profile.hasAvatar, profile.avatarVersion); const [saving, setSaving] = useState(false);
   const initial: ProfileDraft = { username: profile.username, name: profile.name, bio: profile.bio ?? '', website: profile.website ?? '', location: profile.location ?? '', photoUri: '' };
   async function save(draft: ProfileDraft) {
-    if (saving) return; setSaving(true); let uploadId: Id<'uploads'> | null = null;
+    if (saving) return; setSaving(true);
     try {
-      if (draft.photoUri) {
-        const blob = await readUploadBlob(
-          draft.photoUri,
-          5 * 1024 * 1024,
-          /\.png$/i.test(draft.photoUri) ? 'image/png' : 'image/jpeg',
-        );
-        const token = await getToken(); if (!token) throw new Error('Session expired.');
-        const created = await request<{ id: string }>('/nook/uploads', { method: 'POST', body: { purpose: 'avatar', kind: 'image', width: 1, height: 1 } });
-        uploadId = created.id;
-        await sendUpload(uploadId, blob, token, () => {});
+      const avatar = draft.photoUri
+        ? await readUploadBlob(
+            draft.photoUri,
+            5 * 1024 * 1024,
+            /\.png$/i.test(draft.photoUri) ? 'image/png' : 'image/jpeg',
+          )
+        : null;
+      await request('/nook/profile', { method: 'PATCH', body: { username: draft.username } });
+      await request('/auth/profile', {
+        method: 'PATCH',
+        body: {
+          fullname: draft.name,
+          bio: draft.bio ?? '',
+          website: draft.website ?? '',
+          location: draft.location ?? '',
+        },
+      });
+      if (avatar) {
+        const token = await getToken();
+        if (!token) throw new Error('Your session has expired. Sign in again.');
+        await uploadProfilePicture(avatar, token);
       }
-      await request('/nook/profile', { method: 'PATCH', body: { username: draft.username, name: draft.name, bio: draft.bio ?? '', website: draft.website ?? '', location: draft.location ?? '' } });
-      if (uploadId !== null) { await request('/nook/profile/avatar', { method: 'POST', body: { uploadId } }); uploadId = null; }
       onSaved();
       close();
     } catch (e) { Alert.alert('Could not save profile', errorMessage(e)); }
-    finally { if (uploadId !== null) void request(`/nook/uploads/${encodeURIComponent(uploadId)}`, { method: 'DELETE' }).catch(() => {}); setSaving(false); }
+    finally { setSaving(false); }
   }
   return <View style={{ flex: 1 }}><EditProfileScreen initial={initial} avatar={source ?? (profile.avatarUrl ? { uri: profile.avatarUrl } : require('../../../assets/images/logo.png'))} onSave={draft => void save(draft)} onClose={() => { if (!saving) close(); }} />{saving && <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFFDD', gap: 12 }}><ActivityIndicator color="#087EFF" /><Text style={ui.text}>Saving your profile…</Text></View>}</View>;
 }
