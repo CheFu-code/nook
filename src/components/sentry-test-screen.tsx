@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedIcon } from './feed-icon';
+import { useAppTheme } from '@/lib/theme';
 
 type Scenario = 'feed_timeout' | 'upload_rejected' | 'invalid_response' | 'message_retry' | 'log_levels';
 const scenarios: { id: Scenario; title: string; description: string; badge: string }[] = [
@@ -25,6 +26,7 @@ function simulateFailure(scenario: Scenario): never {
 
 export function SentryTestScreen({ onClose }: { onClose: () => void }) {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const busy = useRef(false);
   const mounted = useRef(true);
   const [running, setRunning] = useState<Scenario | null>(null);
@@ -91,25 +93,25 @@ export function SentryTestScreen({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return <View style={[styles.screen, { paddingTop: insets.top }]}>
-    <StatusBar style="dark" />
+  return <View style={[styles.screen, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <StatusBar style={theme.isDark ? 'light' : 'dark'} />
     <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back to settings" onPress={onClose} style={styles.back}><FeedIcon name="back" size={24} color="#080E3B" /></Pressable>
-      <Text accessibilityRole="header" style={styles.title}>Sentry test</Text>
-      <Text style={styles.subtitle}>Explore errors, context, and logs in your dashboard. These simulations use made-up data and keep the app running.</Text>
-      <View style={styles.guide}>
-        <Text style={styles.guideTitle}>Find your test events</Text>
-        <Text style={styles.body}>Select the nook project. In Issues or Logs, filter by source:sentry_test. Use test_run_id to match a button press across errors and logs. Log-only tests appear in Logs.</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Back to settings" onPress={onClose} style={styles.back}><FeedIcon name="back" size={24} color={theme.ink} /></Pressable>
+      <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }]}>Sentry test</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>Explore errors, context, and logs in your dashboard. These simulations use made-up data and keep the app running.</Text>
+      <View style={[styles.guide, { backgroundColor: theme.blueSoft }]}>
+        <Text style={[styles.guideTitle, { color: theme.ink }]}>Find your test events</Text>
+        <Text style={[styles.body, { color: theme.secondary }]}>Select the nook project. In Issues or Logs, filter by source:sentry_test. Use test_run_id to match a button press across errors and logs. Log-only tests appear in Logs.</Text>
       </View>
-      {scenarios.map(scenario => <Pressable key={scenario.id} accessibilityRole="button" accessibilityLabel={scenario.title} accessibilityState={{ disabled: running !== null, busy: running === scenario.id }} disabled={running !== null} onPress={() => { void run(scenario.id); }} style={({ pressed }) => [styles.card, { opacity: pressed || (running !== null && running !== scenario.id) ? 0.55 : 1 }]}>
-        <Text style={styles.badge}>{scenario.badge}</Text>
-        <Text style={styles.cardTitle}>{scenario.title}</Text>
-        <Text style={styles.body}>{scenario.description}</Text>
-        <Text style={styles.action}>{running === scenario.id ? 'Sending…' : 'Run test →'}</Text>
+      {scenarios.map(scenario => <Pressable key={scenario.id} accessibilityRole="button" accessibilityLabel={scenario.title} accessibilityState={{ disabled: running !== null, busy: running === scenario.id }} disabled={running !== null} onPress={() => { void run(scenario.id); }} style={({ pressed }) => [styles.card, { opacity: pressed || (running !== null && running !== scenario.id) ? 0.55 : 1, backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.badge, { color: theme.muted }]}>{scenario.badge}</Text>
+        <Text style={[styles.cardTitle, { color: theme.ink }]}>{scenario.title}</Text>
+        <Text style={[styles.body, { color: theme.secondary }]}>{scenario.description}</Text>
+        <Text style={[styles.action, { color: theme.blue }]}>{running === scenario.id ? 'Sending…' : 'Run test →'}</Text>
       </Pressable>)}
-      <View style={styles.guide}>
-        <Text style={styles.guideTitle}>Latest result</Text>
-        <Text selectable accessibilityLiveRegion="polite" style={styles.body}>{result}</Text>
+      <View style={[styles.guide, { backgroundColor: theme.blueSoft }]}>
+        <Text style={[styles.guideTitle, { color: theme.ink }]}>Latest result</Text>
+        <Text selectable accessibilityLiveRegion="polite" style={[styles.body, { color: theme.secondary }]}>{result}</Text>
       </View>
     </ScrollView>
   </View>;

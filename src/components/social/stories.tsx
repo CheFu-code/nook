@@ -20,10 +20,12 @@ import { useNookApi, useNookQuery } from "@/hooks/use-nook-api";
 import { useProfile } from "@/context/social-context";
 import { FeedIcon } from "../feed-icon";
 import { Avatar, useMediaSource } from "./media";
+import { useAppTheme } from "@/lib/theme";
 
 type Story = SocialStory;
 export function Stories() {
     const { user } = useAuth();
+    const theme = useAppTheme();
     const profile = useProfile();
     const ownProfile = {
         ...profile,
@@ -98,14 +100,14 @@ export function Stories() {
                             borderRadius: 11 * s,
                             backgroundColor: "#087EFF",
                             borderWidth: 2 * s,
-                            borderColor: "white",
+                            borderColor: theme.background,
                             alignItems: "center",
                             justifyContent: "center",
                         }}>
                             <FeedIcon name="plus" size={13 * s} color="white" />
                         </View>
                     </View>
-                    <Text style={{ color: "#7C879F", fontSize: 9.5 * s }}>
+                    <Text style={{ color: theme.muted, fontSize: 9.5 * s }}>
                         Your story
                     </Text>
                 </Pressable>
@@ -140,7 +142,7 @@ export function Stories() {
                                 <View
                                     style={{
                                         padding: 2 * s,
-                                        backgroundColor: "white",
+                                        backgroundColor: theme.background,
                                         borderRadius: 30 * s,
                                     }}
                                 >
@@ -149,7 +151,7 @@ export function Stories() {
                             </LinearGradient>
                             <Text
                                 numberOfLines={1}
-                                style={{ color: "#0D1529", fontSize: 9.5 * s }}
+                                style={{ color: theme.ink, fontSize: 9.5 * s }}
                             >
                                 {person.isOwn ? "Your photos" : person.username}
                             </Text>
@@ -157,12 +159,12 @@ export function Stories() {
                     );
                 })}
                 {stories === undefined ? (
-                    <ActivityIndicator style={{ padding: 20 * s }} color="#087EFF" />
+                    <ActivityIndicator style={{ padding: 20 * s }} color={theme.blue} />
                 ) : (
                     !people.length && (
                         <Text
                             style={{
-                                color: "#7C879F",
+                                color: theme.muted,
                                 fontSize: 11 * s,
                                 alignSelf: "center",
                                 maxWidth: 240 * s,

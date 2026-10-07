@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon } from "./feed-icon";
+import { useAppTheme } from "@/lib/theme";
 
 export type ProfilePanel = "posts" | "videos" | "saved" | "tagged";
 export function useProfileScale() {
@@ -24,6 +25,7 @@ export function ProfileHeader({
 	back?: boolean;
 }) {
 	const { s, v } = useProfileScale();
+	const theme = useAppTheme();
 	const router = useRouter();
 	return (
 		<View
@@ -42,11 +44,12 @@ export function ProfileHeader({
 					onPress={() => router.back()}
 					style={{ width: 28 * s, minHeight: 44, justifyContent: "center" }}
 				>
-					<FeedIcon name="back" size={23 * s} />
+					<FeedIcon name="back" size={23 * s} color={theme.ink} />
 				</Pressable>
 			) : (
 				<Image
 					source={require("../../assets/images/logo-2.png")}
+					tintColor={theme.isDark ? theme.ink : undefined}
 					accessibilityLabel="nook logo"
 					style={{ width: 28 * s, height: 28 * s }}
 				/>
@@ -54,7 +57,7 @@ export function ProfileHeader({
 			<Text
 				style={{
 					flex: 1,
-					color: "#0D1529",
+					color: theme.ink,
 					fontSize: 21.5 * s,
 					fontWeight: "700",
 					letterSpacing: -0.8,
@@ -73,7 +76,7 @@ export function ProfileHeader({
 					justifyContent: "center",
 				}}
 			>
-				<FeedIcon name="settings" size={23 * s} />
+				<FeedIcon name="settings" size={23 * s} color={theme.ink} />
 			</Pressable>
 		</View>
 	);
@@ -98,6 +101,7 @@ export function ProfileSummary({
 	children?: ReactNode;
 }) {
 	const { s, v } = useProfileScale();
+	const theme = useAppTheme();
 	return (
 		<View style={{ paddingHorizontal: 20 * s }}>
 			<View
@@ -124,7 +128,7 @@ export function ProfileSummary({
 								borderRadius: 15 * s,
 								backgroundColor: "#087EFF",
 								borderWidth: 2,
-								borderColor: "white",
+								borderColor: theme.background,
 								alignItems: "center",
 								justifyContent: "center",
 							}}
@@ -159,7 +163,7 @@ export function ProfileSummary({
 								style={{
 									fontSize: 19 * s,
 									fontWeight: "700",
-									color: "#0D1529",
+									color: theme.ink,
 									letterSpacing: -0.5,
 								}}
 							>
@@ -168,7 +172,7 @@ export function ProfileSummary({
 							<Text
 								style={{
 									fontSize: 13.5 * s,
-									color: "#7E88A2",
+									color: theme.muted,
 									letterSpacing: -0.4,
 								}}
 							>
@@ -184,7 +188,7 @@ export function ProfileSummary({
 					fontSize: 17 * s,
 					lineHeight: 22 * v,
 					fontWeight: "700",
-					color: "#0D1529",
+					color: theme.ink,
 					letterSpacing: -0.5,
 				}}
 			>
@@ -192,7 +196,7 @@ export function ProfileSummary({
 			</Text>
 			{!!name && (
 				<Text
-					style={{ fontSize: 14 * s, lineHeight: 21 * v, color: "#7E88A2" }}
+					style={{ fontSize: 14 * s, lineHeight: 21 * v, color: theme.muted }}
 				>
 					{name}
 				</Text>
@@ -202,7 +206,7 @@ export function ProfileSummary({
 					style={{
 						fontSize: 13.5 * s,
 						lineHeight: 18 * v,
-						color: "#0D1529",
+						color: theme.ink,
 						marginTop: 3 * v,
 						letterSpacing: -0.15,
 					}}
@@ -225,16 +229,16 @@ export function ProfileSummary({
 						style={{
 							flex: 1,
 							borderRadius: 14 * s,
-							backgroundColor: "#F0F3F7",
+							backgroundColor: theme.subtle,
 							borderWidth: 1,
-							borderColor: "#E6EAF1",
+							borderColor: theme.border,
 							alignItems: "center",
 							justifyContent: "center",
 						}}
 					>
 						<Text
 							style={{
-								color: "#0D1529",
+								color: theme.ink,
 								fontSize: 14 * s,
 								fontWeight: "600",
 								letterSpacing: -0.2,
@@ -250,9 +254,9 @@ export function ProfileSummary({
 						style={{
 							width: Math.max(44, 40 * s),
 							borderRadius: 14 * s,
-							backgroundColor: "#F0F3F7",
+							backgroundColor: theme.subtle,
 							borderWidth: 1,
-							borderColor: "#E6EAF1",
+							borderColor: theme.border,
 							alignItems: "center",
 							justifyContent: "center",
 						}}
@@ -273,6 +277,7 @@ export function ProfileGalleryTabs({
 	onChange: (panel: ProfilePanel) => void;
 }) {
 	const { s, v } = useProfileScale();
+	const theme = useAppTheme();
 	return (
 		<View
 			style={{
@@ -301,7 +306,7 @@ export function ProfileGalleryTabs({
 					<FeedIcon
 						name={item.icon}
 						size={21 * s}
-						color={panel === item.key ? "#087EFF" : "#8690A7"}
+						color={panel === item.key ? theme.blue : theme.muted}
 					/>
 					{panel === item.key && (
 						<View
@@ -312,7 +317,7 @@ export function ProfileGalleryTabs({
 								right: 7 * s,
 								height: 2,
 								borderRadius: 2,
-								backgroundColor: "#087EFF",
+								backgroundColor: theme.blue,
 							}}
 						/>
 					)}

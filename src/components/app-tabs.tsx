@@ -1,10 +1,13 @@
-import { DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { useAppTheme } from '@/lib/theme';
 
 export function AppTabs() {
+  const theme = useAppTheme();
+  const routerTheme = theme.isDark ? DarkTheme : DefaultTheme;
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <NativeTabs tintColor="#087EFF" iconColor={{ default: '#727E94', selected: '#087EFF' }} labelStyle={{ default: { color: '#727E94' }, selected: { color: '#087EFF' } }} backgroundColor="transparent" shadowColor="transparent">
+    <ThemeProvider value={routerTheme}>
+      <NativeTabs tintColor={theme.blue} iconColor={{ default: theme.muted, selected: theme.blue }} labelStyle={{ default: { color: theme.muted }, selected: { color: theme.blue } }} backgroundColor={theme.background} shadowColor="transparent">
         <NativeTabs.Trigger name="home" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />

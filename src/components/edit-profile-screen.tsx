@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, Sc
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { validateProfile, type ProfileDraft } from '@/lib/profile-form';
 import { FeedIcon, type IconName } from './feed-icon';
+import { useAppTheme } from '@/lib/theme';
 
 type Props = { initial: ProfileDraft; avatar: ImageSource; onSave: (profile: ProfileDraft) => void; onClose: () => void };
 export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
@@ -13,6 +14,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
   const pickingRef = useRef(false);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const s = width / 390;
   const v = Math.max(0.82, (height - insets.top - 20) / 820);
   const fs = (n: number) => n * s;
@@ -45,28 +47,28 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
   }
   const field = (key: 'username' | 'name' | 'bio' | 'website' | 'location', label: string, icon: IconName | '@', helper?: string) => (
     <View style={{ marginTop: (key === 'username' ? 12 : key === 'website' ? 15 : helper || key === 'bio' ? 14 : 11) * v }}>
-      <Text style={{ color: '#65718B', fontSize: fs(12.5), fontWeight: '500', marginLeft: fs(3), marginBottom: 5 * v }}>{label}</Text>
-      <View style={[styles.field, { borderRadius: fs(18), minHeight: (key === 'bio' ? 70 : 43) * v, paddingHorizontal: fs(16), gap: fs(20), alignItems: key === 'bio' ? 'flex-start' : 'center', paddingTop: key === 'bio' ? 12 * v : 0 }]}>
-        {icon === '@' ? <Text style={{ color: '#626D84', fontSize: fs(21), fontWeight: '600', width: fs(20), textAlign: 'center' }}>@</Text> : <FeedIcon name={icon} size={fs(19)} color="#626D84" />}
-        <TextInput accessibilityLabel={label} value={draft[key]} onChangeText={value => update(key, value)} style={{ flex: 1, padding: 0, color: key === 'website' ? '#58647B' : '#0D1529', fontSize: fs(14.5), lineHeight: 19 * v, minHeight: key === 'bio' ? 42 * v : 43 * v, paddingBottom: key === 'bio' ? 15 * v : 0 }} multiline={key === 'bio'} textAlignVertical={key === 'bio' ? 'top' : 'center'} maxLength={key === 'bio' ? 150 : key === 'username' ? 30 : key === 'name' ? 60 : 200} autoCapitalize={key === 'username' || key === 'website' ? 'none' : 'sentences'} autoCorrect={key !== 'username' && key !== 'website'} keyboardType={key === 'website' ? 'url' : 'default'} returnKeyType={key === 'bio' ? 'default' : 'done'} />
-        {key === 'bio' && <Text accessibilityLabel={`${draft.bio.length} of 150 characters`} style={{ position: 'absolute', bottom: 9 * v, right: fs(14), fontSize: fs(10.5), color: '#8490A8' }}>{draft.bio.length}/150</Text>}
+      <Text style={{ color: theme.muted, fontSize: fs(12.5), fontWeight: '500', marginLeft: fs(3), marginBottom: 5 * v }}>{label}</Text>
+      <View style={[styles.field, { borderRadius: fs(18), minHeight: (key === 'bio' ? 70 : 43) * v, paddingHorizontal: fs(16), gap: fs(20), alignItems: key === 'bio' ? 'flex-start' : 'center', paddingTop: key === 'bio' ? 12 * v : 0, backgroundColor: theme.input, borderColor: theme.border }]}>
+        {icon === '@' ? <Text style={{ color: theme.secondary, fontSize: fs(21), fontWeight: '600', width: fs(20), textAlign: 'center' }}>@</Text> : <FeedIcon name={icon} size={fs(19)} color={theme.secondary} />}
+        <TextInput accessibilityLabel={label} value={draft[key]} onChangeText={value => update(key, value)} placeholderTextColor={theme.muted} style={{ flex: 1, padding: 0, color: key === 'website' ? theme.secondary : theme.ink, fontSize: fs(14.5), lineHeight: 19 * v, minHeight: key === 'bio' ? 42 * v : 43 * v, paddingBottom: key === 'bio' ? 15 * v : 0 }} multiline={key === 'bio'} textAlignVertical={key === 'bio' ? 'top' : 'center'} maxLength={key === 'bio' ? 150 : key === 'username' ? 30 : key === 'name' ? 60 : 200} autoCapitalize={key === 'username' || key === 'website' ? 'none' : 'sentences'} autoCorrect={key !== 'username' && key !== 'website'} keyboardType={key === 'website' ? 'url' : 'default'} returnKeyType={key === 'bio' ? 'default' : 'done'} />
+        {key === 'bio' && <Text accessibilityLabel={`${draft.bio.length} of 150 characters`} style={{ position: 'absolute', bottom: 9 * v, right: fs(14), fontSize: fs(10.5), color: theme.muted }}>{draft.bio.length}/150</Text>}
       </View>
-      {helper && <Text style={{ fontSize: fs(10.5), color: '#818CA5', marginTop: 6 * v, marginLeft: key === 'username' ? fs(45) : fs(13), lineHeight: 14 * v }}>{helper}</Text>}
+      {helper && <Text style={{ fontSize: fs(10.5), color: theme.muted, marginTop: 6 * v, marginLeft: key === 'username' ? fs(45) : fs(13), lineHeight: 14 * v }}>{helper}</Text>}
     </View>
   );
   return (
-    <KeyboardAvoidingView style={[styles.screen, { paddingTop: Math.max(0, insets.top - 4) }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <StatusBar style="dark" />
+    <KeyboardAvoidingView style={[styles.screen, { paddingTop: Math.max(0, insets.top - 4), backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <View style={{ height: 45 * v, marginHorizontal: fs(18), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back to profile" onPress={close} style={[styles.back, { width: fs(37), height: 39 * v, borderRadius: fs(15) }]}><FeedIcon name="back" size={fs(21)} /></Pressable>
-        <Text style={{ fontSize: fs(17), fontWeight: '700', letterSpacing: -0.4, color: '#0D1529', marginLeft: fs(15) }}>Edit Profile</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to profile" onPress={close} style={[styles.back, { width: fs(37), height: 39 * v, borderRadius: fs(15), backgroundColor: theme.subtle, borderColor: theme.border }]}><FeedIcon name="back" size={fs(21)} color={theme.ink} /></Pressable>
+        <Text style={{ fontSize: fs(17), fontWeight: '700', letterSpacing: -0.4, color: theme.ink, marginLeft: fs(15) }}>Edit Profile</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Save profile" disabled={picking} onPress={save} style={[styles.save, { width: fs(60), height: 39 * v, borderRadius: fs(16) }]}><Text style={{ color: 'white', fontSize: fs(14), fontWeight: '600' }}>Save</Text></Pressable>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: fs(18), paddingBottom: Math.min(insets.bottom, 34) + 12 }}>
         <View style={{ alignItems: 'center', paddingTop: 12 * v }}>
           <View style={{ width: fs(128), height: 126 * v }}><Image source={draft.photoUri ? { uri: draft.photoUri } : avatar} style={{ width: fs(128), height: 126 * v, borderRadius: fs(70) }} /><Pressable accessibilityRole="button" accessibilityLabel="Change profile photo" disabled={picking} onPress={changePhoto} style={[styles.camera, { width: fs(37), height: fs(37), borderRadius: fs(20), bottom: -1, right: -1 }]}>{picking ? <ActivityIndicator color="white" /> : <FeedIcon name="camera" size={fs(21)} color="white" />}</Pressable></View>
-          <Pressable accessibilityRole="button" disabled={picking} onPress={changePhoto} style={{ marginTop: 9 * v, paddingVertical: 2 * v }}><Text style={{ color: '#087EFF', fontSize: fs(13.5), fontWeight: '500' }}>Change Photo</Text></Pressable>
-          <Text style={{ color: '#818CA5', fontSize: fs(10.5), marginTop: 2 * v }}>JPG, PNG up to 5MB</Text>
+          <Pressable accessibilityRole="button" disabled={picking} onPress={changePhoto} style={{ marginTop: 9 * v, paddingVertical: 2 * v }}><Text style={{ color: theme.blue, fontSize: fs(13.5), fontWeight: '500' }}>Change Photo</Text></Pressable>
+          <Text style={{ color: theme.muted, fontSize: fs(10.5), marginTop: 2 * v }}>JPG, PNG up to 5MB</Text>
         </View>
         {field('username', 'Username', '@', 'This is how people find you on nook.')}
         {field('name', 'Display Name', 'profile', 'This is your public name.')}

@@ -3,6 +3,7 @@ import { ui } from "@/components/social/ui";
 import { useNookApi, useNookQuery } from "@/hooks/use-nook-api";
 import { useAuth } from "@/lib/chefu-auth";
 import { errorMessage, type SocialProfile } from "@/lib/social";
+import { useAppTheme } from "@/lib/theme";
 import {
     createContext,
     useContext,
@@ -34,6 +35,7 @@ type DeletionStatus = {
 
 export function ProfileGate({ children }: { children: ReactNode }) {
     const { isSignedIn, isLoaded, signOut } = useAuth();
+    const theme = useAppTheme();
     const [profileVersion, setProfileVersion] = useState(0);
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState("");
@@ -57,9 +59,9 @@ export function ProfileGate({ children }: { children: ReactNode }) {
 
     if (!isSignedIn) {
         return (
-            <View style={ui.center}>
-                <Text style={ui.title}>Connecting your account</Text>
-                <Text style={ui.muted}>
+            <View style={[ui.center, { backgroundColor: theme.background }]}>
+                <Text style={[ui.title, { color: theme.ink }]}>Connecting your account</Text>
+                <Text style={[ui.muted, { color: theme.muted }]}>
                     Unable to authenticate with our servers. Check your connection and
                     sign in again.
                 </Text>
@@ -99,9 +101,9 @@ export function ProfileGate({ children }: { children: ReactNode }) {
             }
         }
         return (
-            <View style={ui.center}>
-                <Text style={ui.title}>Couldn’t load your profile</Text>
-                <Text style={ui.muted}>{errorMessage(failure)}</Text>
+            <View style={[ui.center, { backgroundColor: theme.background }]}>
+                <Text style={[ui.title, { color: theme.ink }]}>Couldn’t load your profile</Text>
+                <Text style={[ui.muted, { color: theme.muted }]}>{errorMessage(failure)}</Text>
                 {!!retryError && (
                     <Text accessibilityRole="alert" style={ui.error}>
                         {retryError}
@@ -140,6 +142,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
 
 function Onboarding({ onCreated }: { onCreated: () => void }) {
     const { user } = useAuth();
+    const theme = useAppTheme();
     const request = useNookApi();
     const [username, setUsername] = useState(user?.username ?? "");
     const [name, setName] = useState(user?.displayName ?? user?.name ?? "");
@@ -163,12 +166,12 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
     }
     return (
         <KeyboardAvoidingView
-            style={ui.screen}
+            style={[ui.screen, { backgroundColor: theme.background }]}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-            <View style={ui.center}>
-                <Text style={ui.title}>Make yourself at home</Text>
-                <Text style={ui.muted}>
+            <View style={[ui.center, { backgroundColor: theme.background }]}>
+                <Text style={[ui.title, { color: theme.ink }]}>Make yourself at home</Text>
+                <Text style={[ui.muted, { color: theme.muted }]}>
                     Choose a unique username so friends can find you.
                 </Text>
                 <TextInput
@@ -179,7 +182,8 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
                     maxLength={30}
                     value={username}
                     onChangeText={setUsername}
-                    style={[ui.input, { width: "100%" }]}
+                    placeholderTextColor={theme.muted}
+                    style={[ui.input, { width: "100%", backgroundColor: theme.input, borderColor: theme.border, color: theme.ink }]}
                 />
                 <TextInput
                     accessibilityLabel="Display name"
@@ -187,7 +191,8 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
                     maxLength={60}
                     value={name}
                     onChangeText={setName}
-                    style={[ui.input, { width: "100%" }]}
+                    placeholderTextColor={theme.muted}
+                    style={[ui.input, { width: "100%", backgroundColor: theme.input, borderColor: theme.border, color: theme.ink }]}
                 />
                 {!!error && (
                     <Text accessibilityRole="alert" style={ui.error}>
@@ -224,6 +229,7 @@ function DeletionProgress({
     error?: string;
 }) {
     const { signOut } = useAuth();
+    const theme = useAppTheme();
     const request = useNookApi();
     const [busy, setBusy] = useState(false);
     const [failure, setFailure] = useState("");
@@ -232,16 +238,16 @@ function DeletionProgress({
             void signOut().catch(() => setFailure("Please tap Sign out to finish."));
     }, [state, signOut]);
     return (
-        <View style={ui.center}>
-            {state === "pending" && <ActivityIndicator color="#087EFF" />}
-            <Text style={ui.title}>
+        <View style={[ui.center, { backgroundColor: theme.background }]}>
+            {state === "pending" && <ActivityIndicator color={theme.blue} />}
+            <Text style={[ui.title, { color: theme.ink }]}>
                 {state === "failed"
                     ? "Deletion needs attention"
                     : state === "pending"
                         ? "Deleting your account…"
                         : "Account deleted"}
             </Text>
-            <Text style={[ui.muted, { textAlign: "center" }]}>
+            <Text style={[ui.muted, { textAlign: "center", color: theme.muted }]}>
                 {error ??
                     (state === "pending"
                         ? "Your deletion request is saved. You can close the app; we’ll keep processing it."

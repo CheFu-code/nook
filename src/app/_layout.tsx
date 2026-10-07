@@ -3,6 +3,7 @@ import { useAuth, ChefuAuthProvider } from '@/lib/chefu-auth';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
+import { useAppTheme } from '@/lib/theme';
 
 Sentry.init({
   dsn: 'https://d49d5db24e3765ff90211c22ad7532b3@o4509813037137920.ingest.de.sentry.io/4512078093942864',
@@ -40,11 +41,12 @@ Sentry.logger.info('nook initialized', { platform: Platform.OS });
 
 function AuthenticatedRoutes() {
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const theme = useAppTheme();
   if (!isLoaded) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color="#1680FF" accessibilityLabel="Loading your account" /></View>;
+    return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color={theme.blue} accessibilityLabel="Loading your account" /></View>;
   }
   return (
-    <MessagesProvider key={userId ?? "signed-out"}><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FCFDFE' } }}>
+    <MessagesProvider key={userId ?? "signed-out"}><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="index" />
       </Stack.Protected>

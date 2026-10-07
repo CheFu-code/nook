@@ -2,9 +2,11 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { FeedIcon } from "./feed-icon";
+import { useAppTheme } from "@/lib/theme";
 
 export function HomeHeader() {
     const router = useRouter();
+    const theme = useAppTheme();
     const { width, height } = useWindowDimensions();
     const s = width / 390;
     const v = height / 916;
@@ -20,12 +22,13 @@ export function HomeHeader() {
         >
             <Image
                 source={require("../../assets/images/logo-2.png")}
+                tintColor={theme.isDark ? theme.ink : undefined}
                 style={{ width: 38 * s, height: 38 * s }}
             />
             <Text
                 style={{
                     flex: 1,
-                    color: "#0D1529",
+                    color: theme.ink,
                     fontSize: 23 * s,
                     fontWeight: "700",
                     letterSpacing: -0.8 * s,
@@ -41,12 +44,12 @@ export function HomeHeader() {
                     width: 38 * s,
                     height: 38 * s,
                     borderRadius: 99,
-                    backgroundColor: "#F3F5F9",
+                    backgroundColor: theme.subtle,
                     alignItems: "center",
                     justifyContent: "center",
                 }}
             >
-                <FeedIcon name="search" size={22 * s} />
+                <FeedIcon name="search" size={22 * s} color={theme.ink} />
             </Pressable>
             <Pressable
                 accessibilityRole="button"
@@ -56,12 +59,12 @@ export function HomeHeader() {
                     width: 38 * s,
                     height: 38 * s,
                     borderRadius: 99,
-                    backgroundColor: "#E8F1FF",
+                    backgroundColor: theme.blueSoft,
                     alignItems: "center",
                     justifyContent: "center",
                 }}
             >
-                <FeedIcon name="plus" size={23 * s} color="#087EFF" />
+                <FeedIcon name="plus" size={23 * s} color={theme.blue} />
             </Pressable>
         </View>
     );

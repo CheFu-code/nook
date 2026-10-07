@@ -15,6 +15,7 @@ import { ConnectionStatus, LoadMore, ui } from './ui';
 import { ProfileHeader, ProfileSummary, ProfileGalleryTabs, useProfileScale, type ProfilePanel } from '../profile-layout';
 import { FeedIcon } from '../feed-icon';
 import { SettingsScreen } from '../settings-screen';
+import { useAppTheme } from '@/lib/theme';
 
 export function OwnProfile() { const me = useProfile(); return <MemberProfile id={me._id} />; }
 export function MemberRoute() { const { id } = useLocalSearchParams<{ id: Id<'profiles'> }>(); return <MemberProfile id={id} back />; }
@@ -24,14 +25,15 @@ function MemberProfile({ id, back = false }: { id: Id<'profiles'>; back?: boolea
   const posts = useNookPaginatedQuery<SocialPost>(`/nook/posts?feed=profile&profileId=${encodeURIComponent(id)}`);
   const request = useNookApi();
   const router = useRouter(); const { signOut } = useAuth(); const { s, v, width, insets } = useProfileScale();
+  const theme = useAppTheme();
   const [sheet, setSheet] = useState<'followers' | 'following' | 'edit' | 'settings' | null>(null);
   const [panel, setPanel] = useState<ProfilePanel>('posts');
   const gallery = panel === 'posts' ? posts.results : panel === 'videos' ? posts.results.filter(post => post.kind === 'video') : [];
   const hasPostFeed = panel === 'posts' || panel === 'videos';
   if (sheet === 'settings') return <SettingsScreen accountName={profile?.username ?? 'Your account'} onClose={() => setSheet(null)} onEdit={() => setSheet('edit')} onSaved={() => { setPanel('saved'); setSheet(null); }} onSignOut={signOut} onDelete={async () => { await request('/nook/account/deletion', { method: 'POST' }); await signOut(); }} />;
-  return <View style={[ui.screen, { paddingTop: Math.max(40, insets.top - 9) }]}>
+  return <View style={[ui.screen, { paddingTop: Math.max(40, insets.top - 9), backgroundColor: theme.background }]}>
     <ProfileHeader back={back} onSettings={() => setSheet('settings')} /><ConnectionStatus />
-    {!profile ? profile === undefined ? <ActivityIndicator color="#087EFF" /> : <View style={ui.center}><Text style={ui.title}>Profile unavailable</Text></View> : <>
+    {!profile ? profile === undefined ? <ActivityIndicator color={theme.blue} /> : <View style={[ui.center, { backgroundColor: theme.background }]}><Text style={[ui.title, { color: theme.ink }]}>Profile unavailable</Text></View> : <>
       <FlatList data={gallery} numColumns={3} keyExtractor={item => item._id} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }} columnWrapperStyle={{ gap: 4 * s, paddingHorizontal: 6 * s }} ListHeaderComponent={<>
         <ProfileSummary avatar={<Avatar profile={profile} size={108 * s} />} username={profile.username} name={profile.name} bio={profile.bio ?? ''}
           onEdit={profile.isOwn ? () => setSheet('edit') : undefined} onDiscover={() => router.navigate('/explore')}
@@ -47,7 +49,7 @@ function MemberProfile({ id, back = false }: { id: Id<'profiles'>; back?: boolea
       </>}
         renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`Open post${item.caption ? `: ${item.caption}` : ''}`} onPress={() => router.push({ pathname: '/post/[id]', params: { id: item._id } })} style={{ width: (width - 20 * s) / 3, marginBottom: 4 * s, borderRadius: 7 * s, overflow: 'hidden' }}><View pointerEvents="none"><PostMedia post={item} thumbnail aspectRatio={1 / 0.925} /></View></Pressable>}
         onEndReached={() => { if (hasPostFeed && posts.status === 'CanLoadMore') posts.loadMore(21); }}
-        ListEmptyComponent={(!hasPostFeed || posts.status !== 'LoadingFirstPage') ? <View style={{ alignItems: 'center', padding: 38, gap: 16 }}><FeedIcon name={panel === 'posts' ? 'grid' : panel === 'videos' ? 'video' : panel === 'saved' ? 'bookmark' : 'tagged'} size={36} color="#7E88A2" /><Text style={[ui.muted, { textAlign: 'center' }]}>{panel === 'saved' ? 'Saved posts gallery is not available yet.' : panel === 'tagged' ? 'Tagged posts are not available yet.' : panel === 'videos' ? 'No videos to show.' : 'No posts yet. Your moments will appear here.'}</Text></View> : null}
+        ListEmptyComponent={(!hasPostFeed || posts.status !== 'LoadingFirstPage') ? <View style={{ alignItems: 'center', padding: 38, gap: 16 }}><FeedIcon name={panel === 'posts' ? 'grid' : panel === 'videos' ? 'video' : panel === 'saved' ? 'bookmark' : 'tagged'} size={36} color={theme.muted} /><Text style={[ui.muted, { textAlign: 'center', color: theme.muted }]}>{panel === 'saved' ? 'Saved posts gallery is not available yet.' : panel === 'tagged' ? 'Tagged posts are not available yet.' : panel === 'videos' ? 'No videos to show.' : 'No posts yet. Your moments will appear here.'}</Text></View> : null}
         ListFooterComponent={hasPostFeed ? <LoadMore status={posts.status} loadMore={posts.loadMore} /> : null} />
       <Modal visible={sheet !== null} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => { if (sheet !== 'edit') setSheet(null); }}>
         {sheet === 'edit' ? <LiveEdit profile={profile} close={() => setSheet(null)} onSaved={profileQuery.refresh} /> : sheet && <Connections profileId={id} kind={sheet} close={() => setSheet(null)} />}
@@ -57,8 +59,8 @@ function MemberProfile({ id, back = false }: { id: Id<'profiles'>; back?: boolea
 }
 
 function Connections({ profileId, kind, close }: { profileId: Id<'profiles'>; kind: 'followers' | 'following'; close: () => void }) {
-  const result = useNookPaginatedQuery<SocialProfile>(`/nook/profiles/${encodeURIComponent(profileId)}/connections?kind=${kind}`); const router = useRouter(); const insets = useSafeAreaInsets();
-  return <View style={[ui.screen, { paddingTop: insets.top }]}><View style={ui.header}><Text style={[ui.title, { flex: 1 }]}>{kind === 'followers' ? 'Followers' : 'Following'}</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={ui.link}>Done</Text></Pressable></View><FlatList data={result.results} keyExtractor={item => item._id} renderItem={({ item }) => <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}><Pressable onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Avatar profile={item as any} size={48} /></Pressable><Pressable style={{ flex: 1 }} onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Text style={ui.text}>{item.username ?? 'User'}</Text><Text style={ui.muted}>{item.name ?? item.username ?? 'User'}</Text></Pressable><FollowButton profile={item as SocialProfile} /></View>} ListEmptyComponent={result.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 24 }]}>No {kind} yet.</Text> : null} ListFooterComponent={<LoadMore status={result.status} loadMore={result.loadMore} />} /></View>;
+  const result = useNookPaginatedQuery<SocialProfile>(`/nook/profiles/${encodeURIComponent(profileId)}/connections?kind=${kind}`); const router = useRouter(); const insets = useSafeAreaInsets(); const theme = useAppTheme();
+  return <View style={[ui.screen, { paddingTop: insets.top, backgroundColor: theme.background }]}><View style={ui.header}><Text style={[ui.title, { flex: 1, color: theme.ink }]}>{kind === 'followers' ? 'Followers' : 'Following'}</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={[ui.link, { color: theme.blue }]}>Done</Text></Pressable></View><FlatList data={result.results} keyExtractor={item => item._id} renderItem={({ item }) => <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}><Pressable onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Avatar profile={item as any} size={48} /></Pressable><Pressable style={{ flex: 1 }} onPress={() => { close(); router.push({ pathname: '/member/[id]', params: { id: item._id } }); }}><Text style={[ui.text, { color: theme.ink }]}>{item.username ?? 'User'}</Text><Text style={[ui.muted, { color: theme.muted }]}>{item.name ?? item.username ?? 'User'}</Text></Pressable><FollowButton profile={item as SocialProfile} /></View>} ListEmptyComponent={result.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 24, color: theme.muted }]}>No {kind} yet.</Text> : null} ListFooterComponent={<LoadMore status={result.status} loadMore={result.loadMore} />} /></View>;
 }
 function LiveEdit({ profile, close, onSaved }: { profile: SocialProfile; close: () => void; onSaved: () => void }) {
   const request = useNookApi(); const getToken = useChefuAccessToken();

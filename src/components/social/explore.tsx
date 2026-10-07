@@ -10,6 +10,7 @@ import { useNookApi, useNookPaginatedQuery } from '@/hooks/use-nook-api';
 import { Avatar, PostMedia } from './media';
 import { FollowButton } from './post-card';
 import { ConnectionStatus, LoadMore, ui } from './ui';
+import { useAppTheme } from '@/lib/theme';
 
 const topicWords: Record<string, RegExp> = {
   Travel: /travel|trip|beach|city|coast|horizon|outdoor|mountain|lake|san diego|santorini/i,
@@ -18,6 +19,7 @@ const topicWords: Record<string, RegExp> = {
   Design: /design|architecture|city|skyline/i, Lifestyle: /lifestyle|coffee|weekend|morning|day/i,
 };
 export function LiveExplore() {
+  const theme = useAppTheme();
   const { width, height } = useWindowDimensions(); const s = width / 390; const v = height / 874; const router = useRouter();
   const [text, setText] = useState(''); const [search, setSearch] = useState(''); const [topic, setTopic] = useState('All');
   const [sheet, setSheet] = useState<'people' | 'topics' | null>(null);
@@ -51,12 +53,12 @@ export function LiveExplore() {
   return <>
     <ExploreLayout query={text} onQuery={setText} topic={topic} onTopic={setTopic} onPeople={() => setSheet('people')} onTopics={() => setSheet('topics')} onCompose={() => router.push('/compose')} notice={<ConnectionStatus />}
       people={people.results.filter(p => !p.isOwn).map((profile, index) => ({ id: profile._id, name: profile.username, topic: profile.location || profile.bio || '',
-        portrait: <LinearGradient colors={index % 3 === 1 ? ['#C660FF', '#FFC979'] : ['#1687FF', '#BDD8FF']} style={{ padding: 1.2 * s, borderRadius: 30 * s }}><View style={{ padding: 1.2 * s, backgroundColor: '#FCFDFE', borderRadius: 30 * s }}><Avatar profile={profile} size={52.2 * s} /></View></LinearGradient>,
+        portrait: <LinearGradient colors={index % 3 === 1 ? ['#C660FF', '#FFC979'] : ['#1687FF', '#BDD8FF']} style={{ padding: 1.2 * s, borderRadius: 30 * s }}><View style={{ padding: 1.2 * s, backgroundColor: theme.background, borderRadius: 30 * s }}><Avatar profile={profile} size={52.2 * s} /></View></LinearGradient>,
         follow: <FollowButton profile={profile} compactScale={s} />, onPress: () => member(profile._id) }))}
-      posts={tiles} footer={<LoadMore status={posts.status} loadMore={posts.loadMore} />} empty={posts.status === 'LoadingFirstPage' ? <View /> : <Text style={[ui.muted, { padding: 28, textAlign: 'center' }]}>{search || topic !== 'All' ? 'No matching posts loaded. Try another search or topic, or load more.' : 'No posts yet. Share the first moment.'}</Text>}
+      posts={tiles} footer={<LoadMore status={posts.status} loadMore={posts.loadMore} />} empty={posts.status === 'LoadingFirstPage' ? <View /> : <Text style={[ui.muted, { padding: 28, textAlign: 'center', color: theme.muted }]}>{search || topic !== 'All' ? 'No matching posts loaded. Try another search or topic, or load more.' : 'No posts yet. Share the first moment.'}</Text>}
       onEndReached={() => { if (!search && topic === 'All' && posts.status === 'CanLoadMore') posts.loadMore(21); }} />
-    <Modal visible={sheet !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSheet(null)}><View style={ui.screen}><View style={{ padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={ui.title}>{sheet === 'people' ? 'Suggested for you' : 'Explore topics'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSheet(null)} hitSlop={12}><FeedIcon name="close" /></Pressable></View><ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
-      {sheet === 'topics' ? topics.map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: topic === value }} onPress={() => { setTopic(value); setSheet(null); }} style={{ padding: 16, borderRadius: 16, backgroundColor: topic === value ? '#E8F1FF' : '#F0F2F7' }}><Text style={{ color: topic === value ? '#087EFF' : '#0D1529', fontSize: 17 }}>{value}</Text></Pressable>) : <>{people.results.filter(p => !p.isOwn).map(profile => <View key={profile._id} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}><Pressable onPress={() => { setSheet(null); member(profile._id); }}><Avatar profile={profile} size={48} /></Pressable><Pressable style={{ flex: 1 }} onPress={() => { setSheet(null); member(profile._id); }}><Text style={{ ...ui.text, fontWeight: '600' }}>{profile.username}</Text><Text style={ui.muted}>{profile.name}</Text></Pressable><FollowButton profile={profile} /></View>)}<LoadMore status={people.status} loadMore={people.loadMore} /></>}
+    <Modal visible={sheet !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSheet(null)}><View style={[ui.screen, { backgroundColor: theme.background }]}><View style={{ padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={[ui.title, { color: theme.ink }]}>{sheet === 'people' ? 'Suggested for you' : 'Explore topics'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSheet(null)} hitSlop={12}><FeedIcon name="close" color={theme.ink} /></Pressable></View><ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
+      {sheet === 'topics' ? topics.map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: topic === value }} onPress={() => { setTopic(value); setSheet(null); }} style={{ padding: 16, borderRadius: 16, backgroundColor: topic === value ? theme.blueSoft : theme.subtle }}><Text style={{ color: topic === value ? theme.blue : theme.ink, fontSize: 17 }}>{value}</Text></Pressable>) : <>{people.results.filter(p => !p.isOwn).map(profile => <View key={profile._id} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}><Pressable onPress={() => { setSheet(null); member(profile._id); }}><Avatar profile={profile} size={48} /></Pressable><Pressable style={{ flex: 1 }} onPress={() => { setSheet(null); member(profile._id); }}><Text style={{ ...ui.text, color: theme.ink, fontWeight: '600' }}>{profile.username}</Text><Text style={[ui.muted, { color: theme.muted }]}>{profile.name}</Text></Pressable><FollowButton profile={profile} /></View>)}<LoadMore status={people.status} loadMore={people.loadMore} /></>}
     </ScrollView></View></Modal>
   </>;
 }

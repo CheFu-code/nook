@@ -1,9 +1,11 @@
 import { ActivityIndicator, Text, View } from "react-native";
 import { ui } from "./ui";
+import { useAppTheme } from "@/lib/theme";
 
 export function ProfileLoading() {
+    const theme = useAppTheme();
     return (
-        <View style={ui.screen}>
+        <View style={[ui.screen, { backgroundColor: theme.background }]}>
             <View
                 style={{
                     flex: 1,
@@ -19,17 +21,18 @@ export function ProfileLoading() {
                         borderRadius: 16,
                         alignItems: "center",
                         justifyContent: "center",
-                        backgroundColor: "#F4F4F5",
+                        backgroundColor: theme.subtle,
                         marginBottom: 24,
                     }}
                 >
-                    <ActivityIndicator color="#087EFF" size="small" />
+                    <ActivityIndicator color={theme.blue} size="small" />
                 </View>
 
                 <Text
                     style={[
                         ui.title,
                         {
+                            color: theme.ink,
                             textAlign: "center",
                             marginBottom: 8,
                         },
@@ -42,6 +45,7 @@ export function ProfileLoading() {
                     style={[
                         ui.muted,
                         {
+                            color: theme.muted,
                             textAlign: "center",
                             maxWidth: 300,
                             lineHeight: 21,

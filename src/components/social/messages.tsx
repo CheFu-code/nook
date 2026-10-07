@@ -8,6 +8,7 @@ import { useMessages } from '@/context/messages-context';
 import { ChatScreen, type ChatMessage } from '../chat-screen';
 import { Avatar } from './media';
 import { ConnectionStatus, LoadMore, ui } from './ui';
+import { useAppTheme } from '@/lib/theme';
 
 export const messageTime = (timestamp: number) => new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 export function inboxTime(timestamp: number) {
@@ -40,11 +41,12 @@ export function LiveChat() {
 }
 export function NewConversation({ close }: { close: () => void }) {
   const [text, setText] = useState(''); const [opening, setOpening] = useState(false); const router = useRouter(); const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const result = useNookPaginatedQuery<SocialProfile>(`/nook/profiles?q=${encodeURIComponent(text)}`); const request = useNookApi();
   const members = result.results.filter(item => !item.isOwn);
-  return <View style={[ui.screen, { paddingTop: insets.top }]}><View style={ui.header}><Text style={[ui.title, { flex: 1 }]}>New message</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={ui.link}>Cancel</Text></Pressable></View>
-    <TextInput accessibilityLabel="Search members to message" value={text} onChangeText={setText} placeholder="Search name or username" autoCapitalize="none" style={{ backgroundColor: '#F2F4F8', borderRadius: 16, padding: 16, margin: 18, fontSize: 16 }} />
-    <FlatList keyboardShouldPersistTaps="handled" data={members} keyExtractor={item => item._id} renderItem={({ item }) => <Pressable disabled={opening} onPress={async () => { setOpening(true); try { const conversation = await request<{ id: string }>('/nook/conversations', { method: 'POST', body: { profileId: item._id } }); close(); router.push({ pathname: '/chat/[id]', params: { id: conversation.id } }); } catch (e) { Alert.alert('Could not open chat', errorMessage(e)); } finally { setOpening(false); } }} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}><Avatar profile={item} size={50} /><View><Text style={ui.text}>{item.username}</Text><Text style={ui.muted}>{item.name}</Text></View></Pressable>}
-      ListEmptyComponent={result.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 24, textAlign: 'center' }]}>No members found. Search for an existing Nook profile to start a private conversation.</Text> : null} ListFooterComponent={<LoadMore status={result.status} loadMore={result.loadMore} />} />
+  return <View style={[ui.screen, { paddingTop: insets.top, backgroundColor: theme.background }]}><View style={ui.header}><Text style={[ui.title, { flex: 1, color: theme.ink }]}>New message</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={[ui.link, { color: theme.blue }]}>Cancel</Text></Pressable></View>
+    <TextInput accessibilityLabel="Search members to message" value={text} onChangeText={setText} placeholder="Search name or username" placeholderTextColor={theme.muted} autoCapitalize="none" style={{ backgroundColor: theme.input, borderColor: theme.border, borderWidth: 1, color: theme.ink, borderRadius: 16, padding: 16, margin: 18, fontSize: 16 }} />
+    <FlatList keyboardShouldPersistTaps="handled" data={members} keyExtractor={item => item._id} renderItem={({ item }) => <Pressable disabled={opening} onPress={async () => { setOpening(true); try { const conversation = await request<{ id: string }>('/nook/conversations', { method: 'POST', body: { profileId: item._id } }); close(); router.push({ pathname: '/chat/[id]', params: { id: conversation.id } }); } catch (e) { Alert.alert('Could not open chat', errorMessage(e)); } finally { setOpening(false); } }} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}><Avatar profile={item} size={50} /><View><Text style={[ui.text, { color: theme.ink }]}>{item.username}</Text><Text style={[ui.muted, { color: theme.muted }]}>{item.name}</Text></View></Pressable>}
+      ListEmptyComponent={result.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 24, textAlign: 'center', color: theme.muted }]}>No members found. Search for an existing Nook profile to start a private conversation.</Text> : null} ListFooterComponent={<LoadMore status={result.status} loadMore={result.loadMore} />} />
   </View>;
 }

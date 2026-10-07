@@ -17,6 +17,7 @@ import { FeedIcon } from "./feed-icon";
 import { Avatar } from "./social/media";
 import { inboxTime, NewConversation } from "./social/messages";
 import { LoadMore } from "./social/ui";
+import { useAppTheme } from "@/lib/theme";
 
 export function MessagesTab() {
   return <LiveInbox />;
@@ -64,13 +65,14 @@ function MessagesLayout({
 }) {
   const [filter, setFilter] = useState("All");
   const [newChat, setNewChat] = useState(false);
+  const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const s = width / 390;
   const vertical = Math.max(1, Math.min(1.12, height / width / (1502 / 739)));
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <StatusBar style="dark" />
+    <View style={[styles.screen, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar style={theme.isDark ? "light" : "dark"} />
       <View
         style={{
           flexDirection: "row",
@@ -83,7 +85,7 @@ function MessagesLayout({
       >
         <Text
           accessibilityRole="header"
-          style={[styles.heading, { fontSize: 33 * s }]}
+          style={[styles.heading, { fontSize: 33 * s, color: theme.ink }]}
         >
           Messages
         </Text>
@@ -114,7 +116,7 @@ function MessagesLayout({
               onFilter?.(label === "Unread");
             }}
             style={{
-              backgroundColor: filter === label ? "#087EFF" : "#F3F5FA",
+              backgroundColor: filter === label ? theme.blue : theme.subtle,
               borderRadius: 24 * s,
               width: (label === "All" ? 70 : 95) * s,
               height: 37 * s * vertical,
@@ -125,7 +127,7 @@ function MessagesLayout({
             <Text
               style={{
                 fontSize: 15 * s,
-                color: filter === label ? "white" : "#123969",
+                color: filter === label ? "white" : theme.secondary,
                 letterSpacing: -0.4,
               }}
             >
@@ -141,8 +143,8 @@ function MessagesLayout({
         {filter === "Groups" ? (
           <View style={{ padding: 30, alignItems: "center", gap: 10 }}>
             <FeedIcon name="comment" size={32} color="#8A90A7" />
-            <Text style={styles.name}>Group messaging</Text>
-            <Text style={[styles.preview, { textAlign: "center" }]}>
+            <Text style={[styles.name, { color: theme.ink }]}>Group messaging</Text>
+            <Text style={[styles.preview, { textAlign: "center", color: theme.muted }]}>
               For now, start a private conversation with one member.
             </Text>
           </View>
@@ -152,14 +154,14 @@ function MessagesLayout({
             {showEmpty && !loading && !liveRows?.length && (
               <View style={{ padding: 30, alignItems: "center", gap: 10 }}>
                 <FeedIcon name="comment" size={32} color="#8A90A7" />
-                <Text style={styles.name}>
+                <Text style={[styles.name, { color: theme.ink }]}>
                   {onFilter
                     ? filter === "Unread"
                       ? "You’re all caught up"
                       : "No conversations yet"
                     : "No conversations yet"}
                 </Text>
-                <Text style={[styles.preview, { textAlign: "center" }]}>
+                <Text style={[styles.preview, { textAlign: "center", color: theme.muted }]}>
                   {onFilter
                     ? filter === "Unread"
                       ? "You don’t have any unread messages."
@@ -199,6 +201,7 @@ function ConversationRow({
   onPress: () => void;
 }) {
   const { width, height } = useWindowDimensions();
+  const theme = useAppTheme();
   const s = width / 390;
   const vertical = Math.max(1, Math.min(1.12, height / width / (1502 / 739)));
   return (
@@ -207,7 +210,7 @@ function ConversationRow({
       accessibilityLabel={`Open chat with ${name}${unread ? ", unread" : ""}`}
       onPress={onPress}
       style={{
-        backgroundColor: "#F3F5FA",
+        backgroundColor: theme.subtle,
         borderRadius: 18 * s,
         padding: 9 * s,
         height: 80 * s * vertical,
@@ -224,13 +227,13 @@ function ConversationRow({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Text
             numberOfLines={1}
-            style={[styles.name, { flex: 1, fontSize: 18 * s }]}
+            style={[styles.name, { flex: 1, fontSize: 18 * s, color: theme.ink }]}
           >
             {name}
           </Text>
           <Text
             style={{
-              color: "#8491B1",
+              color: theme.muted,
               fontSize: 13 * s,
               marginRight: 9 * s,
               letterSpacing: -0.4,
@@ -244,7 +247,7 @@ function ConversationRow({
         >
           <Text
             numberOfLines={1}
-            style={[styles.preview, { flex: 1, fontSize: 15 * s }]}
+            style={[styles.preview, { flex: 1, fontSize: 15 * s, color: theme.muted }]}
           >
             {text}
           </Text>
@@ -254,14 +257,14 @@ function ConversationRow({
                 width: 11 * s,
                 height: 11 * s,
                 borderRadius: 6 * s,
-                backgroundColor: "#087EFF",
+                backgroundColor: theme.blue,
               }}
             />
           )}
           <View
             style={{ transform: [{ rotate: "180deg" }], marginRight: 3 * s }}
           >
-            <FeedIcon name="back" size={16 * s} color="#8491B1" />
+            <FeedIcon name="back" size={16 * s} color={theme.muted} />
           </View>
         </View>
       </View>

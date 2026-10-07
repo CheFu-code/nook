@@ -15,12 +15,14 @@ import { Header, ConnectionStatus, LoadMore, ui } from "./ui";
 import { HomeHeader } from "../home-layout";
 import { Stories } from "./stories";
 import { PostCard } from "./post-card";
+import { useAppTheme } from "@/lib/theme";
 
 export function LiveHome() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { width } = useWindowDimensions();
     const s = width / 390;
+    const theme = useAppTheme();
     const { results, status, loadMore } = useNookPaginatedQuery<SocialPost>(
         "/nook/posts?feed=home",
     );
@@ -31,7 +33,7 @@ export function LiveHome() {
     ).current;
     return (
         <View
-            style={[ui.screen, { paddingTop: Math.max(40 * s, insets.top - 15 * s) }]}
+            style={[ui.screen, { paddingTop: Math.max(40 * s, insets.top - 15 * s), backgroundColor: theme.background }]}
         >
             <HomeHeader />
             <ConnectionStatus />
@@ -53,8 +55,8 @@ export function LiveHome() {
                 ListEmptyComponent={
                     status !== "LoadingFirstPage" ? (
                         <View style={{ padding: 32, gap: 16, alignItems: "center" }}>
-                            <Text style={ui.title}>Your feed starts here</Text>
-                            <Text style={[ui.muted, { textAlign: "center" }]}>
+                            <Text style={[ui.title, { color: theme.ink }]}>Your feed starts here</Text>
+                            <Text style={[ui.muted, { textAlign: "center", color: theme.muted }]}>
                                 Share your first moment, or discover people to follow.
                             </Text>
                             <Pressable

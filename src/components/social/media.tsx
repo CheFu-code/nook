@@ -12,6 +12,7 @@ import {
 import { type SocialProfile, type SocialPost } from "@/lib/social";
 import { useNookApi } from "@/hooks/use-nook-api";
 import { useAuth } from "@/lib/chefu-auth";
+import { useAppTheme } from "@/lib/theme";
 import { ui } from "./ui";
 
 export function useMediaSource(
@@ -59,6 +60,7 @@ export function Avatar({
     size?: number;
 }) {
     const { user } = useAuth();
+    const theme = useAppTheme();
     const { source } = useMediaSource(
         profile._id,
         "avatar",
@@ -86,13 +88,13 @@ export function Avatar({
                 width: size,
                 height: size,
                 borderRadius: size / 2,
-                backgroundColor: "#E8F1FF",
+                backgroundColor: theme.blueSoft,
                 alignItems: "center",
                 justifyContent: "center",
             }}
         >
             <Text
-                style={{ color: "#087EFF", fontWeight: "700", fontSize: size * 0.4 }}
+                style={{ color: theme.blue, fontWeight: "700", fontSize: size * 0.4 }}
             >
                 {profile.name[0]?.toUpperCase()}
             </Text>
