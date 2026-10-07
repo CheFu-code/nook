@@ -7,12 +7,10 @@ import { useAppTheme } from "@/lib/theme";
 import {
     createContext,
     useContext,
-    useEffect,
     useState,
     type ReactNode,
 } from "react";
 import {
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -28,20 +26,12 @@ export function useProfile() {
     return profile;
 }
 
-type DeletionStatus = {
-    state: "pending" | "cleanup" | "complete" | "failed";
-    error?: string;
-} | null;
-
 export function ProfileGate({ children }: { children: ReactNode }) {
     const { isSignedIn, isLoaded, signOut } = useAuth();
     const theme = useAppTheme();
     const [profileVersion, setProfileVersion] = useState(0);
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState("");
-    const deletion = useNookQuery<DeletionStatus>(
-        isSignedIn ? "/nook/account/deletion" : null,
-    );
     const profile = useNookQuery<SocialProfile | null>(
         isSignedIn ? `/nook/profile?refresh=${profileVersion}` : null,
     );
@@ -49,9 +39,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
 
     if (
         !isLoaded ||
-        (isSignedIn &&
-            ((!profile.error && profile.data === undefined) ||
-                (!deletion.error && deletion.data === undefined)))
+        (isSignedIn && !profile.error && profile.data === undefined)
     ) {
         return <ProfileLoading
         />;
@@ -71,15 +59,8 @@ export function ProfileGate({ children }: { children: ReactNode }) {
             </View>
         );
     }
-    if (deletion.data)
-        return (
-            <DeletionProgress
-                state={deletion.data.state}
-                error={deletion.data.error}
-            />
-        );
-    if (profile.error || deletion.error) {
-        const failure = profile.error ?? deletion.error;
+    if (profile.error) {
+        const failure = profile.error;
         const sessionExpired = /session.*expired|sign in again/i.test(
             failure?.message ?? "",
         );
@@ -93,7 +74,6 @@ export function ProfileGate({ children }: { children: ReactNode }) {
                     return;
                 }
                 profile.refresh();
-                deletion.refresh();
             } catch (reason) {
                 setRetryError(errorMessage(reason));
             } finally {
@@ -145,7 +125,6 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
     const theme = useAppTheme();
     const request = useNookApi();
     const [username, setUsername] = useState(user?.username ?? "");
-    const [name, setName] = useState(user?.displayName ?? user?.name ?? "");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     async function submit() {
@@ -155,7 +134,7 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
         try {
             await request("/nook/profiles", {
                 method: "POST",
-                body: { username, name },
+                body: { username },
             });
             onCreated();
         } catch (reason) {
@@ -185,25 +164,16 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
                     placeholderTextColor={theme.muted}
                     style={[ui.input, { width: "100%", backgroundColor: theme.input, borderColor: theme.border, color: theme.ink }]}
                 />
-                <TextInput
-                    accessibilityLabel="Display name"
-                    placeholder="Display name"
-                    maxLength={60}
-                    value={name}
-                    onChangeText={setName}
-                    placeholderTextColor={theme.muted}
-                    style={[ui.input, { width: "100%", backgroundColor: theme.input, borderColor: theme.border, color: theme.ink }]}
-                />
                 {!!error && (
                     <Text accessibilityRole="alert" style={ui.error}>
                         {error}
                     </Text>
                 )}
                 <Pressable
-                    disabled={busy || !username.trim() || !name.trim()}
+                    disabled={busy || !username.trim()}
                     style={[
                         ui.button,
-                        (busy || !username.trim() || !name.trim()) && ui.disabled,
+                        (busy || !username.trim()) && ui.disabled,
                     ]}
                     onPress={() => void submit()}
                 >
@@ -219,79 +189,4 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
 export function useChefuAccessToken() {
     const { getToken } = useAuth();
     return getToken;
-}
-
-function DeletionProgress({
-    state,
-    error,
-}: {
-    state: NonNullable<DeletionStatus>["state"];
-    error?: string;
-}) {
-    const { signOut } = useAuth();
-    const theme = useAppTheme();
-    const request = useNookApi();
-    const [busy, setBusy] = useState(false);
-    const [failure, setFailure] = useState("");
-    useEffect(() => {
-        if (state === "cleanup" || state === "complete")
-            void signOut().catch(() => setFailure("Please tap Sign out to finish."));
-    }, [state, signOut]);
-    return (
-        <View style={[ui.center, { backgroundColor: theme.background }]}>
-            {state === "pending" && <ActivityIndicator color={theme.blue} />}
-            <Text style={[ui.title, { color: theme.ink }]}>
-                {state === "failed"
-                    ? "Deletion needs attention"
-                    : state === "pending"
-                        ? "Deleting your account…"
-                        : "Account deleted"}
-            </Text>
-            <Text style={[ui.muted, { textAlign: "center", color: theme.muted }]}>
-                {error ??
-                    (state === "pending"
-                        ? "Your deletion request is saved. You can close the app; we’ll keep processing it."
-                        : "Your sign-in account has been deleted. Associated app data is being removed.")}
-            </Text>
-            {!!failure && (
-                <Text accessibilityRole="alert" style={ui.error}>
-                    {failure}
-                </Text>
-            )}
-            {state === "failed" && (
-                <Pressable
-                    accessibilityRole="button"
-                    disabled={busy}
-                    style={ui.button}
-                    onPress={async () => {
-                        setBusy(true);
-                        setFailure("");
-                        try {
-                            await request("/nook/account/deletion", { method: "POST" });
-                            await signOut();
-                        } catch (reason) {
-                            setFailure(errorMessage(reason));
-                        } finally {
-                            setBusy(false);
-                        }
-                    }}
-                >
-                    <Text style={ui.buttonText}>
-                        {busy ? "Retrying…" : "Retry deletion"}
-                    </Text>
-                </Pressable>
-            )}
-            <Pressable
-                accessibilityRole="button"
-                style={ui.button}
-                onPress={() =>
-                    void signOut().catch(() =>
-                        setFailure("Unable to sign out. Please try again."),
-                    )
-                }
-            >
-                <Text style={ui.buttonText}>Sign out</Text>
-            </Pressable>
-        </View>
-    );
 }

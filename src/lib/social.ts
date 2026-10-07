@@ -111,7 +111,7 @@ export async function requestJson<T>(
   if (!responseText.trim()) {
     const endpoint = path.split('?')[0];
     if ((options.method ?? 'GET') === 'GET' &&
-        (endpoint === '/nook/profile' || endpoint === '/nook/account/deletion')) {
+        endpoint === '/nook/profile') {
       return null as T;
     }
     throw new Error('The API returned an empty response. Please try again.');
