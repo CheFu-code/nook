@@ -1,109 +1,429 @@
-import { Image } from 'expo-image';
-import * as Device from 'expo-device';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { useRef, useState, useEffect } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useChefuAccessToken } from '@/context/social-context';
-import { errorMessage, type Id } from '@/lib/social';
-import { useNookApi } from '@/hooks/use-nook-api';
-import { sendUpload, validateMedia } from '@/lib/upload';
-import { ui } from './ui';
-import { FeedIcon } from '../feed-icon';
+import { Image } from "expo-image";
+import * as Device from "expo-device";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useRef, useState, useEffect } from "react";
+import {
+	ActivityIndicator,
+	Alert,
+	KeyboardAvoidingView,
+	Linking,
+	Platform,
+	Pressable,
+	ScrollView,
+	Text,
+	TextInput,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useChefuAccessToken } from "@/context/social-context";
+import { errorMessage, type Id } from "@/lib/social";
+import { useNookApi } from "@/hooks/use-nook-api";
+import { sendUpload, validateMedia } from "@/lib/upload";
+import { ui } from "./ui";
+import { FeedIcon } from "../feed-icon";
 
 export function Composer({ story = false }: { story?: boolean }) {
-  const router = useRouter(); const insets = useSafeAreaInsets(); const getToken = useChefuAccessToken(); const request = useNookApi();
-  const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null); const [caption, setCaption] = useState('');
-  const [phase, setPhase] = useState<'idle' | 'preparing' | 'uploading' | 'publishing'>('idle'); const [progress, setProgress] = useState(0); const [error, setError] = useState(''); const [picking, setPicking] = useState(false);
-  const pickerBusy = useRef(false);
-  const uploadId = useRef<Id<'uploads'> | null>(null); const uploaded = useRef(false); const busy = useRef(false); const controller = useRef<AbortController | null>(null); const mounted = useRef(true);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; controller.current?.abort(); }; }, []);
-  function close() {
-    if (pickerBusy.current) return;
-    if (busy.current) {
-      if (phase === 'publishing') { Alert.alert('Finishing publication', `Keep this screen open while the server confirms your ${story ? 'story' : 'post'}.`); return; }
-      Alert.alert('Cancel upload?', story ? 'Your unfinished upload will be discarded.' : 'Your unfinished upload and caption will be discarded.', [{ text: 'Keep uploading', style: 'cancel' }, { text: 'Cancel upload', style: 'destructive', onPress: () => {
-        controller.current?.abort();
-        if (uploadId.current) void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' }).catch(() => {});
-        router.back();
-      } }]); return;
-    }
-    const discard = () => { if (uploadId.current) void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' }).catch(() => {}); router.back(); };
-    if (asset || caption) Alert.alert(story ? 'Discard story?' : 'Discard post?', story ? 'Your selected photo will be discarded.' : 'Your selected media and caption will be discarded.', [{ text: 'Keep editing', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: discard }]); else discard();
-  }
-  async function pick(source: 'library' | 'camera' = 'library') {
-    if (busy.current || pickerBusy.current) return; pickerBusy.current = true; setPicking(true); setError('');
-    try {
-      if (source === 'camera') {
-        if (Platform.OS === 'ios' && !Device.isDevice) {
-          Alert.alert('Camera unavailable', 'Use a physical device to take a photo, or choose one from the photo library.');
-          return;
-        }
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert('Camera access needed', 'Allow camera access to take a photo.', permission.canAskAgain
-            ? [{ text: 'OK' }]
-            : [{ text: 'Cancel', style: 'cancel' }, { text: 'Open settings', onPress: () => { void Linking.openSettings().catch(() => setError('Open your device settings to allow camera access.')); } }]);
-          return;
-        }
-      }
-      const result = source === 'camera'
-        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
-        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: story ? ['images'] : ['images', 'videos'], allowsMultipleSelection: false, quality: 1, videoMaxDuration: 30 });
-      if (result.canceled) return;
-      validateMedia(result.assets[0]);
-      if (uploadId.current) await request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' });
-      uploadId.current = null; uploaded.current = false; setAsset(result.assets[0]); setProgress(0);
-    } catch (e) { setError(e instanceof Error ? e.message : errorMessage(e)); } finally { pickerBusy.current = false; if (mounted.current) setPicking(false); }
-  }
-  async function submit() {
-    if (!asset || busy.current) return; busy.current = true; controller.current = new AbortController(); const signal = controller.current.signal; setError(''); setPhase('preparing');
-    try {
-      const meta = validateMedia(asset);
-      if (!uploadId.current) {
-        const created = await request<{ id: string }>('/nook/uploads', { method: 'POST', body: { purpose: story ? 'story' : 'post', kind: meta.kind, width: meta.width, height: meta.height, ...(meta.duration ? { duration: meta.duration } : {}) } });
-        uploadId.current = created.id;
-      }
-      if (signal.aborted) { if (uploadId.current) void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, { method: 'DELETE' }).catch(() => {}); return; }
-      if (!uploaded.current) {
-        const activeId = uploadId.current;
-        if (!activeId) throw new Error('Upload session is missing. Please try again.');
-        const local = await fetch(asset.uri); const raw = await local.blob();
-        if (!raw.size || raw.size > meta.max) throw new Error('This file is empty or exceeds the upload size limit.');
-        const blob = raw.slice(0, raw.size, meta.mime);
-        const token = await getToken(); if (!token) throw new Error('Session expired. Sign in again.');
-        if (signal.aborted) return; setPhase('uploading');
-        await sendUpload(activeId, blob, token, setProgress, signal);
-        uploaded.current = true;
-      }
-      if (signal.aborted) return;
-      setPhase('publishing');
-      const activeId = uploadId.current;
-      if (!activeId) throw new Error('Upload session is missing. Please try again.');
-      if (story) await request('/nook/stories', { method: 'POST', body: { uploadId: activeId, caption: '' } });
-      else await request('/nook/posts', { method: 'POST', body: { uploadId: activeId, caption } });
-      uploadId.current = null; uploaded.current = false; busy.current = false; router.back();
-    } catch (e) { if (mounted.current) setError(e instanceof Error && !(e as { data?: unknown }).data ? e.message : errorMessage(e)); }
-    finally { busy.current = false; if (mounted.current) setPhase('idle'); }
-  }
-  return <KeyboardAvoidingView style={[ui.screen, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={ui.header}><Pressable accessibilityRole="button" accessibilityLabel="Close composer" disabled={picking} onPress={close} style={ui.round}><FeedIcon name="close" /></Pressable><Text style={[ui.title, { flex: 1 }]}>{story ? 'New story' : 'New post'}</Text><Pressable disabled={phase !== 'idle' || picking || !asset} style={[ui.button, (!asset || phase !== 'idle') && ui.disabled]} onPress={() => void submit()}><Text style={ui.buttonText}>Publish</Text></Pressable></View>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 18, paddingBottom: insets.bottom + 30 }}>
-      <Pressable disabled={phase !== 'idle' || picking} onPress={() => void pick()} style={{ backgroundColor: '#EEF3FA', borderRadius: 22, minHeight: 260, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-        {asset?.type !== 'video' && asset ? <Image source={{ uri: asset.uri }} style={{ width: '100%', aspectRatio: 1 }} contentFit="contain" /> : <View style={{ padding: 30, gap: 14, alignItems: 'center' }}><FeedIcon name="camera" size={40} color="#087EFF" /><Text style={ui.text}>{asset ? `Video selected · ${Math.round((asset.duration ?? 0) / 1000)} seconds` : story ? 'Choose a photo' : 'Choose a photo or video'}</Text><Text style={ui.link}>{picking ? 'Opening…' : asset ? 'Change media' : 'Open photo library'}</Text></View>}
-      </Pressable>
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Take a photo" disabled={phase !== 'idle' || picking} onPress={() => void pick('camera')} style={[ui.button, { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 8 }, (phase !== 'idle' || picking) && ui.disabled]}><FeedIcon name="camera" size={20} color="white" /><Text style={ui.buttonText}>Camera</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Choose from photo library" disabled={phase !== 'idle' || picking} onPress={() => void pick('library')} style={[ui.button, { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 8, backgroundColor: '#E8F1FF' }, (phase !== 'idle' || picking) && ui.disabled]}><FeedIcon name="photo" size={20} color="#087EFF" /><Text style={[ui.buttonText, { color: '#087EFF' }]}>Library</Text></Pressable>
-      </View>
-      <Text style={ui.muted}>{story ? 'Share a photo for 24 hours. Visible to signed-in members. Up to 10 MB.' : 'One photo up to 10 MB, or an MP4/MOV video up to 30 seconds and 50 MB.'}</Text>
-      {!story && <>
-        <TextInput accessibilityLabel="Post caption" placeholder="Write a caption…" value={caption} onChangeText={setCaption} editable={phase === 'idle'} multiline maxLength={2200} style={[ui.input, { minHeight: 120, textAlignVertical: 'top' }]} />
-        <Text style={[ui.muted, { textAlign: 'right' }]}>{caption.length}/2200</Text>
-      </>}
-      {phase !== 'idle' && <View style={{ gap: 10 }}><ActivityIndicator color="#087EFF" /><Text accessibilityLiveRegion="polite" style={ui.muted}>{phase === 'uploading' ? `Uploading ${Math.round(progress * 100)}%` : phase === 'publishing' ? 'Publishing…' : 'Preparing media…'} Keep this screen open.</Text><View style={{ height: 5, backgroundColor: '#E5EDF7', borderRadius: 4 }}><View style={{ height: 5, backgroundColor: '#087EFF', borderRadius: 4, width: `${progress * 100}%` }} /></View></View>}
-      {!!error && <View style={{ gap: 12 }}><Text accessibilityRole="alert" style={ui.error}>{error}</Text><Pressable disabled={phase !== 'idle'} style={ui.button} onPress={() => void submit()}><Text style={ui.buttonText}>Retry publication</Text></Pressable></View>}
-    </ScrollView>
-  </KeyboardAvoidingView>;
+	const router = useRouter();
+	const insets = useSafeAreaInsets();
+	const getToken = useChefuAccessToken();
+	const request = useNookApi();
+	const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+	const [caption, setCaption] = useState("");
+	const [phase, setPhase] = useState<
+		"idle" | "preparing" | "uploading" | "publishing"
+	>("idle");
+	const [progress, setProgress] = useState(0);
+	const [error, setError] = useState("");
+	const [picking, setPicking] = useState(false);
+	const pickerBusy = useRef(false);
+	const uploadId = useRef<Id<"uploads"> | null>(null);
+	const uploaded = useRef(false);
+	const busy = useRef(false);
+	const controller = useRef<AbortController | null>(null);
+	const mounted = useRef(true);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+			controller.current?.abort();
+		};
+	}, []);
+	function close() {
+		if (pickerBusy.current) return;
+		if (busy.current) {
+			if (phase === "publishing") {
+				Alert.alert(
+					"Finishing publication",
+					`Keep this screen open while the server confirms your ${story ? "story" : "post"}.`,
+				);
+				return;
+			}
+			Alert.alert(
+				"Cancel upload?",
+				story
+					? "Your unfinished upload will be discarded."
+					: "Your unfinished upload and caption will be discarded.",
+				[
+					{ text: "Keep uploading", style: "cancel" },
+					{
+						text: "Cancel upload",
+						style: "destructive",
+						onPress: () => {
+							controller.current?.abort();
+							if (uploadId.current)
+								void request(
+									`/nook/uploads/${encodeURIComponent(uploadId.current)}`,
+									{ method: "DELETE" },
+								).catch(() => { });
+							router.back();
+						},
+					},
+				],
+			);
+			return;
+		}
+		const discard = () => {
+			if (uploadId.current)
+				void request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, {
+					method: "DELETE",
+				}).catch(() => { });
+			router.back();
+		};
+		if (asset || caption)
+			Alert.alert(
+				story ? "Discard story?" : "Discard post?",
+				story
+					? "Your selected photo will be discarded."
+					: "Your selected media and caption will be discarded.",
+				[
+					{ text: "Keep editing", style: "cancel" },
+					{ text: "Discard", style: "destructive", onPress: discard },
+				],
+			);
+		else discard();
+	}
+	async function pick(source: "library" | "camera" = "library") {
+		if (busy.current || pickerBusy.current) return;
+		pickerBusy.current = true;
+		setPicking(true);
+		setError("");
+		try {
+			if (source === "camera") {
+				if (Platform.OS === "ios" && !Device.isDevice) {
+					Alert.alert(
+						"Camera unavailable",
+						"Use a physical device to take a photo, or choose one from the photo library.",
+					);
+					return;
+				}
+				const permission = await ImagePicker.requestCameraPermissionsAsync();
+				if (!permission.granted) {
+					Alert.alert(
+						"Camera access needed",
+						"Allow camera access to take a photo.",
+						permission.canAskAgain
+							? [{ text: "OK" }]
+							: [
+								{ text: "Cancel", style: "cancel" },
+								{
+									text: "Open settings",
+									onPress: () => {
+										void Linking.openSettings().catch(() =>
+											setError(
+												"Open your device settings to allow camera access.",
+											),
+										);
+									},
+								},
+							],
+					);
+					return;
+				}
+			}
+			const result =
+				source === "camera"
+					? await ImagePicker.launchCameraAsync({
+						mediaTypes: ["images"],
+						quality: 0.8,
+					})
+					: await ImagePicker.launchImageLibraryAsync({
+						mediaTypes: story ? ["images"] : ["images", "videos"],
+						allowsMultipleSelection: false,
+						quality: 1,
+						videoMaxDuration: 30,
+					});
+			if (result.canceled) return;
+			validateMedia(result.assets[0]);
+			if (uploadId.current)
+				await request(`/nook/uploads/${encodeURIComponent(uploadId.current)}`, {
+					method: "DELETE",
+				});
+			uploadId.current = null;
+			uploaded.current = false;
+			setAsset(result.assets[0]);
+			setProgress(0);
+		} catch (e) {
+			setError(e instanceof Error ? e.message : errorMessage(e));
+		} finally {
+			pickerBusy.current = false;
+			if (mounted.current) setPicking(false);
+		}
+	}
+	async function submit() {
+		if (!asset || busy.current) return;
+		busy.current = true;
+		controller.current = new AbortController();
+		const signal = controller.current.signal;
+		setError("");
+		setPhase("preparing");
+		try {
+			const meta = validateMedia(asset);
+			if (!uploadId.current) {
+				const created = await request<{ id: string }>("/nook/uploads", {
+					method: "POST",
+					body: {
+						purpose: story ? "story" : "post",
+						kind: meta.kind,
+						width: meta.width,
+						height: meta.height,
+						...(meta.duration ? { duration: meta.duration } : {}),
+					},
+				});
+				uploadId.current = created.id;
+			}
+			if (signal.aborted) {
+				if (uploadId.current)
+					void request(
+						`/nook/uploads/${encodeURIComponent(uploadId.current)}`,
+						{ method: "DELETE" },
+					).catch(() => { });
+				return;
+			}
+			if (!uploaded.current) {
+				const activeId = uploadId.current;
+				if (!activeId)
+					throw new Error("Upload session is missing. Please try again.");
+				const local = await fetch(asset.uri);
+				const raw = await local.blob();
+				if (!raw.size || raw.size > meta.max)
+					throw new Error(
+						"This file is empty or exceeds the upload size limit.",
+					);
+				const blob = raw.slice(0, raw.size, meta.mime);
+				const token = await getToken();
+				if (!token) throw new Error("Session expired. Sign in again.");
+				if (signal.aborted) return;
+				setPhase("uploading");
+				await sendUpload(activeId, blob, token, setProgress, signal);
+				uploaded.current = true;
+			}
+			if (signal.aborted) return;
+			setPhase("publishing");
+			const activeId = uploadId.current;
+			if (!activeId)
+				throw new Error("Upload session is missing. Please try again.");
+			if (story)
+				await request("/nook/stories", {
+					method: "POST",
+					body: { uploadId: activeId, caption: "" },
+				});
+			else
+				await request("/nook/posts", {
+					method: "POST",
+					body: { uploadId: activeId, caption },
+				});
+			uploadId.current = null;
+			uploaded.current = false;
+			busy.current = false;
+			router.back();
+		} catch (e) {
+			if (mounted.current)
+				setError(
+					e instanceof Error && !(e as { data?: unknown }).data
+						? e.message
+						: errorMessage(e),
+				);
+		} finally {
+			busy.current = false;
+			if (mounted.current) setPhase("idle");
+		}
+	}
+	return (
+		<KeyboardAvoidingView
+			style={[ui.screen, { paddingTop: insets.top }]}
+			behavior={Platform.OS === "ios" ? "padding" : undefined}
+		>
+			<View style={ui.header}>
+				<Pressable
+					accessibilityRole="button"
+					accessibilityLabel="Close composer"
+					disabled={picking}
+					onPress={close}
+					style={ui.round}
+				>
+					<FeedIcon name="close" />
+				</Pressable>
+				<Text style={[ui.title, { flex: 1 }]}>
+					{story ? "New story" : "New post"}
+				</Text>
+				<Pressable
+					disabled={phase !== "idle" || picking || !asset}
+					style={[ui.button, (!asset || phase !== "idle") && ui.disabled]}
+					onPress={() => void submit()}
+				>
+					<Text style={ui.buttonText}>Publish</Text>
+				</Pressable>
+			</View>
+			<ScrollView
+				keyboardShouldPersistTaps="handled"
+				contentContainerStyle={{
+					padding: 20,
+					gap: 18,
+					paddingBottom: insets.bottom + 30,
+				}}
+			>
+				<Pressable
+					disabled={phase !== "idle" || picking}
+					onPress={() => void pick()}
+					style={{
+						backgroundColor: "#EEF3FA",
+						borderRadius: 22,
+						minHeight: 260,
+						justifyContent: "center",
+						alignItems: "center",
+						overflow: "hidden",
+					}}
+				>
+					{asset?.type !== "video" && asset ? (
+						<Image
+							source={{ uri: asset.uri }}
+							style={{ width: "100%", aspectRatio: 1 }}
+							contentFit="contain"
+						/>
+					) : (
+						<View style={{ padding: 30, gap: 14, alignItems: "center" }}>
+							<FeedIcon name="camera" size={40} color="#087EFF" />
+							<Text style={ui.text}>
+								{asset
+									? `Video selected · ${Math.round((asset.duration ?? 0) / 1000)} seconds`
+									: story
+										? "Choose a photo"
+										: "Choose a photo or video"}
+							</Text>
+							<Text style={ui.link}>
+								{picking
+									? "Opening…"
+									: asset
+										? "Change media"
+										: "Open photo library"}
+							</Text>
+						</View>
+					)}
+				</Pressable>
+				<View style={{ flexDirection: "row", gap: 12 }}>
+					<Pressable
+						accessibilityRole="button"
+						accessibilityLabel="Take a photo"
+						disabled={phase !== "idle" || picking}
+						onPress={() => void pick("camera")}
+						style={[
+							ui.button,
+							{
+								flex: 1,
+								flexDirection: "row",
+								justifyContent: "center",
+								gap: 8,
+							},
+							(phase !== "idle" || picking) && ui.disabled,
+						]}
+					>
+						<FeedIcon name="camera" size={20} color="white" />
+						<Text style={ui.buttonText}>Camera</Text>
+					</Pressable>
+					<Pressable
+						accessibilityRole="button"
+						accessibilityLabel="Choose from photo library"
+						disabled={phase !== "idle" || picking}
+						onPress={() => void pick("library")}
+						style={[
+							ui.button,
+							{
+								flex: 1,
+								flexDirection: "row",
+								justifyContent: "center",
+								gap: 8,
+								backgroundColor: "#E8F1FF",
+							},
+							(phase !== "idle" || picking) && ui.disabled,
+						]}
+					>
+						<FeedIcon name="photo" size={20} color="#087EFF" />
+						<Text style={[ui.buttonText, { color: "#087EFF" }]}>Library</Text>
+					</Pressable>
+				</View>
+				<Text style={ui.muted}>
+					{story
+						? "Share a photo for 24 hours. Visible to signed-in members. Up to 10 MB."
+						: "One photo up to 10 MB, or an MP4/MOV video up to 30 seconds and 50 MB."}
+				</Text>
+				{!story && (
+					<>
+						<TextInput
+							accessibilityLabel="Post caption"
+							placeholder="Write a caption…"
+							value={caption}
+							onChangeText={setCaption}
+							editable={phase === "idle"}
+							multiline
+							maxLength={2200}
+							style={[ui.input, { minHeight: 120, textAlignVertical: "top" }]}
+						/>
+						<Text style={[ui.muted, { textAlign: "right" }]}>
+							{caption.length}/2200
+						</Text>
+					</>
+				)}
+				{phase !== "idle" && (
+					<View style={{ gap: 10 }}>
+						<ActivityIndicator color="#087EFF" />
+						<Text accessibilityLiveRegion="polite" style={ui.muted}>
+							{phase === "uploading"
+								? `Uploading ${Math.round(progress * 100)}%`
+								: phase === "publishing"
+									? "Publishing…"
+									: "Preparing media…"}{" "}
+							Keep this screen open.
+						</Text>
+						<View
+							style={{ height: 5, backgroundColor: "#E5EDF7", borderRadius: 4 }}
+						>
+							<View
+								style={{
+									height: 5,
+									backgroundColor: "#087EFF",
+									borderRadius: 4,
+									width: `${progress * 100}%`,
+								}}
+							/>
+						</View>
+					</View>
+				)}
+				{!!error && (
+					<View style={{ gap: 12 }}>
+						<Text accessibilityRole="alert" style={ui.error}>
+							{error}
+						</Text>
+						<Pressable
+							disabled={phase !== "idle"}
+							style={ui.button}
+							onPress={() => void submit()}
+						>
+							<Text style={ui.buttonText}>Retry publication</Text>
+						</Pressable>
+					</View>
+				)}
+			</ScrollView>
+		</KeyboardAvoidingView>
+	);
 }

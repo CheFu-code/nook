@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { type SocialProfile, type SocialPost } from "@/lib/social";
 import { useNookApi } from "@/hooks/use-nook-api";
+import { useAuth } from "@/lib/chefu-auth";
 import { ui } from "./ui";
 
 export function useMediaSource(
@@ -57,16 +58,21 @@ export function Avatar({
     profile: SocialProfile;
     size?: number;
 }) {
+    const { user } = useAuth();
     const { source } = useMediaSource(
         profile._id,
         "avatar",
         profile.hasAvatar,
         profile.avatarVersion,
     );
-    const photo: ImageSource | undefined = profile.hasAvatar
-        ? (source ?? undefined)
-        : profile.avatarUrl
-            ? { uri: profile.avatarUrl }
+    const accountPhoto = profile.isOwn
+        ? user?.photoURL || user?.imageUrl
+        : undefined;
+    const fallbackPhoto = profile.avatarUrl || accountPhoto;
+    const photo: ImageSource | undefined = source
+        ? source
+        : fallbackPhoto
+            ? { uri: fallbackPhoto }
             : undefined;
     return photo ? (
         <Image

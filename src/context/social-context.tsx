@@ -1,3 +1,4 @@
+import { ProfileLoading } from "@/components/social/profileLoading";
 import { ui } from "@/components/social/ui";
 import { useNookApi, useNookQuery } from "@/hooks/use-nook-api";
 import { useAuth } from "@/lib/chefu-auth";
@@ -34,6 +35,8 @@ type DeletionStatus = {
 export function ProfileGate({ children }: { children: ReactNode }) {
     const { isSignedIn, isLoaded, signOut } = useAuth();
     const [profileVersion, setProfileVersion] = useState(0);
+    const [retrying, setRetrying] = useState(false);
+    const [retryError, setRetryError] = useState("");
     const deletion = useNookQuery<DeletionStatus>(
         isSignedIn ? "/nook/account/deletion" : null,
     );
@@ -41,26 +44,24 @@ export function ProfileGate({ children }: { children: ReactNode }) {
         isSignedIn ? `/nook/profile?refresh=${profileVersion}` : null,
     );
 
+
     if (
         !isLoaded ||
         (isSignedIn &&
             ((!profile.error && profile.data === undefined) ||
                 (!deletion.error && deletion.data === undefined)))
     ) {
-        return (
-            <View style={ui.center}>
-                <ActivityIndicator color="#087EFF" />
-                <Text style={ui.muted}>Loading your profile…</Text>
-            </View>
-        );
+        return <ProfileLoading
+        />;
     }
+
     if (!isSignedIn) {
         return (
             <View style={ui.center}>
                 <Text style={ui.title}>Connecting your account</Text>
                 <Text style={ui.muted}>
-                    Unable to authenticate with our servers. Check your connection
-                    and sign in again.
+                    Unable to authenticate with our servers. Check your connection and
+                    sign in again.
                 </Text>
                 <Pressable style={ui.button} onPress={() => void signOut()}>
                     <Text style={ui.buttonText}>Back to sign in</Text>
@@ -77,18 +78,51 @@ export function ProfileGate({ children }: { children: ReactNode }) {
         );
     if (profile.error || deletion.error) {
         const failure = profile.error ?? deletion.error;
+        const sessionExpired = /session.*expired|sign in again/i.test(
+            failure?.message ?? "",
+        );
+        async function recoverProfile() {
+            if (retrying) return;
+            setRetrying(true);
+            setRetryError("");
+            try {
+                if (sessionExpired) {
+                    await signOut();
+                    return;
+                }
+                profile.refresh();
+                deletion.refresh();
+            } catch (reason) {
+                setRetryError(errorMessage(reason));
+            } finally {
+                setRetrying(false);
+            }
+        }
         return (
             <View style={ui.center}>
                 <Text style={ui.title}>Couldn’t load your profile</Text>
                 <Text style={ui.muted}>{errorMessage(failure)}</Text>
+                {!!retryError && (
+                    <Text accessibilityRole="alert" style={ui.error}>
+                        {retryError}
+                    </Text>
+                )}
                 <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: retrying, busy: retrying }}
+                    disabled={retrying}
                     style={ui.button}
-                    onPress={() => {
-                        profile.refresh();
-                        deletion.refresh();
-                    }}
+                    onPress={() => void recoverProfile()}
                 >
-                    <Text style={ui.buttonText}>Try again</Text>
+                    <Text style={ui.buttonText}>
+                        {retrying
+                            ? sessionExpired
+                                ? "Returning to sign in…"
+                                : "Retrying…"
+                            : sessionExpired
+                                ? "Sign in again"
+                                : "Try again"}
+                    </Text>
                 </Pressable>
             </View>
         );
@@ -105,7 +139,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
 }
 
 function Onboarding({ onCreated }: { onCreated: () => void }) {
-    const { user, signOut } = useAuth();
+    const { user } = useAuth();
     const request = useNookApi();
     const [username, setUsername] = useState(user?.username ?? "");
     const [name, setName] = useState(user?.displayName ?? user?.name ?? "");
@@ -172,7 +206,6 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
                         {busy ? "Creating profile…" : "Continue"}
                     </Text>
                 </Pressable>
-               
             </View>
         </KeyboardAvoidingView>
     );

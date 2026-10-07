@@ -126,6 +126,7 @@ function getExpiry(issuedAt: number, expiresIn: number): number {
 export type ChefuAuthContextValue = {
   isLoaded: boolean;
   isSignedIn: boolean;
+  isAuthenticating: boolean;
   userId?: string;
   session: ChefuAuthSession | null;
   user: ChefuUser | null;
@@ -141,6 +142,7 @@ const ChefuAuthContext = createContext<ChefuAuthContextValue | null>(null);
 export function ChefuAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<ChefuAuthSession | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const refreshSession = useCallback((current: ChefuAuthSession) => {
     if (refreshInFlight) return refreshInFlight;
@@ -206,6 +208,7 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ChefuAuthContextValue>(() => ({
     isLoaded,
     isSignedIn: !!session,
+    isAuthenticating,
     userId: session?.user.uid || session?.user.email || undefined,
     session,
     user: session?.user ?? null,
@@ -215,52 +218,57 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
       return active?.token ?? null;
     },
     signInWithChefuAccount: async () => {
-      const state = randomUUID();
-      const nonce = randomUUID();
-      const request = new AuthSession.AuthRequest({
-        clientId: CLIENT_ID,
-        extraParams: { nonce },
-        prompt: AuthSession.Prompt.Login,
-        redirectUri: REDIRECT_URI,
-        responseType: AuthSession.ResponseType.Code,
-        scopes: ['openid', 'profile', 'email'],
-        state,
-        usePKCE: true,
-      });
-      const result = await request.promptAsync(DISCOVERY);
-      if (result.type !== 'success') {
-        if (result.type === 'error') {
-          throw new Error(result.params.error_description || result.params.error || 'Chefu Account sign-in failed.');
+      setIsAuthenticating(true);
+      try {
+        const state = randomUUID();
+        const nonce = randomUUID();
+        const request = new AuthSession.AuthRequest({
+          clientId: CLIENT_ID,
+          extraParams: { nonce },
+          prompt: AuthSession.Prompt.Login,
+          redirectUri: REDIRECT_URI,
+          responseType: AuthSession.ResponseType.Code,
+          scopes: ['openid', 'profile', 'email'],
+          state,
+          usePKCE: true,
+        });
+        const result = await request.promptAsync(DISCOVERY);
+        if (result.type !== 'success') {
+          if (result.type === 'error') {
+            throw new Error(result.params.error_description || result.params.error || 'Chefu Account sign-in failed.');
+          }
+          return null;
         }
-        return null;
-      }
-      if (result.params.state !== state || !result.params.code || !request.codeVerifier) {
-        throw new Error('Sign-in response failed security validation.');
-      }
+        if (result.params.state !== state || !result.params.code || !request.codeVerifier) {
+          throw new Error('Sign-in response failed security validation.');
+        }
 
-      const token = await AuthSession.exchangeCodeAsync({
-        clientId: CLIENT_ID,
-        code: result.params.code,
-        extraParams: { code_verifier: request.codeVerifier },
-        redirectUri: REDIRECT_URI,
-      }, DISCOVERY);
-      if (!token.accessToken || !token.expiresIn) {
-        throw new Error('Sign-in did not return a valid session.');
-      }
-      const info = await fetchOAuthUserInfo(token.accessToken);
-      if (!info.sub || !info.email) {
-        throw new Error('Sign-in did not return a valid Chefu account.');
-      }
+        const token = await AuthSession.exchangeCodeAsync({
+          clientId: CLIENT_ID,
+          code: result.params.code,
+          extraParams: { code_verifier: request.codeVerifier },
+          redirectUri: REDIRECT_URI,
+        }, DISCOVERY);
+        if (!token.accessToken || !token.expiresIn) {
+          throw new Error('Sign-in did not return a valid session.');
+        }
+        const info = await fetchOAuthUserInfo(token.accessToken);
+        if (!info.sub || !info.email) {
+          throw new Error('Sign-in did not return a valid Chefu account.');
+        }
 
-      const next: ChefuAuthSession = {
-        token: token.accessToken,
-        refreshToken: token.refreshToken,
-        expiresAt: getExpiry(token.issuedAt, token.expiresIn),
-        user: mapUser(info),
-      };
-      await writeStoredSession(next);
-      setSession(next);
-      return next.user;
+        const next: ChefuAuthSession = {
+          token: token.accessToken,
+          refreshToken: token.refreshToken,
+          expiresAt: getExpiry(token.issuedAt, token.expiresIn),
+          user: mapUser(info),
+        };
+        await writeStoredSession(next);
+        setSession(next);
+        return next.user;
+      } finally {
+        setIsAuthenticating(false);
+      }
     },
     signOut: async () => {
       setSession(null);
@@ -282,7 +290,7 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-  }), [getValidSession, isLoaded, session]);
+  }), [getValidSession, isAuthenticating, isLoaded, session]);
 
   return createElement(ChefuAuthContext.Provider, { value }, children);
 }

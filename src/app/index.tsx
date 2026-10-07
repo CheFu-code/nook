@@ -4,18 +4,17 @@ import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { useMemo } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 
 interface Theme {
   background: string;
@@ -24,8 +23,6 @@ interface Theme {
   body: string;
   muted: string;
   border: string;
-  borderFocus: string;
-  placeholder: string;
   buttonBackground: string;
   buttonText: string;
 }
@@ -38,8 +35,6 @@ const themes: Record<"light" | "dark", Theme> = {
     body: "#3F3F46",
     muted: "#71717A",
     border: "#E4E4E7",
-    borderFocus: "#09090B",
-    placeholder: "#A1A1AA",
     buttonBackground: "#09090B",
     buttonText: "#FFFFFF",
   },
@@ -50,14 +45,10 @@ const themes: Record<"light" | "dark", Theme> = {
     body: "#D4D4D8",
     muted: "#A1A1AA",
     border: "#27272A",
-    borderFocus: "#FAFAFA",
-    placeholder: "#71717A",
     buttonBackground: "#FAFAFA",
     buttonText: "#09090B",
   },
 };
-
-type Styles = ReturnType<typeof createStyles>;
 
 export default function Index() {
   const { signIn, pendingProvider, isReady } = useSocialAuth();
@@ -78,6 +69,7 @@ export default function Index() {
   return (
     <View style={styles.screen}>
       <StatusBar style={isDark ? "light" : "dark"} />
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -89,56 +81,68 @@ export default function Index() {
           contentContainerStyle={[
             styles.content,
             {
-              paddingTop: insets.top + 56,
-              paddingBottom: insets.bottom + 24,
+              paddingTop: insets.top,
+              paddingBottom: insets.bottom + 20,
             },
           ]}
         >
-          <View style={styles.column}>
-            <Image
-              source={require("../../assets/images/ct-logo.png")}
-              contentFit="contain"
-              tintColor={theme.ink}
-              style={styles.logo}
-              accessibilityLabel="Logo"
-            />
+          <View style={styles.centerArea}>
+            <View style={styles.main}>
+              <Image
+                source={require("../../assets/images/ct-logo.png")}
+                contentFit="contain"
+                tintColor={theme.ink}
+                style={styles.logo}
+                accessibilityLabel="App logo"
+              />
 
-            <View style={styles.header}>
-              <Text accessibilityRole="header" style={styles.heading}>
-                Sign in
-              </Text>
-              <Text style={styles.subtitle}>
-                Sign in securely with your Chefu Account.
-              </Text>
-            </View>
+              <View style={styles.header}>
+                <Text accessibilityRole="header" style={styles.heading}>
+                  Welcome back
+                </Text>
 
-            <View style={styles.form}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Continue with Chefu Account"
-                accessibilityState={{ disabled: !canSubmit, busy: isBusy }}
-                disabled={!canSubmit}
-                onPress={submit}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.pressed,
-                  !canSubmit && styles.disabledButton,
-                ]}
-              >
-                {isBusy ? (
-                  <View style={styles.busyRow}>
-                    <ActivityIndicator color={theme.buttonText} size="small" />
-                    <Text style={styles.primaryButtonLabel}>Connecting</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.primaryButtonLabel}>Continue with Chefu Account</Text>
-                )}
-              </Pressable>
-              
+                <Text style={styles.subtitle}>
+                  Sign in to continue to your account and pick up where you left
+                  off.
+                </Text>
+              </View>
+
+              <View style={styles.form}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Continue"
+                  accessibilityState={{
+                    disabled: !canSubmit,
+                    busy: isBusy,
+                  }}
+                  disabled={!canSubmit}
+                  onPress={submit}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    pressed && styles.pressed,
+                    !canSubmit && styles.disabledButton,
+                  ]}
+                >
+                  {isBusy ? (
+                    <View style={styles.busyRow}>
+                      <ActivityIndicator
+                        color={theme.buttonText}
+                        size="small"
+                      />
+
+                      <Text style={styles.primaryButtonLabel}>
+                        Signing in...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.primaryButtonLabel}>Continue</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
 
-          <View style={styles.column}>
+          <View style={styles.footer}>
             <Text style={styles.legal}>
               By continuing, you agree to our{" "}
               <Text
@@ -171,66 +175,108 @@ export default function Index() {
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    flex: { flex: 1 },
-    screen: { flex: 1, backgroundColor: theme.background },
+    flex: {
+      flex: 1,
+    },
+
+    screen: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+
     content: {
       flexGrow: 1,
-      justifyContent: "space-between",
-      alignItems: "center",
       paddingHorizontal: 24,
     },
-    column: { width: "100%", maxWidth: 420 },
-    logo: { width: 48, aspectRatio: 512 / 359 },
-    header: { marginTop: 40, marginBottom: 36 },
-    heading: {
-      fontSize: 30,
-      lineHeight: 36,
-      fontWeight: "600",
-      letterSpacing: -0.6,
-      color: theme.ink,
+
+    centerArea: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
     },
+
+    main: {
+      width: "100%",
+      maxWidth: 420,
+    },
+
+    logo: {
+      width: 52,
+      height: 37,
+      alignSelf: "center",
+    },
+
+    header: {
+      alignItems: "center",
+      marginTop: 42,
+      marginBottom: 34,
+    },
+
+    heading: {
+      fontSize: 32,
+      lineHeight: 38,
+      fontWeight: "600",
+      letterSpacing: -0.8,
+      color: theme.ink,
+      textAlign: "center",
+    },
+
     subtitle: {
-      marginTop: 10,
+      maxWidth: 320,
+      marginTop: 11,
       fontSize: 15,
       lineHeight: 22,
       color: theme.muted,
+      textAlign: "center",
     },
-    form: { gap: 16 },
-    accountLinks: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: 2,
+
+    form: {
+      width: "100%",
     },
-    forgotLabel: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontWeight: "500",
-      color: theme.ink,
-    },
+
     primaryButton: {
-      height: 52,
-      marginTop: 4,
-      borderRadius: 12,
+      height: 54,
+      borderRadius: 13,
       backgroundColor: theme.buttonBackground,
       alignItems: "center",
       justifyContent: "center",
     },
+
     primaryButtonLabel: {
       fontSize: 15,
       fontWeight: "600",
       letterSpacing: -0.1,
       color: theme.buttonText,
     },
-    busyRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-    disabledButton: { opacity: 0.4 },
-    pressed: { opacity: 0.85 },
+
+    busyRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+
+    disabledButton: {
+      opacity: 0.45,
+    },
+
+    pressed: {
+      opacity: 0.82,
+      transform: [{ scale: 0.99 }],
+    },
+
+    footer: {
+      width: "100%",
+      maxWidth: 420,
+    },
+
     legal: {
-      marginTop: 40,
+      marginTop: 24,
       textAlign: "center",
       fontSize: 12,
       lineHeight: 18,
       color: theme.muted,
     },
+
     legalLink: {
       color: theme.ink,
       textDecorationLine: "underline",

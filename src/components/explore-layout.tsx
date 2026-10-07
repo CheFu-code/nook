@@ -25,7 +25,7 @@ export function ExploreLayout(props: Props) {
   return <View style={{ flex: 1, backgroundColor: '#FCFDFE', paddingTop: Math.max(40 * s, insets.top - 13 * s) }}>
     <StatusBar style="dark" />
     <View style={{ height: 44 * v, marginHorizontal: 14 * s, flexDirection: 'row', alignItems: 'center', gap: 9 * s }}>
-      <Image source={require('../../assets/images/logo.png')} style={{ width: 35 * s, height: 34 * v }} />
+      <Image source={require('../../assets/images/logo-2.png')} style={{ width: 35 * s, height: 34 * v }} />
       <Text style={{ flex: 1, fontSize: 23 * s, fontWeight: '700', letterSpacing: -0.8 * s, color: c.ink }}>nook</Text>
       <Pressable accessibilityRole="button" accessibilityLabel="Search Explore" onPress={() => { list.current?.scrollToOffset({ offset: 0, animated: true }); search.current?.focus(); }} style={[styles.round, { width: 34 * s, height: 34 * v }]}><FeedIcon name="search" size={22 * s} color={c.ink} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Create a post" onPress={props.onCompose} style={[styles.round, { width: 34 * s, height: 34 * v, backgroundColor: '#EDF3FC' }]}><FeedIcon name="plus" size={23 * s} color={c.blue} /></Pressable>
