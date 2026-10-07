@@ -57,9 +57,6 @@ function AuthenticatedRoutes() {
         <Stack.Screen name="chat/[id]" />
       </Stack.Protected>
       <Stack.Screen name="sso-callback" />
-      <Stack.Protected guard={__DEV__}>
-        <Stack.Screen name="design-preview" />
-      </Stack.Protected>
     </Stack></MessagesProvider>
   );
 }

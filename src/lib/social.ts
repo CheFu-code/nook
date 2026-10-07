@@ -9,7 +9,6 @@ export type SocialProfile = {
   location?: string;
   isOwn?: boolean;
   isFollowing?: boolean;
-  isDemo?: boolean;
   hasAvatar?: boolean;
   avatarVersion?: number;
   avatarUrl?: string;
