@@ -394,9 +394,58 @@ function Connections({
                 )}
                 ListEmptyComponent={
                     result.status !== "LoadingFirstPage" ? (
-                        <Text style={[ui.muted, { padding: 24, color: theme.muted }]}>
-                            No {kind} yet.
-                        </Text>
+                        <View
+                            style={{
+                                alignItems: "center",
+                                paddingHorizontal: 32,
+                                paddingVertical: 56,
+                                gap: 12,
+                            }}
+                        >
+                            <View
+                                style={{
+                                    width: 64,
+                                    height: 64,
+                                    borderRadius: 32,
+                                    backgroundColor: theme.subtle,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <FeedIcon
+                                    name="profile"
+                                    size={30}
+                                    color={theme.muted}
+                                />
+                            </View>
+                            <Text
+                                style={{
+                                    color: theme.ink,
+                                    fontSize: 17,
+                                    fontWeight: "700",
+                                    textAlign: "center",
+                                }}
+                            >
+                                {kind === "followers"
+                                    ? "No followers yet"
+                                    : "Not following anyone yet"}
+                            </Text>
+                            <Text
+                                style={[
+                                    ui.muted,
+                                    {
+                                        maxWidth: 260,
+                                        color: theme.muted,
+                                        textAlign: "center",
+                                        lineHeight: 20,
+                                    },
+                                ]}
+                            >
+                                {kind === "followers"
+                                    ? "When people follow this profile, they’ll appear here."
+                                    : "The profiles they follow will appear here."}
+                            </Text>
+                        </View>
                     ) : null
                 }
                 ListFooterComponent={

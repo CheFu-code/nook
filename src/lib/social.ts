@@ -70,6 +70,11 @@ export type Message = {
   _creationTime: number;
   outgoing: boolean;
   requestId?: string;
+  replyTo?: {
+    id: string;
+    text: string;
+    outgoing: boolean;
+  };
 };
 
 export type Page<T> = { items: T[]; hasMore: boolean };

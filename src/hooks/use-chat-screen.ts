@@ -14,6 +14,11 @@ export type ChatMessage = {
     time: string;
     status?: "pending" | "sent" | "failed";
     retry?: () => void;
+    replyTo?: {
+        id: string;
+        text: string;
+        outgoing: boolean;
+    };
 };
 
 export function useChatScreenLogic({
@@ -22,10 +27,11 @@ export function useChatScreenLogic({
     onAtBottom,
 }: {
     messages: ChatMessage[];
-    onSend: (text: string) => void;
+    onSend: (text: string, replyTo?: ChatMessage["replyTo"]) => void;
     onAtBottom?: (atBottom: boolean) => void;
 }) {
     const [draft, setDraft] = useState("");
+    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const scrollRef = useRef<ScrollView>(null);
     const shouldScroll = useRef(false);
@@ -77,13 +83,25 @@ export function useChatScreenLogic({
         const trimmed = draft.trim();
         if (!trimmed) return;
         shouldScroll.current = true;
-        onSend(trimmed);
+        onSend(
+            trimmed,
+            replyTo
+                ? {
+                    id: replyTo.id,
+                    text: replyTo.text,
+                    outgoing: replyTo.outgoing,
+                }
+                : undefined,
+        );
         setDraft("");
+        setReplyTo(null);
     }
 
     return {
         draft,
         setDraft,
+        replyTo,
+        setReplyTo,
         keyboardVisible,
         scrollRef,
         canSend: !!draft.trim(),

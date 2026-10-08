@@ -113,6 +113,7 @@ export function LiveChat() {
       text: item.text,
       time: `${new Date(item._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${messageTime(item._creationTime)}`,
       outgoing: item.outgoing,
+      replyTo: item.replyTo,
     }));
   for (const item of outbox.pending.filter(
     (item) =>
@@ -128,6 +129,7 @@ export function LiveChat() {
       outgoing: true,
       status: item.status,
       retry: () => outbox.retry(item),
+      replyTo: item.replyTo,
     });
   if (!conversation && !conversationQuery.error)
     return (
@@ -160,7 +162,7 @@ export function LiveChat() {
       onAtBottom={setAtBottom}
       onBack={() => router.back()}
       messages={messages}
-      onSend={(text) => outbox.send(id, text)}
+      onSend={(text, replyTo) => outbox.send(id, text, replyTo)}
       peer={{
         name: conversation.other.username,
         avatar: (size) => <Avatar profile={conversation.other} size={size} />,

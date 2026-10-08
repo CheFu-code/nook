@@ -124,6 +124,11 @@ function getExpiry(issuedAt: number, expiresIn: number): number {
   return (issuedAt + expiresIn) * 1000;
 }
 
+function isRejectedSessionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  return /invalid_grant|invalid refresh token|refresh token is no longer valid|refresh token reuse detected|unauthorized|invalid user info response|invalid token|session expired|please sign in again/.test(message);
+}
+
 export type ChefuAuthContextValue = {
   isLoaded: boolean;
   isSignedIn: boolean;
@@ -188,6 +193,7 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
       try {
         const saved = await readStoredSession();
         if (!saved) return;
+        setSession(saved);
         try {
           const active = await getValidSession(saved);
           if (!active) return;
@@ -196,9 +202,11 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
           const restored = { ...active, user: mapUser(info) };
           await writeStoredSession(restored);
           setSession(restored);
-        } catch {
-          await writeStoredSession(null);
-          setSession(null);
+        } catch (error) {
+          if (isRejectedSessionError(error)) {
+            await writeStoredSession(null);
+            setSession(null);
+          }
         }
       } finally {
         setIsLoaded(true);

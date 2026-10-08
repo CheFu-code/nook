@@ -4,10 +4,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useNookApi } from '@/hooks/use-nook-api';
 import type { Id } from '@/lib/social';
 
-type Pending = { id: string; conversationId: Id<'conversations'>; text: string; createdAt: number; status: 'pending' | 'sent' | 'failed' };
+type ReplyReference = { id: string; text: string; outgoing: boolean };
+type Pending = { id: string; conversationId: Id<'conversations'>; text: string; createdAt: number; status: 'pending' | 'sent' | 'failed'; replyTo?: ReplyReference };
 const Context = createContext<{
   pending: Pending[];
-  send: (id: Id<'conversations'>, text: string) => void;
+  send: (id: Id<'conversations'>, text: string, replyTo?: ReplyReference) => void;
   retry: (item: Pending) => void;
   confirmDelivered: (conversationId: Id<'conversations'>, requestIds: string[]) => void;
 } | null>(null);
@@ -18,7 +19,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     mutationFn: (item: Pending) =>
       request(`/nook/messages/${encodeURIComponent(item.conversationId)}/messages`, {
         method: 'POST',
-        body: { text: item.text, requestId: item.id },
+        body: { text: item.text, requestId: item.id, replyToId: item.replyTo?.id },
       }),
   });
   async function retry(item: Pending) {
@@ -33,8 +34,8 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       busy.current.delete(item.id);
     }
   }
-  function send(conversationId: Id<'conversations'>, text: string) {
-    const item: Pending = { id: randomUUID(), conversationId, text, createdAt: Date.now(), status: 'pending' };
+  function send(conversationId: Id<'conversations'>, text: string, replyTo?: ReplyReference) {
+    const item: Pending = { id: randomUUID(), conversationId, text, createdAt: Date.now(), status: 'pending', replyTo };
     setPending(items => [...items, item]); void retry(item);
   }
   const confirmDelivered = useCallback((conversationId: Id<'conversations'>, requestIds: string[]) => {

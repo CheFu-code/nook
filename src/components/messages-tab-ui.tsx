@@ -197,7 +197,7 @@ function ConversationRow({
     return (
         <View
             style={{
-                backgroundColor: theme.subtle,
+                backgroundColor: unreadCount > 0 ? theme.blueSoft : theme.subtle,
                 borderRadius: 18 * s,
                 padding: 9 * s,
                 height: 80 * s * vertical,
