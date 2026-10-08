@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
 import {
     Alert,
     Pressable,
@@ -13,6 +12,7 @@ import {
     type SocialProfile,
 } from "@/lib/social";
 import { useNookApi } from "@/hooks/use-nook-api";
+import { useFollowMutation, usePostLikeMutation } from "@/hooks/use-social-mutations";
 import { FeedIcon } from "../feed-icon";
 import { Avatar, PostMedia } from "./media";
 import { DetailActions } from "./post-detail-actions";
@@ -27,36 +27,23 @@ export function FollowButton({
     compactScale?: number;
 }) {
     const theme = useAppTheme();
-    const request = useNookApi();
-    const [following, setFollowing] = useState(profile.isFollowing ?? false);
-    const [busy, setBusy] = useState(false);
-    useEffect(
-        () => setFollowing(profile.isFollowing ?? false),
-        [profile._id, profile.isFollowing],
-    );
+    const followMutation = useFollowMutation(profile);
+    const following = profile.isFollowing ?? false;
     if (profile.isOwn) return null;
     async function toggle() {
-        if (busy) return;
         const next = !following;
-        setBusy(true);
         try {
-            await request(
-                `/nook/profiles/${encodeURIComponent(profile._id)}/follow`,
-                { method: "POST", body: { following: next } },
-            );
-            setFollowing(next);
+            await followMutation.mutateAsync(next);
         } catch (e) {
             Alert.alert("Could not update follow", errorMessage(e));
-        } finally {
-            setBusy(false);
         }
     }
     return (
         <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${following ? "Unfollow" : "Follow"} ${profile.username}`}
-            accessibilityState={{ selected: following, disabled: busy }}
-            disabled={busy}
+            accessibilityState={{ selected: following, disabled: followMutation.isPending }}
+            disabled={followMutation.isPending}
             onPress={() => void toggle()}
             style={{
                 backgroundColor: following ? theme.subtle : theme.blue,
@@ -121,26 +108,15 @@ export function PostCard({
             : post.caption;
     const router = useRouter();
     const request = useNookApi();
-    const [liked, setLiked] = useState(post.isLiked ?? false);
-    const [likeBusy, setLikeBusy] = useState(false);
-    useEffect(() => setLiked(post.isLiked ?? false), [post._id, post.isLiked]);
-    const likes =
-        (post.likesCount ?? 0) +
-        (liked === (post.isLiked ?? false) ? 0 : liked ? 1 : -1);
+    const likeMutation = usePostLikeMutation();
+    const liked = post.isLiked ?? false;
+    const likes = post.likesCount ?? 0;
     async function toggleLike() {
-        if (likeBusy) return;
         const next = !liked;
-        setLikeBusy(true);
         try {
-            await request(`/nook/posts/${encodeURIComponent(post._id)}/like`, {
-                method: "POST",
-                body: { liked: next },
-            });
-            setLiked(next);
+            await likeMutation.mutateAsync({ postId: post._id, liked: next });
         } catch (e) {
             Alert.alert("Could not update like", errorMessage(e));
-        } finally {
-            setLikeBusy(false);
         }
     }
     function options() {
@@ -320,7 +296,7 @@ export function PostCard({
                             accessibilityRole="button"
                             accessibilityLabel={liked ? "Unlike post" : "Like post"}
                             accessibilityState={{ selected: liked }}
-                            disabled={likeBusy}
+                            disabled={likeMutation.isPending}
                             onPress={() => void toggleLike()}
                             hitSlop={6}
                             style={{ flexDirection: "row", alignItems: "center", gap: 6 * s }}
@@ -472,7 +448,7 @@ export function PostCard({
                         accessibilityRole="button"
                         accessibilityLabel={liked ? "Unlike post" : "Like post"}
                         accessibilityState={{ selected: liked }}
-                        disabled={likeBusy}
+                        disabled={likeMutation.isPending}
                         onPress={() => void toggleLike()}
                         style={{
                             flexDirection: "row",

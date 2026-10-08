@@ -27,6 +27,7 @@ import {
   useNookPaginatedQuery,
   useNookQuery,
 } from "@/hooks/use-nook-api";
+import { useCommentLikeMutation } from "@/hooks/use-social-mutations";
 import { FeedIcon } from "../feed-icon";
 import { Avatar } from "./media";
 import { PostCard } from "./post-card";
@@ -395,12 +396,10 @@ function CommentRow({
   onDelete: () => void;
   onReply: () => void;
 }) {
-  const request = useNookApi();
-  const [liked, setLiked] = useState(item.isLiked);
-  const [pending, setPending] = useState(false);
+  const likeMutation = useCommentLikeMutation(postId);
+  const liked = item.isLiked;
   const router = useRouter();
   const theme = useAppTheme();
-  useEffect(() => setLiked(item.isLiked), [item._id, item.isLiked]);
   const openProfile = () =>
     router.push({ pathname: "/member/[id]", params: { id: item.author._id } });
   return (
@@ -470,22 +469,17 @@ function CommentRow({
         accessibilityRole="button"
         accessibilityLabel={liked ? "Unlike comment" : "Like comment"}
         accessibilityState={{ selected: liked }}
-        disabled={pending}
-        onPress={async () => {
-          const next = !liked;
-          setPending(true);
-          try {
-            await request(
-              `/nook/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(item._id)}/like`,
-              { method: "POST", body: { liked: next } },
-            );
-            setLiked(next);
-          } catch (e) {
-            Alert.alert("Could not update like", errorMessage(e));
-          } finally {
-            setPending(false);
-          }
-        }}
+        disabled={
+          likeMutation.isPending &&
+          likeMutation.variables?.commentId === item._id
+        }
+        onPress={() =>
+          void likeMutation
+            .mutateAsync({ commentId: item._id, liked: !liked })
+            .catch((error) =>
+              Alert.alert("Could not update like", errorMessage(error)),
+            )
+        }
         hitSlop={10}
         style={{ paddingTop: 10 * s, paddingLeft: 2 * s }}
       >

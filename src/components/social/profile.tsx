@@ -59,12 +59,14 @@ function MemberProfile({
         id ? `/nook/profiles/${encodeURIComponent(id)}` : null,
     );
     const profile = profileQuery.data;
+    const [panel, setPanel] = useState<ProfilePanel>("posts");
     const posts = useNookPaginatedQuery<SocialPost>(
         `/nook/posts?feed=profile&profileId=${encodeURIComponent(id)}`,
+        !!profile && (panel === "posts" || panel === "videos"),
     );
     const savedPosts = useNookPaginatedQuery<SocialPost>(
         "/nook/posts/saved",
-        !!profile?.isOwn,
+        !!profile?.isOwn && panel === "saved",
     );
     const request = useNookApi();
     const router = useRouter();
@@ -74,7 +76,6 @@ function MemberProfile({
     const [sheet, setSheet] = useState<
         "followers" | "following" | "edit" | "settings" | null
     >(null);
-    const [panel, setPanel] = useState<ProfilePanel>("posts");
     const gallery =
         panel === "posts"
             ? posts.results

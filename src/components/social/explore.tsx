@@ -6,7 +6,8 @@ import { ExploreLayout, type ExploreTile } from '../explore-layout';
 import { FeedIcon } from '../feed-icon';
 import { topics } from '@/lib/explore-data';
 import { errorMessage, type SocialPost, type SocialProfile } from '@/lib/social';
-import { useNookApi, useNookPaginatedQuery } from '@/hooks/use-nook-api';
+import { useNookPaginatedQuery } from '@/hooks/use-nook-api';
+import { usePostLikeMutation } from '@/hooks/use-social-mutations';
 import { Avatar, PostMedia } from './media';
 import { FollowButton } from './post-card';
 import { ConnectionStatus, LoadMore, ui } from './ui';
@@ -23,32 +24,23 @@ export function LiveExplore() {
   const { width, height } = useWindowDimensions(); const s = width / 390; const v = height / 874; const router = useRouter();
   const [text, setText] = useState(''); const [search, setSearch] = useState(''); const [topic, setTopic] = useState('All');
   const [sheet, setSheet] = useState<'people' | 'topics' | null>(null);
-  const [busyLikes, setBusyLikes] = useState<Record<string, boolean>>({});
-  const [likedOverrides, setLikedOverrides] = useState<Record<string, boolean>>({});
   useEffect(() => { const timer = setTimeout(() => setSearch(text.trim()), 250); return () => clearTimeout(timer); }, [text]);
   const people = useNookPaginatedQuery<SocialProfile>(`/nook/profiles?q=${encodeURIComponent(search)}`);
   const posts = useNookPaginatedQuery<SocialPost>('/nook/posts?feed=explore');
-  const request = useNookApi();
+  const likeMutation = usePostLikeMutation();
   const member = (id: string) => router.push({ pathname: '/member/[id]', params: { id } });
-  async function like(post: SocialPost) {
-    if (busyLikes[post._id]) return;
-    const liked = !(likedOverrides[post._id] ?? post.isLiked); setBusyLikes(current => ({ ...current, [post._id]: true }));
-    try { await request(`/nook/posts/${encodeURIComponent(post._id)}/like`, { method: 'POST', body: { liked } }); setLikedOverrides(current => ({ ...current, [post._id]: liked })); }
-    catch (error) { Alert.alert('Could not update like', errorMessage(error)); }
-    finally { setBusyLikes(current => { const next = { ...current }; delete next[post._id]; return next; }); }
-  }
   const needle = search.toLowerCase().replace(/^#/, '');
   const filtered = posts.results.filter(post => {
     const content = `${post.author.username} ${post.author.name} ${post.caption}`;
     return content.toLowerCase().includes(needle) && (topic === 'All' || topicWords[topic]?.test(post.caption));
   });
   const tiles: ExploreTile[] = filtered.map((post, index) => {
-    const liked = likedOverrides[post._id] ?? post.isLiked;
+    const liked = post.isLiked ?? false;
     const open = () => router.push({ pathname: '/post/[id]', params: { id: post._id } });
     return { id: post._id, name: post.author.username, caption: post.caption.replace(/#[\p{L}\p{N}_]+/gu, '').trim(),
       media: <View pointerEvents="none"><PostMedia post={post} thumbnail aspectRatio={((width - 26 * s) / 3) / ((index < 3 ? 155 : 149) * v)} /></View>,
-      avatar: <Avatar profile={post.author} size={22 * s} />, likes: Math.max(0, post.likesCount + (liked === post.isLiked ? 0 : liked ? 1 : -1)), liked, pending: !!busyLikes[post._id],
-      onLike: () => void like(post), onPress: open, onAuthor: () => member(post.author._id) };
+      avatar: <Avatar profile={post.author} size={22 * s} />, likes: post.likesCount, liked, pending: likeMutation.isPending && likeMutation.variables?.postId === post._id,
+      onLike: () => void likeMutation.mutateAsync({ postId: post._id, liked: !liked }).catch(error => Alert.alert('Could not update like', errorMessage(error))), onPress: open, onAuthor: () => member(post.author._id) };
   });
   return <>
     <ExploreLayout query={text} onQuery={setText} topic={topic} onTopic={setTopic} onPeople={() => setSheet('people')} onTopics={() => setSheet('topics')} onCompose={() => router.push('/compose')} notice={<ConnectionStatus />}
