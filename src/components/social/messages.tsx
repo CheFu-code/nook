@@ -164,6 +164,11 @@ export function LiveChat() {
       peer={{
         name: conversation.other.username,
         avatar: (size) => <Avatar profile={conversation.other} size={size} />,
+        onPress: () =>
+          router.push({
+            pathname: "/member/[id]",
+            params: { id: conversation.other._id },
+          }),
       }}
       beforeMessages={
         <>

@@ -68,13 +68,7 @@ export function Avatar({
         : fallbackPhoto
             ? { uri: fallbackPhoto }
             : undefined;
-    return photo ? (
-        <Image
-            source={photo}
-            cachePolicy="memory"
-            style={{ width: size, height: size, borderRadius: size / 2 }}
-        />
-    ) : (
+    return (
         <View
             style={{
                 width: size,
@@ -83,6 +77,7 @@ export function Avatar({
                 backgroundColor: theme.blueSoft,
                 alignItems: "center",
                 justifyContent: "center",
+                overflow: "hidden",
             }}
         >
             <Text
@@ -90,6 +85,19 @@ export function Avatar({
             >
                 {profile.name[0]?.toUpperCase()}
             </Text>
+            {photo && (
+                <Image
+                    source={photo}
+                    cachePolicy="memory-disk"
+                    transition={100}
+                    style={{
+                        position: "absolute",
+                        width: size,
+                        height: size,
+                        borderRadius: size / 2,
+                    }}
+                />
+            )}
         </View>
     );
 }

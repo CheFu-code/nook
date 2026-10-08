@@ -27,7 +27,11 @@ export function ChatScreen({
 }: {
     onBack: () => void;
     messages: ChatMessage[];
-    peer: { name: string; avatar: (size: number) => ReactNode };
+    peer: {
+        name: string;
+        avatar: (size: number) => ReactNode;
+        onPress: () => void;
+    };
     onSend: (text: string) => void;
     beforeMessages?: ReactNode;
     onAtBottom?: (atBottom: boolean) => void;
@@ -77,8 +81,20 @@ export function ChatScreen({
                 >
                     <FeedIcon name="back" size={fs(20)} color={theme.ink} />
                 </Pressable>
-                <View style={{ marginLeft: fs(14) }}>{peer.avatar(fs(49))}</View>
-                <View style={{ flex: 1, gap: 4 * v }}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${peer.name}'s profile`}
+                    onPress={peer.onPress}
+                    style={{ marginLeft: fs(14) }}
+                >
+                    {peer.avatar(fs(49))}
+                </Pressable>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${peer.name}'s profile`}
+                    onPress={peer.onPress}
+                    style={{ flex: 1, gap: 4 * v }}
+                >
                     <Text
                         style={{
                             color: theme.ink,
@@ -93,7 +109,7 @@ export function ChatScreen({
                     <Text style={{ color: theme.muted, fontSize: fs(12) }}>
                         Private conversation
                     </Text>
-                </View>
+                </Pressable>
             </View>
             <ScrollView
                 ref={scrollRef}
