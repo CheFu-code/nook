@@ -4,18 +4,17 @@
     "appVersionSource": "local"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "environment": "development",
+    "production": {
+      "distribution": "store",
+      "environment": "production",
       "node": "22.23.2",
       "ios": {
         "simulator": false
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       },
-      "channel": "development"
+      "channel": "production"
     }
   }
 }

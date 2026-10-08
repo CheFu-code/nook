@@ -28,7 +28,7 @@
         {
           "backgroundColor": "#208AEF",
           "image": "./assets/images/logo-2.png",
-          "imageWidth": 76
+          "imageWidth": 96
         }
       ],
       [
@@ -47,7 +47,15 @@
           "microphonePermission": false
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "nook",
+          "organization": "chefu-technologies"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

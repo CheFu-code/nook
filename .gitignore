@@ -44,3 +44,5 @@ example
 
 # Local environment secrets
 .env
+
+.env.local

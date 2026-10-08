@@ -1,7 +1,8 @@
-import { StatusBar } from "expo-status-bar";
-import Constants from "expo-constants";
-import * as Sentry from "@sentry/react-native";
 import { openLegalDocument } from "@/lib/legal-links";
+import { useAppTheme } from "@/lib/theme";
+import * as Sentry from "@sentry/react-native";
+import Constants from "expo-constants";
+import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
     Alert,
@@ -14,7 +15,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon, type IconName } from "./feed-icon";
-import { useAppTheme } from "@/lib/theme";
 
 type SettingsProps = {
     onClose: () => void;
@@ -27,6 +27,7 @@ type SettingsProps = {
 type Row = {
     label: string;
     icon: IconName;
+    trailingIcon?: IconName;
     action?: () => void;
     detail?: string;
 };
@@ -45,7 +46,6 @@ export function SettingsScreen({
     const s = width / 390;
     const v = (height - insets.top - insets.bottom) / 810;
     const [signingOut, setSigningOut] = useState(false);
-    const [showSentryTest, setShowSentryTest] = useState(false);
     const unavailable = (title: string, message: string) => () =>
         Alert.alert(title, message);
     const account: Row[] = [
@@ -70,6 +70,7 @@ export function SettingsScreen({
         {
             label: "Privacy Policy",
             icon: "document",
+            trailingIcon: "open-link",
             action: () => {
                 void openLegalDocument("Privacy Policy");
             },
@@ -77,6 +78,7 @@ export function SettingsScreen({
         {
             label: "Terms of Service",
             icon: "document",
+            trailingIcon: "open-link",
             action: () => {
                 void openLegalDocument("Terms of Service");
             },
@@ -153,7 +155,7 @@ export function SettingsScreen({
                             </Text>
                         ) : row.action ? (
                             <FeedIcon
-                                name="chevron-right"
+                                name={row.trailingIcon ?? "chevron-right"}
                                 size={14 * s}
                                 color={theme.muted}
                             />
@@ -221,7 +223,7 @@ export function SettingsScreen({
                     Account
                 </Text>
                 {group(account)}
-                <Pressable
+                {/* <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Share feedback"
                     accessibilityHint="Opens a form to send feedback about nook"
@@ -274,7 +276,7 @@ export function SettingsScreen({
                             Share feedback →
                         </Text>
                     </View>
-                </Pressable>
+                </Pressable> */}
                 <Text
                     accessibilityRole="header"
                     style={[
@@ -319,16 +321,16 @@ export function SettingsScreen({
                             height: Math.max(44, 46 * v),
                             marginTop: 16 * v,
                             borderRadius: 16 * s,
-                            backgroundColor: theme.blueSoft,
+                            backgroundColor: "#E5485D",
                             opacity: pressed || signingOut ? 0.6 : 1,
                             gap: 17 * s,
                         },
                     ]}
                 >
-                    <FeedIcon name="sign-out" size={24 * s} color={theme.blue} />
+                    <FeedIcon name="sign-out" size={24 * s} color="white" />
                     <Text
                         style={{
-                            color: theme.blue,
+                            color: "white",
                             fontSize: 16 * s,
                             fontWeight: "500",
                             letterSpacing: -0.4 * s,

@@ -11,12 +11,13 @@ import { MessageNotifications } from '@/components/message-notifications';
 import { PresenceSession } from '@/components/presence-session';
 
 Sentry.init({
-  dsn: 'https://d49d5db24e3765ff90211c22ad7532b3@o4509813037137920.ingest.de.sentry.io/4512078093942864',
+  dsn: 'https://b763f67faea237307e894e7707208c9a@o4512011915296768.ingest.de.sentry.io/4512221576101968',
+
   sendDefaultPii: false,
   enableLogs: true,
   integrations: [
     Sentry.feedbackIntegration({
-      colorScheme: 'light',
+      colorScheme: 'system',
       formTitle: 'Share your feedback',
       messageLabel: 'What’s on your mind?',
       messagePlaceholder: 'Tell us what you love, what could be better, or what went wrong…',
@@ -28,15 +29,12 @@ Sentry.init({
       isEmailRequired: false,
       successMessageText: 'Thanks for helping improve nook!',
       styles: {
-        container: { backgroundColor: '#FCFDFE' },
-        title: { color: '#080E3B', fontWeight: '700' },
-        label: { color: '#080E3B' },
-        input: { color: '#080E3B', backgroundColor: '#F2F6FC', borderRadius: 12 },
-        textArea: { color: '#080E3B', backgroundColor: '#F2F6FC', borderRadius: 12 },
-        submitButton: { backgroundColor: '#007AFF', borderRadius: 14, minHeight: 48 },
-        submitText: { color: '#FFFFFF', fontWeight: '600' },
+        title: { fontWeight: '700' },
+        input: { borderRadius: 12 },
+        textArea: { borderRadius: 12 },
+        submitButton: { borderRadius: 14, minHeight: 48 },
+        submitText: { fontWeight: '600' },
         cancelButton: { borderRadius: 14, minHeight: 44 },
-        cancelText: { color: '#52617D' },
       },
     }),
   ],
