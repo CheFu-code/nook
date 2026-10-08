@@ -29,12 +29,12 @@ export function useProfile() {
 export function ProfileGate({ children }: { children: ReactNode }) {
     const { isSignedIn, isLoaded, signOut } = useAuth();
     const theme = useAppTheme();
-    const [profileVersion, setProfileVersion] = useState(0);
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState("");
     const profile = useNookQuery<SocialProfile | null>(
-        isSignedIn ? `/nook/profile?refresh=${profileVersion}` : null,
+        isSignedIn ? "/nook/profile" : null,
     );
+    const refreshProfile = () => profile.refresh();
 
 
     if (
@@ -59,7 +59,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
             </View>
         );
     }
-    if (profile.error) {
+    if (profile.error && profile.data === undefined) {
         const failure = profile.error;
         const sessionExpired = /session.*expired|sign in again/i.test(
             failure?.message ?? "",
@@ -111,7 +111,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
     }
     if (!profile.data)
         return (
-            <Onboarding onCreated={() => setProfileVersion((value) => value + 1)} />
+            <Onboarding onCreated={refreshProfile} />
         );
     return (
         <ProfileContext.Provider value={profile.data}>

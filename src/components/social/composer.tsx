@@ -242,7 +242,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 						justifyContent: "center",
 					}}
 				>
-					<FeedIcon name="close" />
+					<FeedIcon name="close" color={theme.ink} />
 				</Pressable>
 				<Text
 					style={{
