@@ -1,10 +1,9 @@
 import { StatusBar } from "expo-status-bar";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { BlurTargetView, BlurView } from "expo-blur";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { BlurTargetView } from "expo-blur";
 import {
     Animated,
     KeyboardAvoidingView,
-    PanResponder,
     Platform,
     Pressable,
     ScrollView,
@@ -16,10 +15,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon } from "./feed-icon";
+import {
+    MessageRow,
+    ReactionDetailsSheet,
+    ReactionSpotlight,
+    type MessageReactor,
+} from "./chat-screen-ui";
 import { useAppTheme } from "@/lib/theme";
 import { useChatScreenLogic, type ChatMessage } from "@/hooks/use-chat-screen";
 
 export type { ChatMessage } from "@/hooks/use-chat-screen";
+
 export function ChatScreen({
     onBack,
     messages,
@@ -28,6 +34,12 @@ export function ChatScreen({
     onReact,
     beforeMessages,
     onAtBottom,
+    onJumpToMessage,
+    jumpToMessageId,
+    onJumpToMessageComplete,
+    reactionDetails,
+    onReactionPress,
+    onDismissReactionDetails,
 }: {
     onBack: () => void;
     messages: ChatMessage[];
@@ -43,6 +55,17 @@ export function ChatScreen({
     ) => void;
     beforeMessages?: ReactNode;
     onAtBottom?: (atBottom: boolean) => void;
+    onJumpToMessage: (messageId: string) => void;
+    jumpToMessageId: string | null;
+    onJumpToMessageComplete: () => void;
+    reactionDetails: {
+        message: ChatMessage;
+        emoji: string;
+        loading: boolean;
+        reactors: MessageReactor[];
+    } | null;
+    onReactionPress: (message: ChatMessage, emoji: string) => void;
+    onDismissReactionDetails: () => void;
 }) {
     const {
         draft,
@@ -59,6 +82,13 @@ export function ChatScreen({
     } = useChatScreenLogic({ messages, onSend, onAtBottom });
     const inputRef = useRef<TextInput>(null);
     const blurTargetRef = useRef<View>(null);
+    const messageOffsets = useRef(new Map<string, number>());
+    const { width, height } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
+    const theme = useAppTheme();
+    const s = width / 390;
+    const v = (height - insets.top - Math.min(insets.bottom, 34)) / 784;
+    const fs = (value: number) => value * s;
     const [reactionTarget, setReactionTarget] = useState<{
         message: ChatMessage;
         frame: { x: number; y: number; width: number; height: number };
@@ -105,12 +135,42 @@ export function ChatScreen({
         },
         [],
     );
-    const { width, height } = useWindowDimensions();
-    const insets = useSafeAreaInsets();
-    const theme = useAppTheme();
-    const s = width / 390;
-    const v = (height - insets.top - Math.min(insets.bottom, 34)) / 784;
-    const fs = (value: number) => value * s;
+    useEffect(() => {
+        if (!jumpToMessageId) return;
+        const target = messages.find(
+            (message) =>
+                message.backendId === jumpToMessageId ||
+                message.id === jumpToMessageId,
+        );
+        if (!target) return;
+        let attempts = 0;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const jump = () => {
+            const offset =
+                messageOffsets.current.get(target.backendId ?? "") ??
+                messageOffsets.current.get(target.id);
+            if (offset === undefined && attempts < 8) {
+                attempts += 1;
+                timer = setTimeout(jump, 50);
+                return;
+            }
+            if (offset !== undefined) {
+                scrollRef.current?.scrollTo({
+                    y: Math.max(0, offset - 24 * s),
+                    animated: true,
+                });
+            }
+            onJumpToMessageComplete();
+        };
+        requestAnimationFrame(jump);
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [jumpToMessageId, messages, onJumpToMessageComplete, s, scrollRef]);
+    const onQuotePress = (messageId: string) => {
+        if (reactionTarget) closeReactionPicker();
+        onJumpToMessage(messageId);
+    };
     return (
         <KeyboardAvoidingView
             style={[
@@ -206,6 +266,11 @@ export function ChatScreen({
                         vertical={v}
                         onReply={replyToMessage}
                         onLongPress={openReactionPicker}
+                        onMessageLayout={(messageId, y) => {
+                            messageOffsets.current.set(messageId, y);
+                        }}
+                        onPressReply={onQuotePress}
+                        onReactionPress={onReactionPress}
                     />
                 ))}
             </ScrollView>
@@ -305,469 +370,32 @@ export function ChatScreen({
                 </View>
             </View>
             </BlurTargetView>
-            {reactionTarget && (
-                    <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
-                        <BlurView
-                            intensity={theme.isDark ? 42 : 34}
-                            tint={theme.isDark ? "dark" : "light"}
-                            blurTarget={blurTargetRef}
-                            blurMethod={
-                                Platform.OS === "android"
-                                    ? "dimezisBlurViewSdk31Plus"
-                                    : undefined
-                            }
-                            style={StyleSheet.absoluteFill}
-                        />
-                        <Animated.View
-                            pointerEvents="none"
-                            style={[
-                                StyleSheet.absoluteFill,
-                                {
-                                    backgroundColor: theme.isDark
-                                        ? "rgba(0,0,0,0.38)"
-                                        : "rgba(13,21,41,0.28)",
-                                    opacity: reactionAnimation,
-                                },
-                            ]}
-                        />
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Dismiss reactions"
-                            onPress={closeReactionPicker}
-                            style={StyleSheet.absoluteFill}
-                        />
-                        <Animated.View
-                            pointerEvents="none"
-                            style={{
-                                position: "absolute",
-                                left: reactionTarget.frame.x,
-                                top: reactionTarget.frame.y,
-                                width: reactionTarget.frame.width,
-                                minHeight: reactionTarget.frame.height,
-                                justifyContent: "center",
-                                transform: [
-                                    {
-                                        scale: reactionAnimation.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.96, 1],
-                                        }),
-                                    },
-                                ],
-                                shadowColor: "#000",
-                                shadowOpacity: 0.3,
-                                shadowRadius: 22,
-                                shadowOffset: { width: 0, height: 10 },
-                                elevation: 18,
-                            }}
-                        >
-                            <SpotlightMessage
-                                message={reactionTarget.message}
-                                peerName={peer.name}
-                                theme={theme}
-                                scale={s}
-                                vertical={v}
-                            />
-                        </Animated.View>
-                        <Animated.View
-                            style={{
-                                position: "absolute",
-                                top: Math.max(
-                                    12,
-                                    reactionTarget.frame.y - 62 * s,
-                                ),
-                                left: reactionTarget.message.outgoing
-                                    ? Math.max(
-                                        12 * s,
-                                        Math.min(
-                                            width - 310 * s,
-                                            reactionTarget.frame.x +
-                                                reactionTarget.frame.width -
-                                                310 * s,
-                                        ),
-                                    )
-                                    : Math.min(width - 310 * s, 12 * s),
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 3 * s,
-                                padding: 6 * s,
-                                borderRadius: 28 * s,
-                                backgroundColor: theme.surface,
-                                borderColor: theme.border,
-                                borderWidth: StyleSheet.hairlineWidth,
-                                shadowColor: "#000",
-                                shadowOpacity: 0.22,
-                                shadowRadius: 20,
-                                shadowOffset: { width: 0, height: 8 },
-                                elevation: 20,
-                                opacity: reactionAnimation,
-                                transform: [
-                                    {
-                                        scale: reactionAnimation.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.72, 1],
-                                        }),
-                                    },
-                                    {
-                                        translateY: reactionAnimation.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [14, 0],
-                                        }),
-                                    },
-                                ],
-                            }}
-                        >
-                            {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => {
-                                const selected =
-                                    reactionTarget.message.reactions?.some(
-                                        (reaction) =>
-                                            reaction.emoji === emoji && reaction.reacted,
-                                    ) ?? false;
-                                return (
-                                    <Pressable
-                                        key={emoji}
-                                        accessibilityRole="button"
-                                        accessibilityLabel={`${selected ? "Remove" : "React with"} ${emoji}`}
-                                        onPress={() => {
-                                            closeReactionPicker();
-                                            onReact(
-                                                reactionTarget.message,
-                                                selected ? null : emoji,
-                                            );
-                                        }}
-                                        style={{
-                                            width: 42 * s,
-                                            height: 44 * s,
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            borderRadius: 22 * s,
-                                            backgroundColor: selected
-                                                ? theme.blueSoft
-                                                : "transparent",
-                                        }}
-                                    >
-                                        <Text style={{ fontSize: 25 * s }}>{emoji}</Text>
-                                    </Pressable>
-                                );
-                            })}
-                        </Animated.View>
-                    </View>
-            )}
+            <ReactionSpotlight
+                target={reactionTarget}
+                animation={reactionAnimation}
+                blurTarget={blurTargetRef}
+                scale={s}
+                vertical={v}
+                peerName={peer.name}
+                width={width}
+                onClose={closeReactionPicker}
+                onReact={onReact}
+                onPressReply={onQuotePress}
+            />
+            <ReactionDetailsSheet
+                visible={Boolean(reactionDetails)}
+                emoji={reactionDetails?.emoji ?? ""}
+                reactors={reactionDetails?.reactors ?? []}
+                loading={reactionDetails?.loading ?? false}
+                scale={s}
+                bottomInset={insets.bottom}
+                onClose={onDismissReactionDetails}
+                onRemove={() => {
+                    if (reactionDetails) onReact(reactionDetails.message, null);
+                    onDismissReactionDetails();
+                }}
+            />
         </KeyboardAvoidingView>
-    );
-}
-
-function SpotlightMessage({
-    message,
-    peerName,
-    theme,
-    scale,
-    vertical,
-}: {
-    message: ChatMessage;
-    peerName: string;
-    theme: ReturnType<typeof useAppTheme>;
-    scale: number;
-    vertical: number;
-}) {
-    const fs = (value: number) => value * scale;
-    return (
-        <View
-            style={{
-                alignSelf: message.outgoing ? "flex-end" : "flex-start",
-                maxWidth: "100%",
-                padding: 3,
-                borderRadius: fs(20),
-                backgroundColor: theme.background,
-            }}
-        >
-            <View
-                style={{
-                    backgroundColor: message.outgoing ? theme.blue : theme.subtle,
-                    borderRadius: fs(16),
-                    paddingHorizontal: fs(14),
-                    paddingVertical: 9 * vertical,
-                    maxWidth: fs(310),
-                }}
-            >
-                {message.replyTo && (
-                    <View
-                        style={{
-                            borderLeftWidth: 3,
-                            borderLeftColor: message.outgoing ? "#FFFFFFB3" : theme.blue,
-                            backgroundColor: message.outgoing ? "#FFFFFF26" : theme.input,
-                            borderRadius: fs(7),
-                            padding: fs(7),
-                            marginBottom: 6 * vertical,
-                        }}
-                    >
-                        <Text
-                            numberOfLines={1}
-                            style={{
-                                color: message.outgoing ? "white" : theme.blue,
-                                fontSize: fs(11),
-                                fontWeight: "700",
-                            }}
-                        >
-                            {message.replyTo.outgoing ? "You" : peerName}
-                        </Text>
-                        <Text
-                            numberOfLines={2}
-                            style={{
-                                color: message.outgoing ? "white" : theme.ink,
-                                opacity: 0.8,
-                                fontSize: fs(12),
-                            }}
-                        >
-                            {message.replyTo.text}
-                        </Text>
-                    </View>
-                )}
-                <Text
-                    style={{
-                        fontSize: fs(14),
-                        lineHeight: 19 * vertical,
-                        color: message.outgoing ? "white" : theme.ink,
-                        letterSpacing: -0.2,
-                    }}
-                >
-                    {message.text}
-                </Text>
-            </View>
-        </View>
-    );
-}
-
-function MessageRow({
-    message,
-    peer,
-    scale,
-    vertical,
-    onReply,
-    onLongPress,
-}: {
-    message: ChatMessage;
-    peer: {
-        name: string;
-        avatar: (size: number) => ReactNode;
-    };
-    scale: number;
-    vertical: number;
-    onReply: (message: ChatMessage) => void;
-    onLongPress: (
-        message: ChatMessage,
-        frame: { x: number; y: number; width: number; height: number },
-    ) => void;
-}) {
-    const theme = useAppTheme();
-    const fs = (value: number) => value * scale;
-    const [translateX] = useState(() => new Animated.Value(0));
-    const bubbleRef = useRef<View>(null);
-    const panResponder = useMemo(
-        () =>
-            PanResponder.create({
-                onStartShouldSetPanResponder: () => false,
-                onMoveShouldSetPanResponder: (_, gesture) => {
-                    const swipeTowardReply = message.outgoing
-                        ? gesture.dx < -12
-                        : gesture.dx > 12;
-                    return (
-                        message.status !== "pending" &&
-                        message.status !== "failed" &&
-                        swipeTowardReply &&
-                        Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2
-                    );
-                },
-                onPanResponderMove: (_, gesture) => {
-                    const offset = message.outgoing
-                        ? Math.max(-68 * scale, Math.min(0, gesture.dx))
-                        : Math.min(68 * scale, Math.max(0, gesture.dx));
-                    translateX.setValue(offset);
-                },
-                onPanResponderRelease: (_, gesture) => {
-                    const reachedReplyThreshold = message.outgoing
-                        ? gesture.dx <= -58 * scale
-                        : gesture.dx >= 58 * scale;
-                    if (
-                        reachedReplyThreshold &&
-                        message.status !== "pending" &&
-                        message.status !== "failed"
-                    ) {
-                        onReply(message);
-                    }
-                    Animated.spring(translateX, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                        bounciness: 4,
-                    }).start();
-                },
-                onPanResponderTerminate: () =>
-                    Animated.spring(translateX, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                    }).start(),
-            }),
-        [message, onReply, scale, translateX],
-    );
-    const quoteAuthor = message.replyTo?.outgoing ? "You" : peer.name;
-    const canReact = Boolean(message.backendId) &&
-        message.status !== "pending" &&
-        message.status !== "failed";
-    return (
-        <Animated.View
-            {...panResponder.panHandlers}
-            style={{
-                marginBottom: 4.5 * vertical,
-                alignItems: message.outgoing ? "flex-end" : "flex-start",
-                transform: [{ translateX }],
-            }}
-        >
-            <Pressable
-                disabled={!canReact}
-                onLongPress={() => {
-                    bubbleRef.current?.measureInWindow((x, y, width, height) => {
-                        onLongPress(message, { x, y, width, height });
-                    });
-                }}
-                delayLongPress={300}
-            >
-            <View
-                style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: fs(10),
-                    maxWidth: "100%",
-                }}
-            >
-                {!message.outgoing && peer.avatar(fs(35))}
-                <View
-                    style={{
-                        maxWidth: fs(290),
-                        alignItems: message.outgoing ? "flex-end" : "flex-start",
-                    }}
-                >
-                    <View
-                        ref={bubbleRef}
-                        style={{
-                            backgroundColor: message.outgoing ? theme.blue : theme.subtle,
-                            borderRadius: fs(16),
-                            paddingHorizontal: fs(14),
-                            paddingVertical: 9 * vertical,
-                        }}
-                    >
-                        {message.replyTo && (
-                            <View
-                                style={{
-                                    borderLeftWidth: 3,
-                                    borderLeftColor: message.outgoing ? "#FFFFFFB3" : theme.blue,
-                                    backgroundColor: message.outgoing ? "#FFFFFF26" : theme.input,
-                                    borderRadius: fs(7),
-                                    padding: fs(7),
-                                    marginBottom: 6 * vertical,
-                                }}
-                            >
-                                <Text
-                                    numberOfLines={1}
-                                    style={{
-                                        color: message.outgoing ? "white" : theme.blue,
-                                        fontSize: fs(11),
-                                        fontWeight: "700",
-                                    }}
-                                >
-                                    {quoteAuthor}
-                                </Text>
-                                <Text
-                                    numberOfLines={2}
-                                    style={{
-                                        color: message.outgoing ? "white" : theme.ink,
-                                        opacity: 0.8,
-                                        fontSize: fs(12),
-                                    }}
-                                >
-                                    {message.replyTo.text}
-                                </Text>
-                            </View>
-                        )}
-                        <Text
-                            style={{
-                                fontSize: fs(14),
-                                lineHeight: 19 * vertical,
-                                color: message.outgoing ? "white" : theme.ink,
-                                letterSpacing: -0.2,
-                            }}
-                        >
-                            {message.text}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-            </Pressable>
-            {!!message.reactions?.length && (
-                <View
-                    style={{
-                        flexDirection: "row",
-                        gap: fs(4),
-                        marginTop: 3 * vertical,
-                        alignSelf: message.outgoing ? "flex-end" : "flex-start",
-                        marginLeft: message.outgoing ? 0 : fs(47),
-                    }}
-                >
-                    {message.reactions.map((reaction) => (
-                        <View
-                            key={reaction.emoji}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: fs(3),
-                                paddingHorizontal: fs(7),
-                                paddingVertical: 2 * vertical,
-                                borderRadius: fs(12),
-                                backgroundColor: reaction.reacted ? theme.blueSoft : theme.subtle,
-                            }}
-                        >
-                            <Text style={{ fontSize: fs(13) }}>{reaction.emoji}</Text>
-                            <Text
-                                style={{
-                                    color: reaction.reacted ? theme.blue : theme.muted,
-                                    fontSize: fs(11),
-                                }}
-                            >
-                                {reaction.count}
-                            </Text>
-                        </View>
-                    ))}
-                </View>
-            )}
-            <View
-                style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: fs(8),
-                    marginTop: 4 * vertical,
-                    marginLeft: message.outgoing ? 0 : fs(47),
-                    marginRight: message.outgoing ? fs(5) : 0,
-                }}
-            >
-                <Text style={{ color: theme.muted, fontSize: fs(11), lineHeight: 13 * vertical }}>
-                    {message.status === "pending" ? "Sending…" : message.time}
-                </Text>
-                {message.outgoing &&
-                    message.status !== "pending" &&
-                    message.status !== "failed" && (
-                        <FeedIcon name="check" size={fs(16)} color={theme.muted} />
-                    )}
-            </View>
-            {message.status === "failed" && (
-                <Pressable
-                    accessibilityRole="button"
-                    onPress={message.retry}
-                    style={{ padding: 8 }}
-                >
-                    <Text style={{ color: "#D93848", fontSize: 12 }}>
-                        Not sent · Tap to retry
-                    </Text>
-                </Pressable>
-            )}
-        </Animated.View>
     );
 }
 

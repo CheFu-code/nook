@@ -1,9 +1,8 @@
 import { randomUUID } from "expo-crypto";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -19,7 +18,6 @@ import { useProfile } from "@/context/social-context";
 import {
   errorMessage,
   type Id,
-  type SocialComment,
   type SocialPost,
 } from "@/lib/social";
 import {
@@ -27,21 +25,20 @@ import {
   useNookPaginatedQuery,
   useNookQuery,
 } from "@/hooks/use-nook-api";
-import { useCommentLikeMutation } from "@/hooks/use-social-mutations";
 import { FeedIcon } from "../feed-icon";
 import { Avatar } from "./media";
 import { PostCard } from "./post-card";
+import { CommentRow, PostDetailDialog } from "./post-detail-ui";
+import {
+  nestComments,
+  type Comment,
+  type Dialog,
+  type DialogAction,
+  type NestedComment,
+} from "./post-detail-logic";
 import { Header, ConnectionStatus, LoadMore, ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
 
-type Comment = SocialComment;
-function relativeTime(timestamp: number, now: number) {
-  const minutes = Math.max(0, Math.floor((now - timestamp) / 60000));
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
-  return `${Math.floor(minutes / 1440)}d ago`;
-}
 export function PostDetail() {
   const theme = useAppTheme();
   const { id } = useLocalSearchParams<{ id: Id<"posts"> }>();
@@ -61,16 +58,26 @@ export function PostDetail() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [replying, setReplying] = useState<string | null>(null);
+  const [replying, setReplying] = useState<{ id: string; username: string } | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const request = useRef({ id: randomUUID(), text: "" });
+  const request = useRef({ id: randomUUID(), text: "", parentId: undefined as string | undefined });
   const input = useRef<TextInput>(null);
-  const list = useRef<FlatList<Comment>>(null);
+  const list = useRef<FlatList<NestedComment>>(null);
   const commentsTop = useRef(0);
   const scrollOffset = useRef(0);
   const restoreOffset = useRef<number | null>(null);
   const [postVisible, setPostVisible] = useState(true);
+  const visibleComments = nestComments(comments.results, order);
+  function showDialog(next: Dialog) {
+    setDialog(next);
+  }
+  function runDialogAction(action: DialogAction) {
+    setDialog(null);
+    action.onPress?.();
+  }
   function sortComments(next: "asc" | "desc") {
     if (next === order) return;
     restoreOffset.current = scrollOffset.current;
@@ -109,18 +116,46 @@ export function PostDetail() {
     if (!text.trim() || busy) return;
     setBusy(true);
     setError("");
-    if (request.current.text !== text.trim())
-      request.current = { id: randomUUID(), text: text.trim() };
+    const commentText = editingCommentId
+      ? text.trim()
+      : `${replying ? `@${replying.username} ` : ""}${text.trim()}`;
+    if (editingCommentId) {
+      try {
+        await requestApi(
+          `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(editingCommentId)}`,
+          { method: "PATCH", body: { text: commentText } },
+        );
+        comments.refresh();
+        setText("");
+        setEditingCommentId(null);
+        Keyboard.dismiss();
+      } catch (e) {
+        setError(errorMessage(e));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (
+      request.current.text !== commentText ||
+      request.current.parentId !== replying?.id
+    )
+      request.current = { id: randomUUID(), text: commentText, parentId: replying?.id };
     try {
       await requestApi(`/nook/posts/${encodeURIComponent(id)}/comments`, {
         method: "POST",
-        body: { text: request.current.text, requestId: request.current.id },
+        body: {
+          text: request.current.text,
+          requestId: request.current.id,
+          parentId: request.current.parentId,
+        },
       });
       comments.refresh();
       setText("");
       setReplying(null);
+      setEditingCommentId(null);
       setNow(Date.now());
-      request.current = { id: randomUUID(), text: "" };
+      request.current = { id: randomUUID(), text: "", parentId: undefined };
       Keyboard.dismiss();
     } catch (e) {
       setError(errorMessage(e));
@@ -130,23 +165,31 @@ export function PostDetail() {
   }
   function deleteComment(item: Comment) {
     if (!item.isOwn) return;
-    Alert.alert("Delete comment?", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          void requestApi(
-            `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`,
-            { method: "DELETE" },
-          )
-            .then(comments.refresh)
-            .catch((e) =>
-              Alert.alert("Could not delete comment", errorMessage(e)),
-            );
+    showDialog({
+      title: "Delete comment?",
+      message: "This comment and its replies will no longer be visible.",
+      actions: [
+        { label: "Cancel" },
+        {
+          label: "Delete comment",
+          tone: "destructive",
+          onPress: () => {
+            void requestApi(
+              `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`,
+              { method: "DELETE" },
+            )
+              .then(comments.refresh)
+              .catch((e) =>
+                showDialog({
+                  title: "Could not delete comment",
+                  message: errorMessage(e),
+                  actions: [{ label: "OK" }],
+                }),
+              );
+          },
         },
-      },
-    ]);
+      ],
+    });
   }
   return (
     <KeyboardAvoidingView
@@ -174,7 +217,7 @@ export function PostDetail() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
             showsVerticalScrollIndicator={false}
-            data={comments.results}
+            data={visibleComments}
             keyExtractor={(item) => item._id}
             onScroll={(e) => {
               scrollOffset.current = e.nativeEvent.contentOffset.y;
@@ -224,17 +267,20 @@ export function PostDetail() {
                     accessibilityRole="button"
                     accessibilityLabel={`Sort comments: ${order === "desc" ? "Newest" : "Oldest"}`}
                     onPress={() =>
-                      Alert.alert("Sort comments", undefined, [
-                        {
-                          text: "Newest first",
-                          onPress: () => sortComments("desc"),
-                        },
-                        {
-                          text: "Oldest first",
-                          onPress: () => sortComments("asc"),
-                        },
-                        { text: "Cancel", style: "cancel" },
-                      ])
+                      showDialog({
+                        title: "Sort comments",
+                        actions: [
+                          {
+                            label: "Newest first",
+                            onPress: () => sortComments("desc"),
+                          },
+                          {
+                            label: "Oldest first",
+                            onPress: () => sortComments("asc"),
+                          },
+                          { label: "Cancel" },
+                        ],
+                      })
                     }
                     hitSlop={10}
                     style={{
@@ -259,10 +305,36 @@ export function PostDetail() {
                 postId={id}
                 scale={s}
                 now={now}
-                onDelete={() => deleteComment(item)}
+                onOptions={() =>
+                  showDialog({
+                    title: "Your comment",
+                    actions: [
+                      {
+                        label: "Edit comment",
+                        onPress: () => {
+                          setReplying(null);
+                          setEditingCommentId(item._id);
+                          setText(item.text);
+                          input.current?.focus();
+                        },
+                      },
+                      {
+                        label: "Delete comment",
+                        tone: "destructive",
+                        onPress: () => deleteComment(item),
+                      },
+                      { label: "Cancel" },
+                    ],
+                  })
+                }
+                onError={(title, message) =>
+                  showDialog({ title, message, actions: [{ label: "OK" }] })
+                }
                 onReply={() => {
-                  setReplying(item.author.username);
-                  setText(`@${item.author.username} `);
+                  setEditingCommentId(null);
+                  setReplying({ id: item._id, username: item.author.username });
+                  setText("");
+                  request.current = { id: randomUUID(), text: "", parentId: item._id };
                   input.current?.focus();
                 }}
               />
@@ -286,7 +358,7 @@ export function PostDetail() {
               {error}
             </Text>
           )}
-          {replying && (
+          {(replying || editingCommentId) && (
             <View
               style={{
                 flexDirection: "row",
@@ -296,13 +368,17 @@ export function PostDetail() {
               }}
             >
               <Text style={[ui.muted, { flex: 1, color: theme.muted }]}>
-                Replying to {replying}
+                {editingCommentId
+                  ? "Editing your comment"
+                  : `Replying to @${replying?.username}`}
               </Text>
               <Pressable
-                accessibilityLabel="Cancel reply"
+                accessibilityLabel={editingCommentId ? "Cancel editing comment" : "Cancel reply"}
                 onPress={() => {
                   setReplying(null);
+                  setEditingCommentId(null);
                   setText("");
+                  request.current = { id: randomUUID(), text: "", parentId: undefined };
                 }}
                 hitSlop={10}
               >
@@ -326,30 +402,59 @@ export function PostDetail() {
             }}
           >
             <Avatar profile={me} size={39 * s} />
-            <TextInput
-              ref={input}
-              accessibilityLabel="Add a comment"
-              editable={!busy}
-              value={text}
-              onChangeText={setText}
-              maxLength={2000}
-              multiline
-              placeholder="Add a comment..."
-              placeholderTextColor={theme.muted}
+            <View
               style={{
                 flex: 1,
-                maxHeight: 120,
                 minHeight: 40 * s,
+                maxHeight: 120,
                 borderRadius: 24 * s,
                 backgroundColor: theme.input,
                 borderWidth: 1,
                 borderColor: theme.border,
                 paddingHorizontal: 15 * s,
-                paddingVertical: 9 * s,
-                fontSize: 15 * s,
-                color: theme.ink,
+                flexDirection: "row",
+                alignItems: "center",
               }}
-            />
+            >
+              {replying && (
+                <Text
+                  accessibilityLabel={`Fixed mention: @${replying.username}`}
+                  style={{
+                    color: theme.blue,
+                    fontSize: 15 * s,
+                    fontWeight: "600",
+                  }}
+                >
+                  @{replying.username}{" "}
+                </Text>
+              )}
+              <TextInput
+                ref={input}
+                accessibilityLabel={replying ? `Reply to ${replying.username}` : "Add a comment"}
+                editable={!busy}
+                value={text}
+                onChangeText={setText}
+                maxLength={Math.max(1, 2000 - (replying ? replying.username.length + 2 : 0))}
+                multiline
+                placeholder={
+                  editingCommentId
+                    ? "Edit your comment..."
+                    : replying
+                      ? "Write a reply..."
+                      : "Add a comment..."
+                }
+                placeholderTextColor={theme.muted}
+                style={{
+                  flex: 1,
+                  maxHeight: 118,
+                  minHeight: 38 * s,
+                  paddingVertical: 9 * s,
+                  fontSize: 15 * s,
+                  color: theme.ink,
+                  textAlignVertical: "center",
+                }}
+              />
+            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ disabled: busy || !text.trim() }}
@@ -371,125 +476,20 @@ export function PostDetail() {
                 {busy ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  "Post"
+                  editingCommentId ? "Save" : "Post"
                 )}
               </Text>
             </Pressable>
           </View>
+          <PostDetailDialog
+            dialog={dialog}
+            scale={s}
+            bottomInset={insets.bottom}
+            onDismiss={() => setDialog(null)}
+            onAction={runDialogAction}
+          />
         </>
       )}
     </KeyboardAvoidingView>
-  );
-}
-function CommentRow({
-  item,
-  postId,
-  scale: s,
-  now,
-  onDelete,
-  onReply,
-}: {
-  item: Comment;
-  postId: string;
-  scale: number;
-  now: number;
-  onDelete: () => void;
-  onReply: () => void;
-}) {
-  const likeMutation = useCommentLikeMutation(postId);
-  const liked = item.isLiked;
-  const router = useRouter();
-  const theme = useAppTheme();
-  const openProfile = () =>
-    router.push({ pathname: "/member/[id]", params: { id: item.author._id } });
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 17 * s,
-        paddingHorizontal: 18 * s,
-        paddingBottom: 17 * s,
-      }}
-    >
-      <Pressable
-        accessibilityLabel={`View ${item.author.username}`}
-        onPress={openProfile}
-      >
-        <Avatar profile={item.author} size={42 * s} />
-      </Pressable>
-      <View style={{ flex: 1, gap: 3 * s }}>
-        <View
-          style={{ flexDirection: "row", alignItems: "center", gap: 9 * s }}
-        >
-          <Pressable onPress={openProfile} style={{ flexShrink: 1 }}>
-            <Text
-              numberOfLines={1}
-              style={{
-                color: theme.ink,
-                fontWeight: "700",
-                fontSize: 14 * s,
-                letterSpacing: -0.3,
-              }}
-            >
-              {item.author.username}
-            </Text>
-          </Pressable>
-          <Text style={{ color: theme.muted, fontSize: 12 * s }}>
-            {relativeTime(item._creationTime, now)}
-          </Text>
-        </View>
-        <Pressable
-          onLongPress={item.isOwn ? onDelete : undefined}
-          accessibilityHint={
-            item.isOwn ? "Long press to delete your comment" : undefined
-          }
-        >
-          <Text
-            style={{
-              color: theme.ink,
-              fontSize: 14 * s,
-              lineHeight: 19 * s,
-              letterSpacing: -0.25,
-            }}
-          >
-            {item.text}
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Reply to ${item.author.username}`}
-          onPress={onReply}
-          style={{ alignSelf: "flex-start", paddingVertical: 3 * s }}
-        >
-          <Text style={{ color: theme.muted, fontSize: 13 * s }}>Reply</Text>
-        </Pressable>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={liked ? "Unlike comment" : "Like comment"}
-        accessibilityState={{ selected: liked }}
-        disabled={
-          likeMutation.isPending &&
-          likeMutation.variables?.commentId === item._id
-        }
-        onPress={() =>
-          void likeMutation
-            .mutateAsync({ commentId: item._id, liked: !liked })
-            .catch((error) =>
-              Alert.alert("Could not update like", errorMessage(error)),
-            )
-        }
-        hitSlop={10}
-        style={{ paddingTop: 10 * s, paddingLeft: 2 * s }}
-      >
-        <FeedIcon
-          name="heart"
-          size={18 * s}
-          color={liked ? "#FF244E" : theme.ink}
-          filled={liked}
-        />
-      </Pressable>
-    </View>
   );
 }

@@ -8,7 +8,7 @@ import { topics } from '@/lib/explore-data';
 import { errorMessage, type SocialPost, type SocialProfile } from '@/lib/social';
 import { useNookCursorPaginatedQuery } from '@/hooks/use-nook-api';
 import { usePostLikeMutation } from '@/hooks/use-social-mutations';
-import { Avatar, PostMedia } from './media';
+import { Avatar, PostMedia, TextPostPreview } from './media';
 import { FollowButton } from './post-card';
 import { ConnectionStatus, LoadMore, ui } from './ui';
 import { useAppTheme } from '@/lib/theme';
@@ -40,7 +40,9 @@ export function LiveExplore() {
     const liked = post.isLiked ?? false;
     const open = () => router.push({ pathname: '/post/[id]', params: { id: post._id } });
     return { id: post._id, name: post.author.username, caption: post.caption.replace(/#[\p{L}\p{N}_]+/gu, '').trim(),
-      media: <View pointerEvents="none"><PostMedia post={post} thumbnail aspectRatio={((width - 26 * s) / 3) / ((index < 3 ? 155 : 149) * v)} /></View>,
+      media: <View pointerEvents="none">{post.kind === 'text'
+        ? <TextPostPreview caption={post.caption.replace(/#[\p{L}\p{N}_]+/gu, '').trim() || post.caption} thumbnail aspectRatio={((width - 26 * s) / 3) / ((index < 3 ? 155 : 149) * v)} />
+        : <PostMedia post={post} thumbnail aspectRatio={((width - 26 * s) / 3) / ((index < 3 ? 155 : 149) * v)} />}</View>,
       avatar: <Avatar profile={post.author} size={22 * s} />, likes: post.likesCount, liked, pending: likeMutation.isPending && likeMutation.variables?.postId === post._id,
       onLike: () => void likeMutation.mutateAsync({ postId: post._id, liked: !liked }).catch(error => Alert.alert('Could not update like', errorMessage(error))), onPress: open, onAuthor: () => member(post.author._id) };
   });

@@ -29,7 +29,7 @@ export type SocialPost = {
   isBookmarked?: boolean;
   likesCount: number;
   commentsCount: number;
-  kind?: 'image' | 'video';
+  kind?: 'image' | 'video' | 'text';
   width?: number;
   height?: number;
   duration?: number;
@@ -39,6 +39,7 @@ export type SocialComment = {
   _id: string;
   _creationTime: number;
   text: string;
+  parentId?: string;
   author: SocialProfile;
   isOwn: boolean;
   isLiked: boolean;

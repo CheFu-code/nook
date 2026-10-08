@@ -16,6 +16,10 @@ export type IconName =
     | "plus"
     | "heart"
     | "comment"
+    | "post-comment"
+    | "post-share"
+    | "post-bookmark"
+    | "more-vertical"
     | "send"
     | "bookmark"
     | "home"
@@ -54,6 +58,10 @@ const symbols = {
     plus: { ios: "plus", android: "add" },
     heart: { ios: "heart", android: "favorite" },
     comment: { ios: "bubble.left", android: "chat_bubble" },
+    "post-comment": { ios: "bubble.left.and.bubble.right", android: "chat_bubble_outline" },
+    "post-share": { ios: "square.and.arrow.up", android: "ios_share" },
+    "post-bookmark": { ios: "bookmark", android: "bookmark_border" },
+    "more-vertical": { ios: "ellipsis", android: "more_vert" },
     send: { ios: "paperplane", android: "send" },
     bookmark: { ios: "bookmark", android: "bookmark" },
     home: { ios: "house", android: "home" },

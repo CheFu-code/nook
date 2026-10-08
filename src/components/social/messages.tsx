@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +31,7 @@ import { useAuth } from "@/lib/chefu-auth";
 import { cacheNookConversationPreview } from "@/lib/query-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatScreen, type ChatMessage } from "../chat-screen";
+import type { MessageReactor } from "../chat-screen-ui";
 import { Avatar } from "./media";
 import { ConnectionStatus, LoadMore, ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
@@ -61,6 +62,9 @@ export function LiveChat() {
   const history = useNookPaginatedQuery<Message>(
     `/nook/conversations/${encodeURIComponent(id)}/messages`,
   );
+  const messageResults = history.results;
+  const messageStatus = history.status;
+  const loadMoreMessages = history.loadMore;
   const request = useNookApi();
   const outbox = useMessages();
   const { confirmDelivered } = outbox;
@@ -70,6 +74,45 @@ export function LiveChat() {
   const [reactionOverrides, setReactionOverrides] = useState<
     Record<string, Message["reactions"]>
   >({});
+  const [reactionDetails, setReactionDetails] = useState<{
+    message: ChatMessage;
+    emoji: string;
+    loading: boolean;
+    reactors: MessageReactor[];
+  } | null>(null);
+  const reactionDetailsRequestId = useRef(0);
+  const onReactionPress = async (message: ChatMessage, emoji: string) => {
+    if (!message.backendId) return;
+    const requestId = ++reactionDetailsRequestId.current;
+    setReactionDetails({ message, emoji, loading: true, reactors: [] });
+    try {
+      const reactors = await request<MessageReactor[]>(
+        `/nook/messages/${encodeURIComponent(id)}/messages/${encodeURIComponent(message.backendId)}/reactions`,
+      );
+      if (reactionDetailsRequestId.current === requestId) {
+        setReactionDetails({ message, emoji, loading: false, reactors });
+      }
+    } catch (error) {
+      if (reactionDetailsRequestId.current === requestId) {
+        setReactionDetails(null);
+        Alert.alert("Could not load reactions", errorMessage(error));
+      }
+    }
+  };
+  const dismissReactionDetails = () => {
+    reactionDetailsRequestId.current += 1;
+    setReactionDetails(null);
+  };
+  const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
+  const [readyJumpId, setReadyJumpId] = useState<string | null>(null);
+  const onJumpToMessage = useCallback((messageId: string) => {
+    setReadyJumpId(null);
+    setJumpTargetId(messageId);
+  }, []);
+  const onJumpToMessageComplete = useCallback(() => {
+    setReadyJumpId(null);
+    setJumpTargetId(null);
+  }, []);
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
@@ -108,6 +151,33 @@ export function LiveChat() {
         body: { throughSequence: latest },
       }).catch(() => {});
   }, [id, latest, request, focused, active, atBottom]);
+  useEffect(() => {
+    if (!jumpTargetId || readyJumpId) return;
+    const target = messageResults.find(
+      (item) => item._id === jumpTargetId || item.requestId === jumpTargetId,
+    );
+    if (target) {
+      const timer = setTimeout(() => setReadyJumpId(target._id), 0);
+      return () => clearTimeout(timer);
+    } else if (messageStatus === "CanLoadMore") {
+      loadMoreMessages(30);
+    } else if (messageStatus === "Exhausted" || messageStatus === "Error") {
+      const timer = setTimeout(() => {
+        setJumpTargetId(null);
+        Alert.alert(
+          "Message unavailable",
+          "The original message could not be found in this conversation.",
+        );
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    loadMoreMessages,
+    messageResults,
+    messageStatus,
+    jumpTargetId,
+    readyJumpId,
+  ]);
   const messages: ChatMessage[] = history.results
     .slice()
     .reverse()
@@ -165,6 +235,12 @@ export function LiveChat() {
   return (
     <ChatScreen
       onAtBottom={setAtBottom}
+      onJumpToMessage={onJumpToMessage}
+      jumpToMessageId={readyJumpId}
+      onJumpToMessageComplete={onJumpToMessageComplete}
+      reactionDetails={reactionDetails}
+      onReactionPress={onReactionPress}
+      onDismissReactionDetails={dismissReactionDetails}
       onBack={() => router.back()}
       messages={messages}
       onSend={(text, replyTo) => outbox.send(id, text, replyTo)}

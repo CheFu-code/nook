@@ -164,6 +164,43 @@ export function PostMedia({
     );
 }
 
+export function TextPostPreview({
+    caption,
+    thumbnail = false,
+    aspectRatio = 1,
+}: {
+    caption: string;
+    thumbnail?: boolean;
+    aspectRatio?: number;
+}) {
+    const theme = useAppTheme();
+    return (
+        <View
+            style={{
+                width: "100%",
+                aspectRatio,
+                borderRadius: thumbnail ? 4 : 14,
+                backgroundColor: theme.blueSoft,
+                justifyContent: "center",
+                padding: thumbnail ? 10 : 18,
+                overflow: "hidden",
+            }}
+        >
+            <Text
+                numberOfLines={thumbnail ? 8 : undefined}
+                style={{
+                    color: theme.ink,
+                    fontSize: thumbnail ? 11 : 16,
+                    lineHeight: thumbnail ? 15 : 23,
+                    fontWeight: "500",
+                }}
+            >
+                {caption}
+            </Text>
+        </View>
+    );
+}
+
 function InlineVideo({
     source,
     active,

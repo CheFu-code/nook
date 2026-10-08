@@ -224,7 +224,29 @@ export function PostCard({
                         </Text>
                     </Pressable>
                 </View>
-                <PostMedia post={post} visible={visible} />
+                {post.kind === "text" ? (
+                    <View
+                        style={{
+                            marginHorizontal: 5 * s,
+                            marginTop: 4 * v,
+                            borderRadius: 13 * s,
+                            backgroundColor: theme.blueSoft,
+                            padding: 16 * s,
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: theme.ink,
+                                fontSize: 15 * s,
+                                lineHeight: 22 * s,
+                            }}
+                        >
+                            {caption}
+                        </Text>
+                    </View>
+                ) : (
+                    <PostMedia post={post} visible={visible} />
+                )}
                 <View
                     style={{
                         paddingHorizontal: 5 * s,
@@ -232,29 +254,33 @@ export function PostCard({
                         paddingBottom: 3 * s,
                     }}
                 >
-                    <Text
-                        numberOfLines={2}
-                        style={{
-                            color: theme.ink,
-                            fontSize: 11.8 * s,
-                            fontWeight: "500",
-                            letterSpacing: -0.25 * s,
-                            lineHeight: 17 * s,
-                        }}
-                    >
-                        {title}
-                    </Text>
-                    {!!body.join("").trim() && (
+                    {post.kind !== "text" && (
+                        <>
                         <Text
-                            numberOfLines={1}
+                            numberOfLines={2}
                             style={{
-                                color: theme.muted,
-                                fontSize: 10.5 * s,
-                                lineHeight: 15 * v,
+                                color: theme.ink,
+                                fontSize: 11.8 * s,
+                                fontWeight: "500",
+                                letterSpacing: -0.25 * s,
+                                lineHeight: 17 * s,
                             }}
                         >
-                            {body.join(" ")}
+                            {title}
                         </Text>
+                        {!!body.join("").trim() && (
+                            <Text
+                                numberOfLines={1}
+                                style={{
+                                    color: theme.muted,
+                                    fontSize: 10.5 * s,
+                                    lineHeight: 15 * v,
+                                }}
+                            >
+                                {body.join(" ")}
+                            </Text>
+                        )}
+                        </>
                     )}
                     {!!tags.length && (
                         <View
@@ -299,15 +325,15 @@ export function PostCard({
                             disabled={likeMutation.isPending}
                             onPress={() => void toggleLike()}
                             hitSlop={6}
-                            style={{ flexDirection: "row", alignItems: "center", gap: 6 * s }}
+                            style={{ minWidth: 40 * s, minHeight: 40 * s, flexDirection: "row", alignItems: "center", gap: 7 * s }}
                         >
                             <FeedIcon
                                 name="heart"
-                                size={18 * s}
+                                size={25 * s}
                                 color={liked ? "#FF3659" : theme.ink}
                                 filled={liked}
                             />
-                            <Text style={{ fontSize: 11 * s, color: theme.ink }}>
+                            <Text style={{ fontSize: 13 * s, fontWeight: "600", color: theme.ink }}>
                                 {Math.max(0, likes)}
                             </Text>
                         </Pressable>
@@ -315,14 +341,14 @@ export function PostCard({
                             accessibilityLabel="View comments"
                             onPress={comments}
                             hitSlop={6}
-                            style={{ flexDirection: "row", alignItems: "center", gap: 6 * s }}
+                            style={{ minWidth: 40 * s, minHeight: 40 * s, flexDirection: "row", alignItems: "center", gap: 7 * s }}
                         >
-                            <FeedIcon name="comment" size={18 * s} color={theme.ink} />
-                            <Text style={{ fontSize: 11 * s, color: theme.ink }}>
+                            <FeedIcon name="post-comment" size={24 * s} color={theme.ink} />
+                            <Text style={{ fontSize: 13 * s, fontWeight: "600", color: theme.ink }}>
                                 {post.commentsCount}
                             </Text>
                         </Pressable>
-                        <DetailActions post={post} scale={0.78 * s} />
+                        <DetailActions post={post} scale={0.95 * s} />
                     </View>
                 </View>
             </View>
@@ -385,7 +411,7 @@ export function PostCard({
                     <FollowButton profile={author} />
                 )}
             </View>
-            <PostMedia post={post} visible={visible} />
+            {post.kind === "text" ? null : <PostMedia post={post} visible={visible} />}
             <View
                 style={{
                     paddingHorizontal: detail ? 10 * s : 7,

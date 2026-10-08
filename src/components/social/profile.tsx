@@ -28,7 +28,7 @@ import {
 import type { ProfileDraft } from "@/lib/profile-form";
 import { readUploadBlob, uploadProfilePicture } from "@/lib/upload";
 import { EditProfileScreen } from "../edit-profile-screen";
-import { Avatar, PostMedia, useMediaSource } from "./media";
+import { Avatar, PostMedia, TextPostPreview, useMediaSource } from "./media";
 import { FollowButton } from "./post-card";
 import { ConnectionStatus, LoadMore, ui } from "./ui";
 import {
@@ -243,7 +243,11 @@ function MemberProfile({
                                 }}
                             >
                                 <View pointerEvents="none">
-                                    <PostMedia post={item} thumbnail aspectRatio={1 / 0.925} />
+                                    {item.kind === "text" ? (
+                                        <TextPostPreview caption={item.caption} thumbnail aspectRatio={1 / 0.925} />
+                                    ) : (
+                                        <PostMedia post={item} thumbnail aspectRatio={1 / 0.925} />
+                                    )}
                                 </View>
                             </Pressable>
                         )}

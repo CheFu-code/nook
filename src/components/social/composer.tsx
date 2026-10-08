@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { randomUUID } from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useRef, useState, useEffect } from "react";
@@ -46,6 +47,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 	const captionFocused = useRef(false);
 	const pickerBusy = useRef(false);
 	const uploadId = useRef<Id<"uploads"> | null>(null);
+	const postRequestId = useRef(randomUUID());
 	const uploaded = useRef(false);
 	const busy = useRef(false);
 	const controller = useRef<AbortController | null>(null);
@@ -109,7 +111,9 @@ export function Composer({ story = false }: { story?: boolean }) {
 				story ? "Discard story?" : "Discard post?",
 				story
 					? "Your selected photo will be discarded."
-					: "Your selected media and caption will be discarded.",
+					: asset
+						? "Your selected media and caption will be discarded."
+						: "Your text post will be discarded.",
 				[
 					{ text: "Keep editing", style: "cancel" },
 					{ text: "Discard", style: "destructive", onPress: discard },
@@ -147,13 +151,25 @@ export function Composer({ story = false }: { story?: boolean }) {
 		}
 	}
 	async function submit() {
-		if (!asset || busy.current) return;
+		if ((story ? !asset : !asset && !caption.trim()) || busy.current) return;
 		busy.current = true;
 		controller.current = new AbortController();
 		const signal = controller.current.signal;
 		setError("");
 		setPhase("preparing");
 		try {
+			if (!asset && !story) {
+				setPhase("publishing");
+				await request("/nook/posts", {
+					method: "POST",
+					body: { caption, requestId: postRequestId.current },
+				});
+				postRequestId.current = randomUUID();
+				busy.current = false;
+				router.back();
+				return;
+			}
+			if (!asset) throw new Error("Select media before sharing your story.");
 			const meta = validateMedia(asset);
 			if (!uploadId.current) {
 				const created = await request<{ id: string }>("/nook/uploads", {
@@ -268,8 +284,8 @@ export function Composer({ story = false }: { story?: boolean }) {
 				<Pressable
 					accessibilityRole="button"
 					accessibilityLabel={phase === "publishing" ? "Publishing" : story ? "Share story" : "Share post"}
-					accessibilityState={{ disabled: phase !== "idle" || picking || !asset, busy: phase !== "idle" }}
-					disabled={phase !== "idle" || picking || !asset}
+					accessibilityState={{ disabled: phase !== "idle" || picking || (story ? !asset : !asset && !caption.trim()), busy: phase !== "idle" }}
+					disabled={phase !== "idle" || picking || (story ? !asset : !asset && !caption.trim())}
 					hitSlop={5}
 					style={{
 						marginLeft: "auto",
@@ -277,13 +293,13 @@ export function Composer({ story = false }: { story?: boolean }) {
 						height: 40 * scale,
 						paddingHorizontal: 13 * scale,
 						borderRadius: 13 * scale,
-						backgroundColor: !asset || phase !== "idle" || picking ? theme.subtle : theme.blue,
+						backgroundColor: (story ? !asset : !asset && !caption.trim()) || phase !== "idle" || picking ? theme.subtle : theme.blue,
 						alignItems: "center",
 						justifyContent: "center",
 					}}
 					onPress={() => void submit()}
 				>
-					<Text style={{ color: !asset || phase !== "idle" || picking ? theme.muted : "#FFFFFF", fontSize: 14 * scale, fontWeight: "700" }}>
+					<Text style={{ color: (story ? !asset : !asset && !caption.trim()) || phase !== "idle" || picking ? theme.muted : "#FFFFFF", fontSize: 14 * scale, fontWeight: "700" }}>
 						{phase === "publishing" ? "Posting…" : "Share"}
 					</Text>
 				</Pressable>
@@ -363,7 +379,10 @@ export function Composer({ story = false }: { story?: boolean }) {
 						placeholder="What’s on your mind?"
 						placeholderTextColor={theme.muted}
 						value={caption}
-						onChangeText={setCaption}
+						onChangeText={(value) => {
+							setCaption(value);
+							postRequestId.current = randomUUID();
+						}}
 						onFocus={() => {
 							captionFocused.current = true;
 						}}
