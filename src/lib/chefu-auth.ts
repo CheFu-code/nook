@@ -29,6 +29,7 @@ export type ChefuAuthSession = {
 };
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.chefu.co.za';
+const ACCOUNT_APP_URL = process.env.EXPO_PUBLIC_ACCOUNT_APP_URL || 'https://myaccount.chefu.co.za';
 const CLIENT_ID = 'nook-mobile';
 const CHEFU_APP_ID = 'nook';
 const SESSION_KEY = 'chefu_auth_session';
@@ -232,7 +233,13 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
           state,
           usePKCE: true,
         });
-        const result = await request.promptAsync(DISCOVERY);
+        const authorizationUrl = await request.makeAuthUrlAsync(DISCOVERY);
+        const accountLoginUrl = new URL('/login', ACCOUNT_APP_URL);
+        accountLoginUrl.searchParams.set('app', CHEFU_APP_ID);
+        accountLoginUrl.searchParams.set('returnTo', authorizationUrl);
+        const result = await request.promptAsync(DISCOVERY, {
+          url: accountLoginUrl.toString(),
+        });
         if (result.type !== 'success') {
           if (result.type === 'error') {
             throw new Error(result.params.error_description || result.params.error || 'Chefu Account sign-in failed.');
