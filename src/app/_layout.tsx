@@ -62,6 +62,7 @@ function AuthenticatedRoutes() {
           <Stack.Protected guard={!!isSignedIn}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="story-compose" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+            <Stack.Screen name="story/[id]" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="compose" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
             <Stack.Screen name="post/[id]" />
             <Stack.Screen name="member/[id]" />
