@@ -65,7 +65,7 @@ export function Stories() {
         ...new Map(
             active.map((story) => [story.author._id, story.author]),
         ).values(),
-    ];
+    ].sort((a, b) => Number(b.isOwn) - Number(a.isOwn));
     const ordered = people.flatMap((person) =>
         active.filter((story) => story.author._id === person._id).reverse(),
     );

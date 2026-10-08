@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import {
     Alert,
+    type GestureResponderEvent,
     Pressable,
     Text,
     useWindowDimensions,
@@ -18,6 +19,10 @@ import { Avatar, PostMedia } from "./media";
 import { DetailActions } from "./post-detail-actions";
 import { ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
+
+function stopCardNavigation(event: GestureResponderEvent) {
+    event.stopPropagation();
+}
 
 export function FollowButton({
     profile,
@@ -44,7 +49,10 @@ export function FollowButton({
             accessibilityLabel={`${following ? "Unfollow" : "Follow"} ${profile.username}`}
             accessibilityState={{ selected: following, disabled: followMutation.isPending }}
             disabled={followMutation.isPending}
-            onPress={() => void toggle()}
+            onPress={(event) => {
+                stopCardNavigation(event);
+                void toggle();
+            }}
             style={{
                 backgroundColor: following ? theme.subtle : theme.blue,
                 paddingVertical: 9,
@@ -142,6 +150,8 @@ export function PostCard({
     }
     const member = () =>
         router.push({ pathname: "/member/[id]", params: { id: post.author._id } });
+    const openPost = () =>
+        router.push({ pathname: "/post/[id]", params: { id: post._id } });
     const author = {
         ...post.author,
         name: post.author.name ?? post.author.username,
@@ -160,7 +170,10 @@ export function PostCard({
                     ? `${Math.floor(elapsed / 3600000)}h ago`
                     : `${Math.floor(elapsed / 86400000)}d ago`;
         return (
-            <View
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open post${post.caption ? `: ${post.caption}` : ""}`}
+                onPress={openPost}
                 style={{
                     backgroundColor: theme.surface,
                     marginHorizontal: 8 * s,
@@ -182,11 +195,20 @@ export function PostCard({
                 >
                     <Pressable
                         accessibilityLabel={`View ${post.author.username}`}
-                        onPress={member}
+                        onPress={(event) => {
+                            stopCardNavigation(event);
+                            member();
+                        }}
                     >
                         <Avatar profile={author as any} size={39 * s} />
                     </Pressable>
-                    <Pressable onPress={member} style={{ flex: 1, gap: 3 * v }}>
+                    <Pressable
+                        onPress={(event) => {
+                            stopCardNavigation(event);
+                            member();
+                        }}
+                        style={{ flex: 1, gap: 3 * v }}
+                    >
                         <Text
                             numberOfLines={1}
                             style={{
@@ -209,7 +231,11 @@ export function PostCard({
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Post options"
-                        onPress={post.isOwn ? options : comments}
+                        onPress={(event) => {
+                            stopCardNavigation(event);
+                            if (post.isOwn) options();
+                            else comments();
+                        }}
                         hitSlop={10}
                         style={{ padding: 6 * s }}
                     >
@@ -294,7 +320,10 @@ export function PostCard({
                                 <Pressable
                                     key={String(tag)}
                                     accessibilityLabel={`Explore ${tag}`}
-                                    onPress={() => router.navigate("/explore")}
+                                    onPress={(event) => {
+                                        stopCardNavigation(event);
+                                        router.navigate("/explore");
+                                    }}
                                     style={{
                                         backgroundColor: theme.blueSoft,
                                         borderRadius: 12 * s,
@@ -323,7 +352,10 @@ export function PostCard({
                             accessibilityLabel={liked ? "Unlike post" : "Like post"}
                             accessibilityState={{ selected: liked }}
                             disabled={likeMutation.isPending}
-                            onPress={() => void toggleLike()}
+                            onPress={(event) => {
+                                stopCardNavigation(event);
+                                void toggleLike();
+                            }}
                             hitSlop={6}
                             style={{ minWidth: 40 * s, minHeight: 40 * s, flexDirection: "row", alignItems: "center", gap: 7 * s }}
                         >
@@ -339,7 +371,10 @@ export function PostCard({
                         </Pressable>
                         <Pressable
                             accessibilityLabel="View comments"
-                            onPress={comments}
+                            onPress={(event) => {
+                                stopCardNavigation(event);
+                                comments();
+                            }}
                             hitSlop={6}
                             style={{ minWidth: 40 * s, minHeight: 40 * s, flexDirection: "row", alignItems: "center", gap: 7 * s }}
                         >
@@ -351,11 +386,19 @@ export function PostCard({
                         <DetailActions post={post} scale={0.95 * s} />
                     </View>
                 </View>
-            </View>
+            </Pressable>
         );
     }
     return (
-        <View
+        <Pressable
+            accessibilityRole={detail ? undefined : "button"}
+            accessibilityLabel={
+                detail
+                    ? undefined
+                    : `Open post${post.caption ? `: ${post.caption}` : ""}`
+            }
+            disabled={detail}
+            onPress={openPost}
             style={
                 detail
                     ? {
@@ -384,11 +427,20 @@ export function PostCard({
             >
                 <Pressable
                     accessibilityLabel={`View ${post.author.username}`}
-                    onPress={member}
+                    onPress={(event) => {
+                        stopCardNavigation(event);
+                        member();
+                    }}
                 >
                     <Avatar profile={author as any} />
                 </Pressable>
-                <Pressable onPress={member} style={{ flex: 1 }}>
+                <Pressable
+                    onPress={(event) => {
+                        stopCardNavigation(event);
+                        member();
+                    }}
+                    style={{ flex: 1 }}
+                >
                     <Text style={{ color: theme.ink, fontWeight: "700", fontSize: 14 }}>
                         {post.author.username}
                     </Text>
@@ -401,7 +453,10 @@ export function PostCard({
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Delete your post"
-                        onPress={options}
+                        onPress={(event) => {
+                            stopCardNavigation(event);
+                            options();
+                        }}
                         hitSlop={12}
                         style={{ padding: 8 }}
                     >
@@ -475,7 +530,10 @@ export function PostCard({
                         accessibilityLabel={liked ? "Unlike post" : "Like post"}
                         accessibilityState={{ selected: liked }}
                         disabled={likeMutation.isPending}
-                        onPress={() => void toggleLike()}
+                        onPress={(event) => {
+                            stopCardNavigation(event);
+                            void toggleLike();
+                        }}
                         style={{
                             flexDirection: "row",
                             alignItems: "center",
@@ -503,7 +561,10 @@ export function PostCard({
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="View comments"
-                        onPress={comments}
+                        onPress={(event) => {
+                            stopCardNavigation(event);
+                            comments();
+                        }}
                         style={{
                             flexDirection: "row",
                             alignItems: "center",
@@ -530,6 +591,6 @@ export function PostCard({
                     {detail && <DetailActions post={post} scale={s} />}
                 </View>
             </View>
-        </View>
+        </Pressable>
     );
 }

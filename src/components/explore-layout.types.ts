@@ -1,5 +1,26 @@
 import type { ReactElement, ReactNode } from "react";
 
+export function getExploreGridMetrics(screenWidth: number) {
+  const contentWidth = Math.min(screenWidth, 960);
+  const scale = Math.min(contentWidth / 390, 1.15);
+  const columns = contentWidth < 360 ? 2 : contentWidth >= 720 ? 4 : 3;
+  const horizontalPadding = 7 * scale;
+  const columnGap = 6 * scale;
+  const tileWidth =
+    (contentWidth -
+      horizontalPadding * 2 -
+      columnGap * (columns - 1)) /
+    columns;
+  return {
+    contentWidth,
+    columns,
+    horizontalPadding,
+    columnGap,
+    tileWidth,
+    tileHeight: tileWidth * 1.25,
+  };
+}
+
 export type ExplorePerson = {
   id: string;
   name: string;

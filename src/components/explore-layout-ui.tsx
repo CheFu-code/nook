@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { topics } from "@/lib/explore-data";
 import type { ExploreLayoutProps } from "./explore-layout.types";
+import { getExploreGridMetrics } from "./explore-layout.types";
 import { FeedIcon } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
 
@@ -40,8 +41,9 @@ export function ExploreLayoutUi({
 }: ExploreLayoutUiProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const s = width / 390;
-  const v = height / 874;
+  const grid = getExploreGridMetrics(width);
+  const s = Math.min(grid.contentWidth / 390, 1.15);
+  const v = Math.min(Math.max(height / 874, 0.85), 1.15);
   const f = Math.max(1, s);
   const theme = useAppTheme();
   const c = {
@@ -55,14 +57,16 @@ export function ExploreLayoutUi({
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: Math.max(40 * s, insets.top - 13 * s),
+        paddingTop: Math.max(40 * v, insets.top + 8 * v),
       }}
     >
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <View
         style={{
-          height: 44 * v,
-          marginHorizontal: 14 * s,
+          width: grid.contentWidth,
+          alignSelf: "center",
+          minHeight: 44 * v,
+          paddingHorizontal: 14 * s,
           flexDirection: "row",
           alignItems: "center",
           gap: 9 * s,
@@ -110,15 +114,20 @@ export function ExploreLayoutUi({
       {props.notice}
       <FlatList
         ref={listRef}
+        key={`explore-grid-${grid.columns}`}
         data={props.posts}
-        numColumns={3}
+        numColumns={grid.columns}
         keyExtractor={(item) => item.id}
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentInsetAdjustmentBehavior="never"
         showsVerticalScrollIndicator={false}
-        columnWrapperStyle={{ gap: 6 * s, paddingHorizontal: 7 * s }}
+        style={{ width: grid.contentWidth, alignSelf: "center" }}
+        columnWrapperStyle={{
+          gap: grid.columnGap,
+          paddingHorizontal: grid.horizontalPadding,
+        }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         onEndReached={props.onEndReached}
         onEndReachedThreshold={0.4}
@@ -336,10 +345,10 @@ export function ExploreLayoutUi({
             </View>
           </>
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <View
             style={{
-              width: (width - 26 * s) / 3,
+              width: grid.tileWidth,
               borderRadius: 8 * s,
               backgroundColor: theme.background,
               boxShadow: "0px 2px 4px #14233C0D",
@@ -348,7 +357,7 @@ export function ExploreLayoutUi({
           >
             <View
               style={{
-                height: (index < 3 ? 155 : 149) * v,
+                height: grid.tileHeight,
                 borderRadius: 7 * s,
                 overflow: "hidden",
               }}
@@ -465,7 +474,7 @@ export function ExploreLayoutUi({
             <Pressable
               onPress={item.onPress}
               style={{
-                height: 44 * v,
+                minHeight: 44 * v,
                 paddingHorizontal: 8 * s,
                 paddingVertical: 4 * v,
               }}

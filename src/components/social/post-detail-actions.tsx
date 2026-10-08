@@ -1,4 +1,10 @@
-import { Alert, Pressable, Share, View } from "react-native";
+import {
+    Alert,
+    Pressable,
+    Share,
+    View,
+    type GestureResponderEvent,
+} from "react-native";
 import { errorMessage, siteUrl, type SocialPost } from "@/lib/social";
 import { useNookQuery } from "@/hooks/use-nook-api";
 import { usePostBookmarkMutation } from "@/hooks/use-social-mutations";
@@ -25,12 +31,13 @@ export function DetailActions({
                 accessibilityRole="button"
                 accessibilityLabel="Share post"
                 accessibilityHint="Shares a link that opens this post in nook"
-                onPress={() =>
+                onPress={(event: GestureResponderEvent) => {
+                    event.stopPropagation();
                     void Share.share({
                         message: `Check out @${post.author.username}'s post on nook:\n${postUrl}`,
                         url: postUrl,
                     }).catch((e) => Alert.alert("Could not share", errorMessage(e)))
-                }
+                }}
                 hitSlop={6}
                 style={{
                     width: 40 * scale,
@@ -55,13 +62,14 @@ export function DetailActions({
                     bookmarkMutation.isPending ||
                     (saved.data === undefined && post.isBookmarked === undefined)
                 }
-                onPress={() =>
+                onPress={(event: GestureResponderEvent) => {
+                    event.stopPropagation();
                     void bookmarkMutation
                         .mutateAsync(!bookmarked)
                         .catch((e) =>
                             Alert.alert("Could not save bookmark", errorMessage(e)),
-                        )
-                }
+                        );
+                }}
                 hitSlop={6}
                 style={{
                     width: 44 * scale,
