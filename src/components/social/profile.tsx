@@ -99,21 +99,20 @@ function MemberProfile({
     const emptyGalleryMessage =
         panel === "saved"
             ? savedPosts.status === "Error"
-                ? "Couldn’t load saved posts. Tap Saved again to retry."
-                : "No saved posts yet."
+                ? t("Couldn’t load saved posts. Tap Saved again to retry.")
+                : t("No saved posts yet.")
             : panel === "tagged"
-                ? "Tagged posts are not available yet."
+                ? t("Tagged posts are not available yet.")
                 : panel === "videos"
                     ? profile?.isOwn
-                        ? "No videos to show."
-                        : `No videos from @${profile?.username} yet.`
+                        ? t("No videos to show.")
+                        : `${t("No videos from")} @${profile?.username} ${t("yet.")}`
                     : profile?.isOwn
-                        ? "No posts yet. Your moments will appear here."
-                        : `No posts yet. @${profile?.username} hasn’t shared any moments.`;
+                        ? t("No posts yet. Your moments will appear here.")
+                        : `${t("No posts yet.")} @${profile?.username} ${t("hasn’t shared any moments.")}`;
     if (sheet === "settings")
         return (
             <SettingsScreen
-                accountName={profile?.username ?? "Your account"}
                 onClose={() => setSheet(null)}
                 onEdit={() => setSheet("edit")}
                 onSaved={() => {
@@ -173,7 +172,7 @@ function MemberProfile({
                 ) : (
                     <View style={[ui.center, { backgroundColor: theme.background }]}>
                         <Text style={[ui.title, { color: theme.ink }]}>
-                            Profile unavailable
+                            {t("Profile unavailable")}
                         </Text>
                     </View>
                 )
@@ -181,7 +180,7 @@ function MemberProfile({
                 <View style={[ui.center, { backgroundColor: theme.background, padding: 28 }]}>
                     <Text style={[ui.title, { color: theme.ink }]}>{t("Profile unavailable")}</Text>
                     <Text style={[ui.muted, { color: theme.muted, textAlign: "center" }]}>
-                        This profile isn’t available.
+                        {t("This profile isn’t available.")}
                     </Text>
                 </View>
             ) : (
@@ -249,7 +248,7 @@ function MemberProfile({
                                             >
                                                 <FeedIcon name="blocked" size={16 * s} color={theme.ink} />
                                                 <Text style={{ color: theme.ink, fontSize: 14 * s, fontWeight: "600" }}>
-                                                    {blockBusy ? "Unblocking…" : "Unblock"}
+                                                    {blockBusy ? t("Unblocking…") : t("Unblock")}
                                                 </Text>
                                             </Pressable>
                                         ) : (
@@ -314,7 +313,7 @@ function MemberProfile({
                                                 >
                                                     <FeedIcon name="blocked" size={16 * s} color="#E5485D" />
                                                     <Text style={{ color: "#E5485D", fontSize: 14 * s, fontWeight: "600" }}>
-                                                        Block user
+                                                        {t("Block user")}
                                                     </Text>
                                                 </Pressable>
                                             </>
@@ -330,7 +329,7 @@ function MemberProfile({
                                             paddingHorizontal: 24,
                                         }}
                                     >
-                                        You’ve blocked this account. Unblock them to see their posts and interact again.
+                                        {t("You’ve blocked this account. Unblock them to see their posts and interact again.")}
                                     </Text>
                                 ) : (
                                     <ProfileGalleryTabs panel={panel} onChange={setPanel} showSaved={profile.isOwn} />
@@ -341,7 +340,7 @@ function MemberProfile({
                         renderItem={({ item }) => (
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel={`Open post${item.caption ? `: ${item.caption}` : ""}`}
+                                accessibilityLabel={`${t("Open post")}${item.caption ? `: ${item.caption}` : ""}`}
                                 onPress={() =>
                                     router.push({
                                         pathname: "/post/[id]",
@@ -590,7 +589,7 @@ function Connections({
         >
             <View style={ui.header}>
                 <Text style={[ui.title, { flex: 1, color: theme.ink }]}>
-                    {kind === "followers" ? "Followers" : "Following"}
+                    {t(kind === "followers" ? "Followers" : "Following")}
                 </Text>
                 <Pressable onPress={close} style={{ padding: 10 }}>
                     <Text style={[ui.link, { color: theme.blue }]}>{t("Done")}</Text>
@@ -630,10 +629,10 @@ function Connections({
                             }}
                         >
                             <Text style={[ui.text, { color: theme.ink }]}>
-                                {item.username ?? "User"}
+                                {item.username ?? t("User")}
                             </Text>
                             <Text style={[ui.muted, { color: theme.muted }]}>
-                                {item.name ?? item.username ?? "User"}
+                                {item.name ?? item.username ?? t("User")}
                             </Text>
                         </Pressable>
                         <FollowButton profile={item as SocialProfile} />
@@ -674,8 +673,8 @@ function Connections({
                                 }}
                             >
                                 {kind === "followers"
-                                    ? "No followers yet"
-                                    : "Not following anyone yet"}
+                                    ? t("No followers yet")
+                                    : t("Not following anyone yet")}
                             </Text>
                             <Text
                                 style={[
@@ -689,8 +688,8 @@ function Connections({
                                 ]}
                             >
                                 {kind === "followers"
-                                    ? "When people follow this profile, they’ll appear here."
-                                    : "The profiles they follow will appear here."}
+                                    ? t("When people follow this profile, they’ll appear here.")
+                                    : t("The profiles they follow will appear here.")}
                             </Text>
                         </View>
                     ) : null

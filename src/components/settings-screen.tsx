@@ -1,3 +1,4 @@
+import { useNookLanguage } from "@/lib/language";
 import { openLegalDocument } from "@/lib/legal-links";
 import { useAppTheme } from "@/lib/theme";
 import * as Sentry from "@sentry/react-native";
@@ -6,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
     Alert,
+    Linking,
     Modal,
     Pressable,
     ScrollView,
@@ -15,25 +17,9 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FeedIcon, type IconName } from "./feed-icon";
-import { useNookLanguage } from "@/lib/language";
+import { FeedIcon } from "./feed-icon";
+import { Row, SettingsProps } from "./settings-screen.types";
 
-type SettingsProps = {
-    onClose: () => void;
-    onEdit: () => void;
-    onSaved: () => void;
-    onBlockedUsers: () => void;
-    onSignOut: () => Promise<void>;
-    accountName: string;
-    preview?: boolean;
-};
-type Row = {
-    label: string;
-    icon: IconName;
-    trailingIcon?: IconName;
-    action?: () => void;
-    detail?: string;
-};
 
 export function SettingsScreen({
     onClose,
@@ -41,7 +27,6 @@ export function SettingsScreen({
     onSaved,
     onBlockedUsers,
     onSignOut,
-    accountName,
     preview = false,
 }: SettingsProps) {
     const { width, height } = useWindowDimensions();
@@ -53,21 +38,33 @@ export function SettingsScreen({
     const [signingOut, setSigningOut] = useState(false);
     const [languageOpen, setLanguageOpen] = useState(false);
     const [savingLanguage, setSavingLanguage] = useState(false);
-    const unavailable = (title: string, message: string) => () =>
-        Alert.alert(t(title), t(message));
     const account: Row[] = [
         { label: t("Edit profile"), icon: "profile", action: onEdit },
         {
             label: t("Account"),
             icon: "settings",
-            action: unavailable(t("Account"), `${t("Signed in as")} ${accountName}.`),
+            trailingIcon: "open-link",
+            action: () => {
+                void Linking.openURL("https://myaccount.chefu.co.za/account").catch(() => {
+                    Alert.alert(t("Unable to open link"), t("Please try again."));
+                });
+            },
         },
-        { label: t("Language"), icon: "language", detail: language === "zu" ? "isiZulu" : language === "fr" ? "Français" : t("English"), action: () => setLanguageOpen(true) },
+        { label: t("Language"), icon: "language", detail: language === "zu" ? "isiZulu" : language === "fr" ? "Français" : language === "ts" ? "Xitsonga" : t("English"), action: () => setLanguageOpen(true) },
         { label: t("Blocked users"), icon: "blocked", action: onBlockedUsers },
         { label: t("Saved posts"), icon: "bookmark", action: onSaved },
     ];
     const support: Row[] = [
-        // { label: 'Help & support', icon: 'help', action: unavailable('Help & support', 'A support contact has not been configured yet.') },
+        {
+            label: t("Help & support"),
+            icon: "help",
+            trailingIcon: "open-link",
+            action: () => {
+                void Linking.openURL("mailto:support@chefu.co.za").catch(() => {
+                    Alert.alert(t("Unable to open email"), t("Please try again."));
+                });
+            },
+        },
         {
             label: t("Report a problem"),
             icon: "support",
@@ -187,33 +184,41 @@ export function SettingsScreen({
                     paddingBottom: insets.bottom + 100,
                 }}
             >
-                <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t("Back to profile")}
-                    onPress={onClose}
+                <View
                     style={{
-                        minHeight: 44,
-                        alignSelf: "flex-start",
-                        paddingHorizontal: 8 * s,
-                        justifyContent: "center",
-                    }}
-                >
-                    <FeedIcon name="back" size={24 * s} color={theme.ink} />
-                </Pressable>
-                <Text
-                    accessibilityRole="header"
-                    style={{
-                        color: theme.ink,
-                        fontSize: 34 * s,
-                        lineHeight: 43 * s,
-                        fontWeight: "700",
-                        letterSpacing: -1.2 * s,
-                        marginHorizontal: 8 * s,
+                        minHeight: 52 * v,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10 * s,
                         marginBottom: 11 * v,
                     }}
                 >
-                    {t("Settings")}
-                </Text>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("Back to profile")}
+                        onPress={onClose}
+                        style={{
+                            minWidth: 44,
+                            minHeight: 44,
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <FeedIcon name="back" size={24 * s} color={theme.ink} />
+                    </Pressable>
+                    <Text
+                        accessibilityRole="header"
+                        style={{
+                            color: theme.ink,
+                            fontSize: 30 * s,
+                            lineHeight: 43 * s,
+                            fontWeight: "700",
+                            letterSpacing: -1.2 * s,
+                        }}
+                    >
+                        {t("Settings")}
+                    </Text>
+                </View>
                 <Text
                     accessibilityRole="header"
                     style={[
@@ -408,6 +413,7 @@ export function SettingsScreen({
                             ["en", "English"],
                             ["zu", "isiZulu"],
                             ["fr", "Français"],
+                            ["ts", "Xitsonga"],
                         ] as const).map(([value, label]) => {
                             const selected = language === value;
                             return (

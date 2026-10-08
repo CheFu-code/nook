@@ -47,7 +47,14 @@ function messageDateLabel(
     if (daysAgo === 0) return t("Today");
     if (daysAgo === 1) return t("Yesterday");
     if (daysAgo >= 2 && daysAgo < 7) {
+        if (language === "ts") {
+            const weekday = date.toLocaleDateString("en-GB", { weekday: "long" });
+            return t(weekday);
+        }
         return date.toLocaleDateString(language === "zu" ? "zu-ZA" : language === "fr" ? "fr-FR" : "en-GB", { weekday: "long" });
+    }
+    if (language === "ts") {
+        return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
     }
     return date.toLocaleDateString(language === "zu" ? "zu-ZA" : language === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" });
 }
