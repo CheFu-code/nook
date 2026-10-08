@@ -36,27 +36,34 @@ import type { MessageReactor } from "../chat-screen-ui";
 import { Avatar } from "./media";
 import { ConnectionStatus, LoadMore, ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
+import type { NookLanguage } from "@/lib/language";
 
-export const messageTime = (timestamp: number) =>
-  new Date(timestamp).toLocaleTimeString("en-US", {
+export const messageTime = (timestamp: number, language: NookLanguage = "en") =>
+  new Date(timestamp).toLocaleTimeString(language === "zu" ? "zu-ZA" : "en-US", {
     hour: "numeric",
     minute: "2-digit",
   });
-export function inboxTime(timestamp: number) {
+export function inboxTime(
+  timestamp: number,
+  language: NookLanguage,
+  t: (text: string) => string,
+) {
   const date = new Date(timestamp);
   const today = new Date();
   if (date.toDateString() === today.toDateString())
-    return messageTime(timestamp);
+    return messageTime(timestamp, language);
   today.setDate(today.getDate() - 1);
   return date.toDateString() === today.toDateString()
-    ? "Yesterday"
-    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    ? t("Yesterday")
+    : date.toLocaleDateString(language === "zu" ? "zu-ZA" : "en-US", { month: "short", day: "numeric" });
 }
 export function LiveChat() {
   const { id } = useLocalSearchParams<{ id: Id<"conversations"> }>();
   const { userId } = useAuth();
   const router = useRouter();
   const theme = useAppTheme();
+  const { language, t } = useNookLanguage();
   const conversationQuery = useNookQuery<
     Pick<Conversation, "_id" | "other" | "messageRequest">
   >(
@@ -100,7 +107,7 @@ export function LiveChat() {
     } catch (error) {
       if (reactionDetailsRequestId.current === requestId) {
         setReactionDetails(null);
-        Alert.alert("Could not load reactions", errorMessage(error));
+        Alert.alert(t("Could not load reactions"), errorMessage(error));
       }
     }
   };
@@ -195,7 +202,7 @@ export function LiveChat() {
       backendId: item._id,
       text: item.text,
       createdAt: item._creationTime,
-      time: messageTime(item._creationTime),
+      time: messageTime(item._creationTime, language),
       outgoing: item.outgoing,
       delivered: item.delivered,
       edited: item.edited,
@@ -216,7 +223,7 @@ export function LiveChat() {
       id: item.id,
       text: item.text,
       createdAt: item.createdAt,
-      time: messageTime(item.createdAt),
+      time: messageTime(item.createdAt, language),
       outgoing: true,
       status: item.status,
       retry: () => outbox.retry(item),
@@ -242,7 +249,7 @@ export function LiveChat() {
       <View style={[ui.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator color={theme.blue} />
         <Text style={[ui.muted, { color: theme.muted }]}>
-          Opening conversation…
+          {t("Opening conversation…")}
         </Text>
       </View>
     );
@@ -250,16 +257,16 @@ export function LiveChat() {
     return (
       <View style={[ui.center, { backgroundColor: theme.background }]}>
         <Text style={[ui.title, { color: theme.ink }]}>
-          Couldn’t open conversation
+          {t("Couldn’t open conversation")}
         </Text>
         <Text style={[ui.muted, { color: theme.muted, textAlign: "center" }]}>
-          Check your connection and try again.
+          {t("Check your connection and try again.")}
         </Text>
         <Pressable onPress={conversationQuery.refresh} style={ui.button}>
-          <Text style={ui.buttonText}>Try again</Text>
+          <Text style={ui.buttonText}>{t("Try again")}</Text>
         </Pressable>
         <Pressable onPress={() => router.back()} style={{ padding: 12 }}>
-          <Text style={[ui.link, { color: theme.blue }]}>Back to messages</Text>
+          <Text style={[ui.link, { color: theme.blue }]}>{t("Back to messages")}</Text>
         </Pressable>
       </View>
     );
@@ -274,7 +281,7 @@ export function LiveChat() {
       conversationQuery.refresh();
       return true;
     } catch (error) {
-      Alert.alert("Could not edit message", errorMessage(error));
+      Alert.alert(t("Could not edit message"), errorMessage(error));
       return false;
     }
   };
@@ -292,7 +299,7 @@ export function LiveChat() {
       await history.refresh();
       conversationQuery.refresh();
     } catch (error) {
-      Alert.alert("Could not delete message", errorMessage(error));
+      Alert.alert(t("Could not delete message"), errorMessage(error));
     }
   };
   return (
@@ -315,7 +322,7 @@ export function LiveChat() {
           );
           conversationQuery.refresh();
         } catch (error) {
-          Alert.alert("Could not update message request", errorMessage(error));
+          Alert.alert(t("Could not update message request"), errorMessage(error));
         } finally {
           setRequestDecisionLoading(false);
         }
@@ -370,7 +377,7 @@ export function LiveChat() {
             ...current,
             [message.backendId!]: previous,
           }));
-          Alert.alert("Could not react to message", errorMessage(error));
+          Alert.alert(t("Could not react to message"), errorMessage(error));
         }
       }}
       peer={{
@@ -393,7 +400,7 @@ export function LiveChat() {
               onPress={() => history.loadMore(30)}
               style={{ padding: 12, alignSelf: "center" }}
             >
-              <Text style={ui.link}>Load earlier messages</Text>
+              <Text style={ui.link}>{t("Load earlier messages")}</Text>
             </Pressable>
           ) : history.status.startsWith("Loading") ? (
             <ActivityIndicator color="#087EFF" />
@@ -415,6 +422,7 @@ export function NewConversation({ close }: { close: () => void }) {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const result = useNookCursorPaginatedQuery<SocialProfile>(
     `/nook/profiles?cursorMode=true&q=${encodeURIComponent(text)}`,
   );
@@ -433,17 +441,17 @@ export function NewConversation({ close }: { close: () => void }) {
       >
         <View style={ui.header}>
           <Text style={[ui.title, { flex: 1, color: theme.ink }]}>
-            New message
+            {t("New message")}
           </Text>
           <Pressable onPress={close} style={{ padding: 10 }}>
-            <Text style={[ui.link, { color: theme.blue }]}>Cancel</Text>
+            <Text style={[ui.link, { color: theme.blue }]}>{t("Cancel")}</Text>
           </Pressable>
         </View>
         <TextInput
-          accessibilityLabel="Search members to message"
+          accessibilityLabel={t("Search members to message")}
           value={text}
           onChangeText={setText}
-          placeholder="Search name or username"
+          placeholder={t("Search name or username")}
           placeholderTextColor={theme.muted}
           autoCapitalize="none"
           style={{
@@ -482,7 +490,7 @@ export function NewConversation({ close }: { close: () => void }) {
                   params: { id: conversation.id },
                 });
               } catch (e) {
-                Alert.alert("Could not open chat", errorMessage(e));
+                Alert.alert(t("Could not open chat"), errorMessage(e));
               } finally {
                 setOpening(false);
               }
@@ -534,7 +542,7 @@ export function NewConversation({ close }: { close: () => void }) {
                   onPress={() => void openConversation()}
                   style={{ padding: 10 }}
                 >
-                  <Text style={[ui.link, { color: theme.blue }]}>Message</Text>
+                  <Text style={[ui.link, { color: theme.blue }]}>{t("Message")}</Text>
                 </Pressable>
               </View>
             );

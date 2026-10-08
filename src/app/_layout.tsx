@@ -9,6 +9,7 @@ import { focusManager, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
 import { MessageNotifications } from '@/components/message-notifications';
 import { PresenceSession } from '@/components/presence-session';
+import { LanguageProvider, useNookLanguage } from '@/lib/language';
 
 Sentry.init({
   dsn: 'https://b763f67faea237307e894e7707208c9a@o4512011915296768.ingest.de.sentry.io/4512221576101968',
@@ -73,6 +74,23 @@ function AuthenticatedRoutes() {
   );
 }
 
+function LanguageReadyRoutes() {
+  const { isLanguageLoaded, t } = useNookLanguage();
+  const theme = useAppTheme();
+  if (!isLanguageLoaded) {
+    return (
+      <View style={[styles.loading, { backgroundColor: theme.background }]}>
+        <ActivityIndicator
+          size="large"
+          color={theme.blue}
+          accessibilityLabel={t('Loading…')}
+        />
+      </View>
+    );
+  }
+  return <AuthenticatedRoutes />;
+}
+
 function UserScopedQueryProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createNookQueryClient);
   useEffect(() => {
@@ -88,9 +106,11 @@ function UserScopedQueryProvider({ children }: { children: ReactNode }) {
 
 function RootLayout() {
   return (
-    <ChefuAuthProvider>
-      <AuthenticatedRoutes />
-    </ChefuAuthProvider>
+    <LanguageProvider>
+      <ChefuAuthProvider>
+        <LanguageReadyRoutes />
+      </ChefuAuthProvider>
+    </LanguageProvider>
   );
 }
 

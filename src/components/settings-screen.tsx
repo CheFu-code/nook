@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
     Alert,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -15,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon, type IconName } from "./feed-icon";
+import { useNookLanguage } from "@/lib/language";
 
 type SettingsProps = {
     onClose: () => void;
@@ -45,32 +47,34 @@ export function SettingsScreen({
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const { language, setLanguage, t } = useNookLanguage();
     const s = width / 390;
     const v = (height - insets.top - insets.bottom) / 810;
     const [signingOut, setSigningOut] = useState(false);
+    const [languageOpen, setLanguageOpen] = useState(false);
+    const [savingLanguage, setSavingLanguage] = useState(false);
     const unavailable = (title: string, message: string) => () =>
-        Alert.alert(title, message);
+        Alert.alert(t(title), t(message));
     const account: Row[] = [
-        { label: "Edit profile", icon: "profile", action: onEdit },
+        { label: t("Edit profile"), icon: "profile", action: onEdit },
         {
-            label: "Account",
+            label: t("Account"),
             icon: "settings",
-            action: unavailable("Account", `Signed in as ${accountName}.`),
+            action: unavailable(t("Account"), `${t("Signed in as")} ${accountName}.`),
         },
-        // { label: 'Notifications', icon: 'bell', action: unavailable('Notifications', 'Notification preferences are not available yet.') },
-        // { label: 'Privacy', icon: 'lock', action: unavailable('Privacy', 'Privacy controls are not available yet.') },
-        { label: "Blocked users", icon: "blocked", action: onBlockedUsers },
-        { label: "Saved posts", icon: "bookmark", action: onSaved },
+        { label: t("Language"), icon: "language", detail: language === "zu" ? "isiZulu" : t("English"), action: () => setLanguageOpen(true) },
+        { label: t("Blocked users"), icon: "blocked", action: onBlockedUsers },
+        { label: t("Saved posts"), icon: "bookmark", action: onSaved },
     ];
     const support: Row[] = [
         // { label: 'Help & support', icon: 'help', action: unavailable('Help & support', 'A support contact has not been configured yet.') },
         {
-            label: "Report a problem",
+            label: t("Report a problem"),
             icon: "support",
             action: Sentry.showFeedbackForm,
         },
         {
-            label: "Privacy Policy",
+            label: t("Privacy Policy"),
             icon: "document",
             trailingIcon: "open-link",
             action: () => {
@@ -78,7 +82,7 @@ export function SettingsScreen({
             },
         },
         {
-            label: "Terms of Service",
+            label: t("Terms of Service"),
             icon: "document",
             trailingIcon: "open-link",
             action: () => {
@@ -86,9 +90,9 @@ export function SettingsScreen({
             },
         },
         {
-            label: "About",
+            label: t("About"),
             icon: "info",
-            detail: `Version ${Constants.expoConfig?.version ?? "Unknown"}`,
+            detail: `${t("Version")} ${Constants.expoConfig?.version ?? t("Unknown")}`,
         },
     ];
     const group = (rows: Row[]) => (
@@ -185,7 +189,7 @@ export function SettingsScreen({
             >
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Back to profile"
+                    accessibilityLabel={t("Back to profile")}
                     onPress={onClose}
                     style={{
                         minHeight: 44,
@@ -208,7 +212,7 @@ export function SettingsScreen({
                         marginBottom: 11 * v,
                     }}
                 >
-                    Settings
+                    {t("Settings")}
                 </Text>
                 <Text
                     accessibilityRole="header"
@@ -222,7 +226,7 @@ export function SettingsScreen({
                         },
                     ]}
                 >
-                    Account
+                    {t("Account")}
                 </Text>
                 {group(account)}
                 {/* <Pressable
@@ -292,7 +296,7 @@ export function SettingsScreen({
                         },
                     ]}
                 >
-                    Support &amp; Legal
+                    {t("Support & Legal")}
                 </Text>
                 {group(support)}
                 
@@ -303,8 +307,8 @@ export function SettingsScreen({
                     onPress={async () => {
                         if (preview) {
                             Alert.alert(
-                                "Preview account",
-                                "Sign out is available from your live profile.",
+                                t("Preview account"),
+                                t("Sign out is available from your live profile."),
                             );
                             return;
                         }
@@ -312,7 +316,7 @@ export function SettingsScreen({
                         try {
                             await onSignOut();
                         } catch {
-                            Alert.alert("Unable to sign out", "Please try again.");
+                            Alert.alert(t("Unable to sign out"), t("Please try again."));
                         } finally {
                             setSigningOut(false);
                         }
@@ -338,10 +342,124 @@ export function SettingsScreen({
                             letterSpacing: -0.4 * s,
                         }}
                     >
-                        {signingOut ? "Signing out…" : "Sign Out"}
+                        {signingOut ? t("Signing out…") : t("Sign Out")}
                     </Text>
                 </Pressable>
             </ScrollView>
+            <Modal
+                visible={languageOpen}
+                transparent
+                animationType="fade"
+                statusBarTranslucent
+                onRequestClose={() => {
+                    if (!savingLanguage) setLanguageOpen(false);
+                }}
+            >
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: 24,
+                        backgroundColor: "rgba(5, 10, 20, 0.58)",
+                    }}
+                >
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("Cancel")}
+                        disabled={savingLanguage}
+                        onPress={() => setLanguageOpen(false)}
+                        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+                    />
+                    <View
+                        accessibilityViewIsModal
+                        style={{
+                            width: "100%",
+                            maxWidth: 380,
+                            padding: 20 * s,
+                            borderRadius: 22 * s,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                            backgroundColor: theme.surface,
+                        }}
+                    >
+                        <Text
+                            accessibilityRole="header"
+                            style={{
+                                color: theme.ink,
+                                fontSize: 20 * s,
+                                fontWeight: "700",
+                            }}
+                        >
+                            {t("Language")}
+                        </Text>
+                        <Text
+                            style={{
+                                color: theme.muted,
+                                fontSize: 14 * s,
+                                lineHeight: 20 * s,
+                                marginTop: 6 * s,
+                                marginBottom: 16 * s,
+                            }}
+                        >
+                            {t("Choose the language used in nook.")}
+                        </Text>
+                        {([
+                            ["en", "English"],
+                            ["zu", "isiZulu"],
+                        ] as const).map(([value, label]) => {
+                            const selected = language === value;
+                            return (
+                                <Pressable
+                                    key={value}
+                                    accessibilityRole="radio"
+                                    accessibilityState={{ checked: selected, disabled: savingLanguage }}
+                                    disabled={savingLanguage}
+                                    onPress={async () => {
+                                        if (savingLanguage) return;
+                                        setSavingLanguage(true);
+                                        try {
+                                            await setLanguage(value);
+                                            setLanguageOpen(false);
+                                        } catch (error) {
+                                            Alert.alert(
+                                                t("Could not change language"),
+                                                error instanceof Error
+                                                    ? error.message
+                                                    : t("Please try again."),
+                                            );
+                                        } finally {
+                                            setSavingLanguage(false);
+                                        }
+                                    }}
+                                    style={{
+                                        minHeight: 52 * s,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        paddingHorizontal: 12 * s,
+                                        borderRadius: 12 * s,
+                                        backgroundColor: selected ? theme.blueSoft : "transparent",
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            color: selected ? theme.blue : theme.ink,
+                                            fontSize: 15 * s,
+                                            fontWeight: selected ? "700" : "500",
+                                        }}
+                                    >
+                                        {label}
+                                    </Text>
+                                    {selected && (
+                                        <FeedIcon name="check" size={18 * s} color={theme.blue} />
+                                    )}
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

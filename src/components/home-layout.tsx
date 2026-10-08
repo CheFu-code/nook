@@ -3,10 +3,12 @@ import { useRouter } from "expo-router";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { FeedIcon } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export function HomeHeader() {
     const router = useRouter();
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const { width, height } = useWindowDimensions();
     const s = width / 390;
     const v = height / 916;
@@ -38,7 +40,7 @@ export function HomeHeader() {
             </Text>
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Search people and posts"
+                accessibilityLabel={t("Search people and posts")}
                 onPress={() => router.navigate("/explore")}
                 style={{
                     width: 38 * s,
@@ -53,7 +55,7 @@ export function HomeHeader() {
             </Pressable>
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Create a post"
+                accessibilityLabel={t("Create a post")}
                 onPress={() => router.push("/compose")}
                 style={{
                     width: 38 * s,

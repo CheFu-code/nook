@@ -8,6 +8,7 @@ export type IconName =
     | "help"
     | "support"
     | "document"
+    | "language"
     | "chevron-right"
     | "open-link"
     | "trash"
@@ -52,6 +53,7 @@ const symbols = {
     help: { ios: "questionmark.circle", android: "help" },
     support: { ios: "lifepreserver", android: "support_agent" },
     document: { ios: "doc.text", android: "description" },
+    language: { ios: "character.bubble", android: "language" },
     "chevron-right": { ios: "chevron.right", android: "chevron_right" },
     "open-link": { ios: "arrow.up.right.square", android: "open_in_new" },
     trash: { ios: "trash", android: "delete" },

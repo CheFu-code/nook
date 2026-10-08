@@ -41,9 +41,11 @@ import {
 } from "./post-detail-logic";
 import { Header, ConnectionStatus, LoadMore, ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export function PostDetail() {
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const { id } = useLocalSearchParams<{ id: Id<"posts"> }>();
   const insets = useSafeAreaInsets();
   const me = useProfile();
@@ -243,12 +245,12 @@ export function PostDetail() {
   function deleteComment(item: Comment) {
     if (!item.isOwn) return;
     Alert.alert(
-      "Delete comment?",
-      "This comment and its replies will no longer be visible.",
+      t("Delete comment?"),
+      t("This comment and its replies will no longer be visible."),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("Cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("Delete"),
           style: "destructive",
           onPress: async () => {
             let previous: InfiniteData<Page<Comment>> | undefined;
@@ -295,7 +297,7 @@ export function PostDetail() {
               if (previous) {
                 queryClient.setQueryData(commentsQueryKey, previous);
               }
-              Alert.alert("Could not delete comment", errorMessage(e));
+              Alert.alert(t("Could not delete comment"), errorMessage(e));
             }
           },
         },
@@ -310,7 +312,7 @@ export function PostDetail() {
     input.current?.focus();
   }
   function showError(title: string, message: string) {
-    Alert.alert(title, message);
+    Alert.alert(t(title), t(message));
   }
   return (
     <KeyboardAvoidingView
@@ -320,15 +322,15 @@ export function PostDetail() {
       ]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Header title="Post" back compose={false} />
+      <Header title={t("Post")} back compose={false} />
       <ConnectionStatus />
       {post === undefined ? (
         <ActivityIndicator color={theme.blue} />
       ) : post === null ? (
         <View style={[ui.center, { backgroundColor: theme.background }]}>
-          <Text style={[ui.title, { color: theme.ink }]}>Post unavailable</Text>
+          <Text style={[ui.title, { color: theme.ink }]}>{t("Post unavailable")}</Text>
           <Text style={[ui.muted, { color: theme.muted }]}>
-            This post may have been deleted.
+            {t("This post may have been deleted.")}
           </Text>
         </View>
       ) : (

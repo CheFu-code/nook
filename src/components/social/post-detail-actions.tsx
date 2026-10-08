@@ -10,6 +10,7 @@ import { useNookQuery } from "@/hooks/use-nook-api";
 import { usePostBookmarkMutation } from "@/hooks/use-social-mutations";
 import { useAppTheme } from "@/lib/theme";
 import { FeedIcon } from "../feed-icon";
+import { useNookLanguage } from "@/lib/language";
 
 export function DetailActions({
     post,
@@ -19,6 +20,7 @@ export function DetailActions({
     scale: number;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const saved = useNookQuery<boolean>(
         `/nook/posts/${encodeURIComponent(post._id)}/bookmark`,
     );
@@ -29,14 +31,14 @@ export function DetailActions({
         <>
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Share post"
-                accessibilityHint="Shares a link that opens this post in nook"
+                accessibilityLabel={t("Share post")}
+                accessibilityHint={t("Shares a link that opens this post in nook")}
                 onPress={(event: GestureResponderEvent) => {
                     event.stopPropagation();
                     void Share.share({
                         message: `Check out @${post.author.username}'s post on nook:\n${postUrl}`,
                         url: postUrl,
-                    }).catch((e) => Alert.alert("Could not share", errorMessage(e)))
+                    }).catch((e) => Alert.alert(t("Could not share"), errorMessage(e)))
                 }}
                 hitSlop={6}
                 style={{
@@ -51,7 +53,7 @@ export function DetailActions({
             <View style={{ flex: 1 }} />
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={bookmarked ? "Remove bookmark" : "Bookmark post"}
+                accessibilityLabel={t(bookmarked ? "Remove bookmark" : "Bookmark post")}
                 accessibilityState={{
                     selected: bookmarked,
                     disabled:
@@ -67,7 +69,7 @@ export function DetailActions({
                     void bookmarkMutation
                         .mutateAsync(!bookmarked)
                         .catch((e) =>
-                            Alert.alert("Could not save bookmark", errorMessage(e)),
+                            Alert.alert(t("Could not save bookmark"), errorMessage(e)),
                         );
                 }}
                 hitSlop={6}

@@ -25,6 +25,7 @@ import {
 import { useAppTheme } from "@/lib/theme";
 import { useUserPresenceStatus } from "@/hooks/use-user-presence";
 import { useChatScreenLogic, type ChatMessage } from "@/hooks/use-chat-screen";
+import { useNookLanguage, type NookLanguage } from "@/lib/language";
 
 export type { ChatMessage } from "@/hooks/use-chat-screen";
 
@@ -33,17 +34,22 @@ function messageDateKey(timestamp: number) {
     return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-function messageDateLabel(timestamp: number, now = new Date()) {
+function messageDateLabel(
+    timestamp: number,
+    language: NookLanguage,
+    t: (text: string) => string,
+    now = new Date(),
+) {
     const date = new Date(timestamp);
     const dateDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
     const todayDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
     const daysAgo = Math.round((todayDay - dateDay) / 86_400_000);
-    if (daysAgo === 0) return "Today";
-    if (daysAgo === 1) return "Yesterday";
+    if (daysAgo === 0) return t("Today");
+    if (daysAgo === 1) return t("Yesterday");
     if (daysAgo >= 2 && daysAgo < 7) {
-        return date.toLocaleDateString("en-GB", { weekday: "long" });
+        return date.toLocaleDateString(language === "zu" ? "zu-ZA" : "en-GB", { weekday: "long" });
     }
-    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    return date.toLocaleDateString(language === "zu" ? "zu-ZA" : "en-GB", { day: "numeric", month: "short" });
 }
 
 function lastSeenLabel(timestamp: number, now = new Date()) {
@@ -163,6 +169,7 @@ export function ChatScreen({
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const { language, t } = useNookLanguage();
     const requestPending = messageRequest?.status === "pending";
     const requestDeclined = messageRequest?.status === "declined";
     const canSendRequestMessage =
@@ -315,7 +322,7 @@ export function ChatScreen({
             >
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Back to messages"
+                    accessibilityLabel={t("Back to messages")}
                     onPress={onBack}
                     hitSlop={10}
                 >
@@ -406,7 +413,7 @@ export function ChatScreen({
                                             fontWeight: "600",
                                         }}
                                     >
-                                        {messageDateLabel(message.createdAt!)}
+                                        {messageDateLabel(message.createdAt!, language, t)}
                                     </Text>
                                 </View>,
                             ]
@@ -462,7 +469,7 @@ export function ChatScreen({
                         </Text>
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Cancel editing"
+                            accessibilityLabel={t("Cancel editing")}
                             onPress={() => {
                                 setEditingMessage(null);
                                 setDraft("");
@@ -496,7 +503,7 @@ export function ChatScreen({
                         </View>
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Cancel reply"
+                            accessibilityLabel={t("Cancel reply")}
                             onPress={() => {
                                 if (focusTimer.current) clearTimeout(focusTimer.current);
                                 setReplyTo(null);
@@ -526,7 +533,7 @@ export function ChatScreen({
                         >
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Decline message request"
+                            accessibilityLabel={t("Decline message request")}
                             disabled={requestDecisionLoading}
                             onPress={() => onRespondToRequest("declined")}
                             style={{
@@ -546,7 +553,7 @@ export function ChatScreen({
                         </Pressable>
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Accept message request"
+                            accessibilityLabel={t("Accept message request")}
                             disabled={requestDecisionLoading}
                             onPress={() => onRespondToRequest("accepted")}
                             style={{
@@ -569,7 +576,7 @@ export function ChatScreen({
                 <View style={{ flexDirection: "row", alignItems: "center", gap: fs(9) }}>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Open emoji picker"
+                        accessibilityLabel={t("Open emoji picker")}
                         onPress={() => setEmojiPickerVisible(true)}
                         hitSlop={6}
                         style={{
@@ -596,7 +603,7 @@ export function ChatScreen({
                     >
                         <TextInput
                             ref={inputRef}
-                            accessibilityLabel="Message"
+                            accessibilityLabel={t("Message")}
                             value={draft}
                             onChangeText={setDraft}
                             selection={draftSelection}

@@ -10,6 +10,7 @@ import {
 import { palette as c } from "@/lib/social";
 import { FeedIcon } from "../feed-icon";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export function Header({
     title = "nook",
@@ -22,11 +23,12 @@ export function Header({
 }) {
     const router = useRouter();
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     return (
         <View style={[ui.header, { backgroundColor: theme.background }]}>
             {back ? (
                 <Pressable
-                    accessibilityLabel="Go back"
+                    accessibilityLabel={t("Go back")}
                     accessibilityRole="button"
                     style={[ui.round, { backgroundColor: theme.subtle }]}
                     onPress={() => router.back()}
@@ -48,7 +50,7 @@ export function Header({
             {!back && (
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Search people"
+                    accessibilityLabel={t("Search people")}
                     style={[ui.round, { backgroundColor: theme.subtle }]}
                     onPress={() => router.navigate("/explore")}
                 >
@@ -58,7 +60,7 @@ export function Header({
             {compose && (
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Create a post"
+                    accessibilityLabel={t("Create a post")}
                     style={[ui.round, { backgroundColor: theme.blueSoft }]}
                     onPress={() => router.push("/compose")}
                 >
@@ -79,6 +81,7 @@ export function LoadMore({
     loadMore: (n: number) => void;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     if (status === "LoadingFirstPage" || status === "LoadingMore")
         return <ActivityIndicator style={{ padding: 24 }} color={theme.blue} />;
     if (status === "Error")
@@ -89,7 +92,7 @@ export function LoadMore({
                 style={{ padding: 24, alignItems: "center" }}
             >
                 <Text style={[ui.link, { color: theme.blue }]}>
-                    Couldn’t load. Tap to retry.
+                    {t("Couldn’t load. Tap to retry.")}
                 </Text>
             </Pressable>
         );
@@ -99,7 +102,7 @@ export function LoadMore({
             onPress={() => loadMore(20)}
             style={{ padding: 24, alignItems: "center" }}
         >
-            <Text style={[ui.link, { color: theme.blue }]}>Load more</Text>
+            <Text style={[ui.link, { color: theme.blue }]}>{t("Load more")}</Text>
         </Pressable>
     ) : null;
 }

@@ -3,6 +3,7 @@ import { useNookQuery } from "@/hooks/use-nook-api";
 import { useAuth } from "@/lib/chefu-auth";
 import type { SocialStory } from "@/lib/social";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,6 +31,7 @@ export function Stories({
 } = {}) {
     const { user } = useAuth();
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const profile = useProfile();
     const ownProfile = {
         ...profile,
@@ -124,7 +126,7 @@ export function Stories({
             >
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Add your story"
+                    accessibilityLabel={t("Add your story")}
                     onPress={() => router.push("/story-compose")}
                     style={{ width: 50 * s, alignItems: "center", gap: 6 * v }}
                 >
@@ -147,7 +149,7 @@ export function Stories({
                         </View>
                     </View>
                     <Text style={{ color: theme.muted, fontSize: 9.5 * s }}>
-                        Your story
+                        {t("Your story")}
                     </Text>
                 </Pressable>
                 {people.map((person, i) => {

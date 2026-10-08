@@ -17,6 +17,7 @@ import {
   type NestedComment,
 } from "./post-detail-logic";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNookLanguage } from "@/lib/language";
 
 export function CommentSortMenu({
   order,
@@ -28,14 +29,15 @@ export function CommentSortMenu({
   onSelect: (order: "asc" | "desc") => void;
 }) {
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
   const trigger = useRef<View>(null);
   const { width } = useWindowDimensions();
   const menuWidth = 166 * s;
   const options: { order: "desc" | "asc"; label: string }[] = [
-    { order: "desc", label: "Newest first" },
-    { order: "asc", label: "Oldest first" },
+    { order: "desc", label: t("Newest first") },
+    { order: "asc", label: t("Oldest first") },
   ];
   const toggleMenu = () => {
     if (open) {
@@ -54,14 +56,14 @@ export function CommentSortMenu({
     <View ref={trigger} collapsable={false} style={{ alignSelf: "flex-end" }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Sort comments: ${order === "desc" ? "Newest" : "Oldest"}`}
+        accessibilityLabel={`${t("Sort comments")}: ${t(order === "desc" ? "Newest" : "Oldest")}`}
         accessibilityState={{ expanded: open }}
         onPress={toggleMenu}
         hitSlop={10}
         style={{ flexDirection: "row", alignItems: "center", gap: 10 * s }}
       >
         <Text style={{ fontSize: 14 * s, color: theme.muted }}>
-          {order === "desc" ? "Newest" : "Oldest"}
+          {t(order === "desc" ? "Newest" : "Oldest")}
         </Text>
         <View style={{ transform: [{ rotate: "-90deg" }] }}>
           <FeedIcon name="back" size={12 * s} color={theme.muted} />
@@ -76,7 +78,7 @@ export function CommentSortMenu({
       >
         <View style={{ flex: 1 }}>
           <Pressable
-            accessibilityLabel="Close sort menu"
+            accessibilityLabel={t("Close sort menu")}
             onPress={() => setOpen(false)}
             style={{
               position: "absolute",
@@ -172,6 +174,7 @@ export function CommentRow({
   const liked = item.isLiked;
   const router = useRouter();
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [optionsPosition, setOptionsPosition] = useState({ top: 0, left: 0 });
   const optionsTrigger = useRef<View>(null);
@@ -273,8 +276,8 @@ export function CommentRow({
             >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Comment options"
-                accessibilityHint="Edit or delete your comment"
+                accessibilityLabel={t("Comment options")}
+                accessibilityHint={t("Edit or delete your comment")}
                 accessibilityState={{ expanded: optionsOpen }}
                 onPress={toggleOptions}
                 hitSlop={8}
@@ -304,7 +307,7 @@ export function CommentRow({
             }}
           >
             <Pressable
-              accessibilityLabel="Close comment options"
+              accessibilityLabel={t("Close comment options")}
               onPress={() => setOptionsOpen(false)}
               style={{
                 position: "absolute",
@@ -334,7 +337,7 @@ export function CommentRow({
             >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Edit comment"
+                accessibilityLabel={t("Edit comment")}
                 onPress={() => {
                   setOptionsOpen(false);
                   onEdit();
@@ -362,7 +365,7 @@ export function CommentRow({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Delete comment"
+                accessibilityLabel={t("Delete comment")}
                 onPress={() => {
                   setOptionsOpen(false);
                   onDelete();
@@ -451,7 +454,7 @@ export function CommentRow({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={liked ? "Unlike comment" : "Like comment"}
+            accessibilityLabel={t(liked ? "Unlike comment" : "Like comment")}
             accessibilityState={{ selected: liked }}
             disabled={
               likeMutation.isPending &&

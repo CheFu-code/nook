@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { validateProfile, type ProfileDraft } from "@/lib/profile-form";
 import { FeedIcon, type IconName } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 type Props = {
   initial: ProfileDraft;
@@ -33,6 +34,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const scrollView = useRef<ScrollView>(null);
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const s = width / 390;
   const v = Math.max(0.82, (height - insets.top - 20) / 820);
   const fs = (n: number) => n * s;
@@ -45,17 +47,17 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
   const close = () =>
     dirty
       ? Alert.alert(
-          "Discard changes?",
-          "Your unsaved profile changes will be lost.",
+          t("Discard changes?"),
+          t("Your unsaved profile changes will be lost."),
           [
-            { text: "Keep editing", style: "cancel" },
-            { text: "Discard", style: "destructive", onPress: onClose },
+            { text: t("Keep editing"), style: "cancel" },
+            { text: t("Discard"), style: "destructive", onPress: onClose },
           ],
         )
       : onClose();
   function save() {
     const error = validateProfile(draft);
-    if (error) return Alert.alert("Check your profile", error);
+    if (error) return Alert.alert(t("Check your profile"), t(error));
     onSave({
       ...draft,
       username: draft.username.trim(),
@@ -84,23 +86,23 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           : !/\.(jpe?g|png)$/i.test(image.fileName ?? image.uri)
       ) {
         Alert.alert(
-          "Choose a JPG or PNG",
-          "Please select a JPG or PNG image for your profile photo.",
+          t("Choose a JPG or PNG"),
+          t("Please select a JPG or PNG image for your profile photo."),
         );
         return;
       }
       if (image.fileSize == null || image.fileSize > 5 * 1024 * 1024) {
         Alert.alert(
-          "Choose a smaller photo",
-          "Select an image with a known size of 5 MB or less.",
+          t("Choose a smaller photo"),
+          t("Select an image with a known size of 5 MB or less."),
         );
         return;
       }
       update("photoUri", image.uri);
     } catch {
       Alert.alert(
-        "Unable to open photos",
-        "Please try opening the photo library again.",
+        t("Unable to open photos"),
+        t("Please try opening the photo library again."),
       );
     } finally {
       pickingRef.current = false;
@@ -134,7 +136,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           marginBottom: 5 * v,
         }}
       >
-        {label}
+        {t(label)}
       </Text>
       <View
         style={[
@@ -167,17 +169,17 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           <FeedIcon name={icon} size={fs(19)} color={theme.secondary} />
         )}
         <TextInput
-          accessibilityLabel={label}
+          accessibilityLabel={t(label)}
           placeholder={
             key === "username"
-              ? "Choose a username"
+              ? t("Choose a username")
               : key === "name"
-                ? "Your name"
+                ? t("Your name")
                 : key === "bio"
-                  ? "Tell people about yourself"
+                  ? t("Tell people about yourself")
                   : key === "website"
                     ? "https://example.com"
-                    : "City, country"
+                    : t("City, country")
           }
           onFocus={(event) => {
             const target = event.nativeEvent.target;
@@ -244,7 +246,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
             lineHeight: 14 * v,
           }}
         >
-          {helper}
+          {t(helper)}
         </Text>
       )}
     </View>
@@ -272,7 +274,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back to profile"
+          accessibilityLabel={t("Back to profile")}
           onPress={close}
           style={[
             styles.back,
@@ -296,11 +298,11 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
             marginLeft: fs(15),
           }}
         >
-          Edit Profile
+          {t("Edit Profile")}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Save profile"
+          accessibilityLabel={t("Save profile")}
           disabled={picking}
           onPress={save}
           style={[
@@ -309,7 +311,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           ]}
         >
           <Text style={{ color: "white", fontSize: fs(14), fontWeight: "600" }}>
-            Save
+            {t("Save")}
           </Text>
         </Pressable>
       </View>
@@ -332,7 +334,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
+              accessibilityLabel={t("Change profile photo")}
               disabled={picking}
               onPress={changePhoto}
               style={[
@@ -366,13 +368,13 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
                 fontWeight: "500",
               }}
             >
-              Change Photo
+              {t("Change Photo")}
             </Text>
           </Pressable>
           <Text
             style={{ color: theme.muted, fontSize: fs(10.5), marginTop: 2 * v }}
           >
-            JPG, PNG up to 5MB
+            {t("JPG, PNG up to 5MB")}
           </Text>
         </View>
         {field(
@@ -382,9 +384,9 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           "This is how people find you on nook.",
         )}
         {field("name", "Display Name", "profile", "This is your public name.")}
-        {field("bio", "Bio", "bio")}
-        {field("website", "Website", "link")}
-        {field("location", "Location", "location")}
+        {field("bio", t("Bio"), "bio")}
+        {field("website", t("Website"), "link")}
+        {field("location", t("Location"), "location")}
 
       </ScrollView>
     </KeyboardAvoidingView>

@@ -17,6 +17,7 @@ import { useUserPresence } from "@/hooks/use-user-presence";
 import { nookMediaQueryKey } from "@/lib/query-client";
 import { useAppTheme } from "@/lib/theme";
 import { ui } from "./ui";
+import { useNookLanguage } from "@/lib/language";
 
 export function useMediaSource(
     id: string,
@@ -56,6 +57,7 @@ export function Avatar({
     showPresence?: boolean;
 }) {
     const { user } = useAuth();
+    const { t } = useNookLanguage();
     const theme = useAppTheme();
     const online = useUserPresence(profile._id, showPresence);
     const { source } = useMediaSource(
@@ -117,7 +119,7 @@ export function Avatar({
             </View>
             {online && (
                 <View
-                    accessibilityLabel="Online"
+                    accessibilityLabel={t("Online")}
                     style={{
                         position: "absolute",
                         right: -1,
@@ -146,6 +148,7 @@ export function PostMedia({
     thumbnail?: boolean;
     aspectRatio?: number;
 }) {
+    const { t } = useNookLanguage();
     const { source, error, retry } = useMediaSource(post._id, "post");
     const [failed, setFailed] = useState(false);
     const sourceAspectRatio =
@@ -172,7 +175,7 @@ export function PostMedia({
                     }}
                     style={{ padding: 12 }}
                 >
-                    <Text style={ui.muted}>Media unavailable. Tap to retry.</Text>
+                    <Text style={ui.muted}>{t("Media unavailable. Tap to retry.")}</Text>
                 </Pressable>
             ) : !source ? (
                 <ActivityIndicator color="#087EFF" />

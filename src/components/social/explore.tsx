@@ -28,6 +28,7 @@ import { Avatar, PostMedia, TextPostPreview } from "./media";
 import { FollowButton } from "./post-card";
 import { ConnectionStatus, LoadMore, ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 const topicWords: Record<string, RegExp> = {
   Travel:
@@ -40,6 +41,7 @@ const topicWords: Record<string, RegExp> = {
 };
 export function LiveExplore() {
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const { width } = useWindowDimensions();
   const grid = getExploreGridMetrics(width);
   const s = Math.min(grid.contentWidth / 390, 1.15);
@@ -101,7 +103,7 @@ export function LiveExplore() {
         void likeMutation
           .mutateAsync({ postId: post._id, liked: !liked })
           .catch((error) =>
-            Alert.alert("Could not update like", errorMessage(error)),
+            Alert.alert(t("Could not update like"), errorMessage(error)),
           ),
       onPress: open,
       onAuthor: () => member(post.author._id),
@@ -193,7 +195,7 @@ export function LiveExplore() {
             </Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close"
+              accessibilityLabel={t("Close")}
               onPress={() => setSheet(null)}
               hitSlop={12}
             >

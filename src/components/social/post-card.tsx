@@ -20,6 +20,7 @@ import { ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
 import { PostCardOptions } from "./post-card-options";
 import { usePostCardOptions } from "./use-post-card-options";
+import { useNookLanguage } from "@/lib/language";
 
 function stopCardNavigation(event: GestureResponderEvent) {
     event.stopPropagation();
@@ -33,6 +34,7 @@ export function FollowButton({
     compactScale?: number;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const followMutation = useFollowMutation(profile);
     const following = profile.isFollowing ?? false;
     if (profile.isOwn) return null;
@@ -41,13 +43,13 @@ export function FollowButton({
         try {
             await followMutation.mutateAsync(next);
         } catch (e) {
-            Alert.alert("Could not update follow", errorMessage(e));
+            Alert.alert(t("Could not update follow"), errorMessage(e));
         }
     }
     return (
         <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${following ? "Unfollow" : "Follow"} ${profile.username}`}
+            accessibilityLabel={`${t(following ? "Unfollow" : "Follow")} ${profile.username}`}
             accessibilityState={{ selected: following, disabled: followMutation.isPending }}
             disabled={followMutation.isPending}
             onPress={(event) => {
@@ -78,7 +80,7 @@ export function FollowButton({
                     fontWeight: compactScale ? "500" : "600",
                 }}
             >
-                {following ? "Following" : "Follow"}
+                {t(following ? "Following" : "Follow")}
             </Text>
         </Pressable>
     );
@@ -97,6 +99,7 @@ export function PostCard({
     home?: boolean;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const { width, height } = useWindowDimensions();
     const s = detail || home ? width / 390 : 1;
     const v = height / 916;
@@ -128,7 +131,7 @@ export function PostCard({
         try {
             await likeMutation.mutateAsync({ postId: post._id, liked: next });
         } catch (e) {
-            Alert.alert("Could not update like", errorMessage(e));
+            Alert.alert(t("Could not update like"), errorMessage(e));
         }
     }
     const member = () =>
@@ -156,7 +159,7 @@ export function PostCard({
             <>
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Open post${post.caption ? `: ${post.caption}` : ""}`}
+                    accessibilityLabel={`${t("Open post")}${post.caption ? `: ${post.caption}` : ""}`}
                     onPress={openPost}
                     style={{
                         backgroundColor: theme.surface,
@@ -178,7 +181,7 @@ export function PostCard({
                     }}
                 >
                     <Pressable
-                        accessibilityLabel={`View ${post.author.username}`}
+                        accessibilityLabel={`${t("View")} ${post.author.username}`}
                         onPress={(event) => {
                             stopCardNavigation(event);
                             member();
@@ -218,7 +221,7 @@ export function PostCard({
                     </Pressable>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Post options"
+                        accessibilityLabel={t("Post options")}
                         onPress={(event) => {
                             stopCardNavigation(event);
                             if (post.isOwn) postOptions.setOptionsOpen(true);
@@ -307,7 +310,7 @@ export function PostCard({
                             {tags.slice(0, 4).map((tag: string) => (
                                 <Pressable
                                     key={String(tag)}
-                                    accessibilityLabel={`Explore ${tag}`}
+                                    accessibilityLabel={`${t("Explore")} ${tag}`}
                                     onPress={(event) => {
                                         stopCardNavigation(event);
                                         router.navigate("/explore");
@@ -337,7 +340,7 @@ export function PostCard({
                     >
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel={liked ? "Unlike post" : "Like post"}
+                            accessibilityLabel={t(liked ? "Unlike post" : "Like post")}
                             accessibilityState={{ selected: liked }}
                             disabled={likeMutation.isPending}
                             onPress={(event) => {
@@ -358,7 +361,7 @@ export function PostCard({
                             </Text>
                         </Pressable>
                         <Pressable
-                            accessibilityLabel="View comments"
+                            accessibilityLabel={t("View comments")}
                             onPress={(event) => {
                                 stopCardNavigation(event);
                                 comments();
@@ -441,7 +444,7 @@ export function PostCard({
                 }}
             >
                 <Pressable
-                    accessibilityLabel={`View ${post.author.username}`}
+                    accessibilityLabel={`${t("View")} ${post.author.username}`}
                     onPress={(event) => {
                         stopCardNavigation(event);
                         member();
@@ -467,7 +470,7 @@ export function PostCard({
                 {post.isOwn ? (
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Post options"
+                        accessibilityLabel={t("Post options")}
                         onPress={(event) => {
                             stopCardNavigation(event);
                             postOptions.setOptionsOpen(true);
@@ -542,7 +545,7 @@ export function PostCard({
                 >
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={liked ? "Unlike post" : "Like post"}
+                        accessibilityLabel={t(liked ? "Unlike post" : "Like post")}
                         accessibilityState={{ selected: liked }}
                         disabled={likeMutation.isPending}
                         onPress={(event) => {
@@ -575,7 +578,7 @@ export function PostCard({
                     </Pressable>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="View comments"
+                        accessibilityLabel={t("View comments")}
                         onPress={(event) => {
                             stopCardNavigation(event);
                             comments();

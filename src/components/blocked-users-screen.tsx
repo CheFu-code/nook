@@ -14,9 +14,11 @@ import { useAppTheme } from "@/lib/theme";
 import { Avatar } from "./social/media";
 import { FeedIcon } from "./feed-icon";
 import { LoadMore } from "./social/ui";
+import { useNookLanguage } from "@/lib/language";
 
 export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const insets = useSafeAreaInsets();
     const request = useNookApi();
     const blocked = useNookPaginatedQuery<SocialProfile>("/nook/blocks");
@@ -55,7 +57,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
             >
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Back to settings"
+                    accessibilityLabel={t("Back to settings")}
                     onPress={onClose}
                     hitSlop={8}
                 >
@@ -70,7 +72,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                         letterSpacing: -0.5,
                     }}
                 >
-                    Blocked users
+                    {t("Blocked users")}
                 </Text>
             </View>
             {blocked.status === "Error" && items.length === 0 ? (
@@ -84,7 +86,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                     }}
                 >
                     <Text style={{ color: theme.secondary, textAlign: "center" }}>
-                        Couldn’t load your blocked users. {errorMessage(blocked.error)}
+                        {t("Couldn’t load your blocked users.")} {errorMessage(blocked.error)}
                     </Text>
                     <Pressable
                         accessibilityRole="button"
@@ -96,7 +98,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                             backgroundColor: theme.blue,
                         }}
                     >
-                        <Text style={{ color: "white", fontWeight: "600" }}>Try again</Text>
+                        <Text style={{ color: "white", fontWeight: "600" }}>{t("Try again")}</Text>
                     </Pressable>
                 </View>
             ) : blocked.status === "LoadingFirstPage" ? (
@@ -121,7 +123,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                             marginTop: 14,
                         }}
                     >
-                        No blocked users
+                        {t("No blocked users")}
                     </Text>
                     <Text
                         style={{
@@ -131,7 +133,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                             marginTop: 6,
                         }}
                     >
-                        People you block will appear here. You can unblock them at any time.
+                        {t("People you block will appear here. You can unblock them at any time.")}
                     </Text>
                 </View>
             ) : (
@@ -172,12 +174,12 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                             </View>
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel={`Unblock @${item.username}`}
+                                accessibilityLabel={`${t("Unblock")} @${item.username}`}
                                 accessibilityState={{ disabled: busyUid !== null, busy: busyUid === item._id }}
                                 disabled={busyUid !== null}
                                 onPress={() => {
                                     void unblock(item).catch(error => {
-                                        Alert.alert("Could not unblock user", errorMessage(error));
+                                        Alert.alert(t("Could not unblock user"), errorMessage(error));
                                     });
                                 }}
                                 style={{
@@ -195,7 +197,7 @@ export function BlockedUsersScreen({ onClose }: { onClose: () => void }) {
                                     <ActivityIndicator size="small" color={theme.blue} />
                                 ) : (
                                     <Text style={{ color: theme.ink, fontWeight: "600", fontSize: 13 }}>
-                                        Unblock
+                                        {t("Unblock")}
                                     </Text>
                                 )}
                             </Pressable>

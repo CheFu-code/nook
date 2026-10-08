@@ -18,6 +18,7 @@ import { Avatar } from "./social/media";
 import { inboxTime, NewConversation } from "./social/messages";
 import { LoadMore } from "./social/ui";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export function MessagesTabView({
     conversations,
@@ -39,6 +40,7 @@ export function MessagesTabView({
     const [filter, setFilter] = useState("All");
     const [newChat, setNewChat] = useState(false);
     const theme = useAppTheme();
+    const { language, t } = useNookLanguage();
     const insets = useSafeAreaInsets();
     const { width, height } = useWindowDimensions();
     const s = width / 390;
@@ -50,7 +52,7 @@ export function MessagesTabView({
             name={item.other.username}
             text={item.preview}
             previewIsOwn={item.previewIsOwn}
-            time={inboxTime(item.lastMessageAt)}
+            time={inboxTime(item.lastMessageAt, language, t)}
             unreadCount={item.unreadCount}
             unreadCountExact={item.unreadCountExact}
             avatar={(size) => (
@@ -77,11 +79,11 @@ export function MessagesTabView({
                     accessibilityRole="header"
                     style={[styles.heading, { fontSize: 33 * s, color: theme.ink }]}
                 >
-                    Messages
+                    {t("Messages")}
                 </Text>
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="New message"
+                    accessibilityLabel={t("New message")}
                     onPress={() => setNewChat(true)}
                     hitSlop={12}
                 >
@@ -121,7 +123,7 @@ export function MessagesTabView({
                                 letterSpacing: -0.4,
                             }}
                         >
-                            {label}
+                            {t(label)}
                         </Text>
                     </Pressable>
                 ))}
@@ -133,9 +135,9 @@ export function MessagesTabView({
                 {filter === "Groups" ? (
                     <View style={{ padding: 30, alignItems: "center", gap: 10 }}>
                         <FeedIcon name="comment" size={32} color="#8A90A7" />
-                        <Text style={[styles.name, { color: theme.ink }]}>Group messaging</Text>
+                        <Text style={[styles.name, { color: theme.ink }]}>{t("Group messaging")}</Text>
                         <Text style={[styles.preview, { textAlign: "center", color: theme.muted }]}>
-                            For now, start a private conversation with one member.
+                            {t("For now, start a private conversation with one member.")}
                         </Text>
                     </View>
                 ) : (
@@ -145,12 +147,12 @@ export function MessagesTabView({
                             <View style={{ padding: 30, alignItems: "center", gap: 10 }}>
                                 <FeedIcon name="comment" size={32} color="#8A90A7" />
                                 <Text style={[styles.name, { color: theme.ink }]}>
-                                    {filter === "Unread" ? "You’re all caught up" : "No conversations yet"}
+                                    {filter === "Unread" ? t("You’re all caught up") : t("No conversations yet")}
                                 </Text>
                                 <Text style={[styles.preview, { textAlign: "center", color: theme.muted }]}>
                                     {filter === "Unread"
-                                        ? "You don’t have any unread messages."
-                                        : "Start a conversation with someone in the community."}
+                                        ? t("You don’t have any unread messages.")
+                                        : t("Start a conversation with someone in the community.")}
                                 </Text>
                             </View>
                         )}

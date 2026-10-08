@@ -11,6 +11,7 @@ import {
     View,
 } from "react-native";
 import { FeedIcon } from "../feed-icon";
+import { useNookLanguage } from "@/lib/language";
 
 export function PostCardOptions({
     post,
@@ -52,6 +53,7 @@ export function PostCardOptions({
     onDismissFeedback: () => void;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const closeOptions = () => {
         onOptionsClose();
     };
@@ -67,7 +69,7 @@ export function PostCardOptions({
             >
                 <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "#00000099" }}>
                     <Pressable
-                        accessibilityLabel="Close post options"
+                        accessibilityLabel={t("Close post options")}
                         onPress={closeOptions}
                         style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
                     />
@@ -94,7 +96,7 @@ export function PostCardOptions({
                             }}
                         />
                         <Text style={{ color: theme.ink, fontSize: 20 * scale, fontWeight: "700" }}>
-                            Post options
+                            {t("Post options")}
                         </Text>
                         <View
                             style={{
@@ -108,24 +110,24 @@ export function PostCardOptions({
                         >
                             <PostOptionRow
                                 icon="compose"
-                                title="Edit"
-                                subtitle={post.kind === "text" ? "Edit your post" : "Edit your caption"}
+                                title={t("Edit")}
+                                subtitle={t(post.kind === "text" ? "Edit your post" : "Edit your caption")}
                                 scale={scale}
                                 onPress={onEdit}
                             />
                             <View style={{ height: 1, marginHorizontal: 10 * scale, backgroundColor: theme.border }} />
                             <PostOptionRow
                                 icon="post-share"
-                                title="Share"
-                                subtitle="Send a link to this post"
+                                title={t("Share")}
+                                subtitle={t("Send a link to this post")}
                                 scale={scale}
                                 onPress={onShare}
                             />
                             <View style={{ height: 1, marginHorizontal: 10 * scale, backgroundColor: theme.border }} />
                             <PostOptionRow
                                 icon="trash"
-                                title="Delete"
-                                subtitle="Remove this post"
+                                title={t("Delete")}
+                                subtitle={t("Remove this post")}
                                 destructive
                                 scale={scale}
                                 onPress={onDeleteRequest}
@@ -144,7 +146,7 @@ export function PostCardOptions({
                             }}
                         >
                             <Text style={{ color: theme.ink, fontSize: 14 * scale, fontWeight: "600" }}>
-                                Cancel
+                                {t("Cancel")}
                             </Text>
                         </Pressable>
                     </View>
@@ -179,16 +181,16 @@ export function PostCardOptions({
                         }}
                     >
                         <Text style={{ color: theme.ink, fontSize: 20 * scale, fontWeight: "700" }}>
-                            {post.kind === "text" ? "Edit post" : "Edit caption"}
+                            {t(post.kind === "text" ? "Edit post" : "Edit caption")}
                         </Text>
                         <TextInput
-                            accessibilityLabel={post.kind === "text" ? "Post text" : "Post caption"}
+                            accessibilityLabel={t(post.kind === "text" ? "Post text" : "Post caption")}
                             value={caption}
                             onChangeText={onCaptionChange}
                             multiline
                             maxLength={2200}
                             textAlignVertical="top"
-                            placeholder="Write a caption…"
+                            placeholder={t("Write a caption…")}
                             placeholderTextColor={theme.muted}
                             style={{
                                 minHeight: 150 * scale,
@@ -208,9 +210,9 @@ export function PostCardOptions({
                             {caption.length}/2200
                         </Text>
                         <View style={{ flexDirection: "row", gap: 10 * scale, marginTop: 16 * scale }}>
-                            <PostModalButton label="Cancel" onPress={onEditCancel} scale={scale} disabled={busy} />
+                            <PostModalButton label={t("Cancel")} onPress={onEditCancel} scale={scale} disabled={busy} />
                             <PostModalButton
-                                label="Save"
+                                label={t("Save")}
                                 onPress={onSave}
                                 scale={scale}
                                 disabled={busy || (post.kind === "text" && !caption.trim())}
@@ -263,14 +265,14 @@ export function PostCardOptions({
                             <FeedIcon name="trash" size={22 * scale} color="#E5485D" />
                         </View>
                         <Text style={{ color: theme.ink, fontSize: 19 * scale, fontWeight: "700", textAlign: "center" }}>
-                            Delete post?
+                            {t("Delete post?")}
                         </Text>
                         <Text style={{ color: theme.muted, fontSize: 14 * scale, lineHeight: 21 * scale, textAlign: "center", marginTop: 8 * scale }}>
-                            This removes the post, its media, likes, and comments.
+                            {t("This removes the post, its media, likes, and comments.")}
                         </Text>
                         <View style={{ flexDirection: "row", gap: 10 * scale, width: "100%", marginTop: 20 * scale }}>
-                            <PostModalButton label="Cancel" onPress={onDeleteCancel} scale={scale} disabled={busy} />
-                            <PostModalButton label="Delete" onPress={onDelete} scale={scale} disabled={busy} busy={busy} destructive />
+                            <PostModalButton label={t("Cancel")} onPress={onDeleteCancel} scale={scale} disabled={busy} />
+                            <PostModalButton label={t("Delete")} onPress={onDelete} scale={scale} disabled={busy} busy={busy} destructive />
                         </View>
                     </View>
                 </View>
@@ -310,7 +312,7 @@ export function PostCardOptions({
                         <Text style={{ color: theme.muted, fontSize: 14 * scale, lineHeight: 21 * scale, textAlign: "center", marginTop: 8 * scale }}>
                             {feedback?.message}
                         </Text>
-                        <PostModalButton label="OK" onPress={onDismissFeedback} scale={scale} primary />
+                        <PostModalButton label={t("OK")} onPress={onDismissFeedback} scale={scale} primary />
                     </View>
                 </View>
             </Modal>

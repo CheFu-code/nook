@@ -43,6 +43,7 @@ import { FeedIcon } from "../feed-icon";
 import { SettingsScreen } from "../settings-screen";
 import { BlockedUsersScreen } from "../blocked-users-screen";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export function OwnProfile() {
     const me = useProfile();
@@ -59,6 +60,7 @@ function MemberProfile({
     id: Id<"profiles">;
     back?: boolean;
 }) {
+    const { t } = useNookLanguage();
     const profileQuery = useNookQuery<SocialProfile | null>(
         id ? `/nook/profiles/${encodeURIComponent(id)}` : null,
     );
@@ -136,7 +138,7 @@ function MemberProfile({
             await profileQuery.refresh();
         } catch (error) {
             Alert.alert(
-                blocked ? "Could not block user" : "Could not unblock user",
+                t(blocked ? "Could not block user" : "Could not unblock user"),
                 errorMessage(error),
             );
         } finally {
@@ -177,7 +179,7 @@ function MemberProfile({
                 )
             ) : profile.isBlockingMe ? (
                 <View style={[ui.center, { backgroundColor: theme.background, padding: 28 }]}>
-                    <Text style={[ui.title, { color: theme.ink }]}>Profile unavailable</Text>
+                    <Text style={[ui.title, { color: theme.ink }]}>{t("Profile unavailable")}</Text>
                     <Text style={[ui.muted, { color: theme.muted, textAlign: "center" }]}>
                         This profile isn’t available.
                     </Text>
@@ -284,11 +286,11 @@ function MemberProfile({
                                                                     params: { id: conversation.id },
                                                                 });
                                                             } catch (e) {
-                                                                Alert.alert("Could not open chat", errorMessage(e));
+                                                                Alert.alert(t("Could not open chat"), errorMessage(e));
                                                             }
                                                         }}
                                                     >
-                                                        <Text style={ui.buttonText}>Message</Text>
+                                                        <Text style={ui.buttonText}>{t("Message")}</Text>
                                                     </Pressable>
                                                 </View>
                                                 <Pressable
@@ -448,7 +450,7 @@ function MemberProfile({
                         >
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel="Cancel block confirmation"
+                                accessibilityLabel={t("Cancel block confirmation")}
                                 disabled={blockBusy}
                                 onPress={() => setBlockConfirmationOpen(false)}
                                 style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
@@ -490,7 +492,7 @@ function MemberProfile({
                                         textAlign: "center",
                                     }}
                                 >
-                                    Block @{profile?.username}?
+                                    {t("Block")} @{profile?.username}?
                                 </Text>
                                 <Text
                                     style={{
@@ -501,7 +503,7 @@ function MemberProfile({
                                         marginTop: 9,
                                     }}
                                 >
-                                    They won’t be able to see your posts or message you. You won’t see their posts, and you’ll both be unfollowed.
+                                    {t("They won’t be able to see your posts or message you. You won’t see their posts, and you’ll both be unfollowed.")}
                                 </Text>
                                 <View
                                     style={{
@@ -528,7 +530,7 @@ function MemberProfile({
                                         }}
                                     >
                                         <Text style={{ color: theme.ink, fontSize: 14, fontWeight: "600" }}>
-                                            Cancel
+                                            {t("Cancel")}
                                         </Text>
                                     </Pressable>
                                     <Pressable
@@ -550,7 +552,7 @@ function MemberProfile({
                                         }}
                                     >
                                         <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>
-                                            {blockBusy ? "Blocking…" : "Block"}
+                                            {blockBusy ? t("Blocking…") : t("Block")}
                                         </Text>
                                     </Pressable>
                                 </View>
@@ -572,6 +574,7 @@ function Connections({
     kind: "followers" | "following";
     close: () => void;
 }) {
+    const { t } = useNookLanguage();
     const result = useNookPaginatedQuery<SocialProfile>(
         `/nook/profiles/${encodeURIComponent(profileId)}/connections?kind=${kind}`,
     );
@@ -590,7 +593,7 @@ function Connections({
                     {kind === "followers" ? "Followers" : "Following"}
                 </Text>
                 <Pressable onPress={close} style={{ padding: 10 }}>
-                    <Text style={[ui.link, { color: theme.blue }]}>Done</Text>
+                    <Text style={[ui.link, { color: theme.blue }]}>{t("Done")}</Text>
                 </Pressable>
             </View>
             <FlatList
@@ -708,6 +711,7 @@ function LiveEdit({
     close: () => void;
     onSaved: () => void;
 }) {
+    const { t } = useNookLanguage();
     const request = useNookApi();
     const getToken = useChefuAccessToken();
     const theme = useAppTheme();
@@ -758,7 +762,7 @@ function LiveEdit({
             onSaved();
             close();
         } catch (e) {
-            Alert.alert("Could not save profile", errorMessage(e));
+            Alert.alert(t("Could not save profile"), errorMessage(e));
         } finally {
             setSaving(false);
         }
@@ -781,7 +785,7 @@ function LiveEdit({
             {saving && (
                 <View
                     accessibilityRole="progressbar"
-                    accessibilityLabel="Saving your profile"
+                    accessibilityLabel={t("Saving your profile")}
                     style={{
                         position: "absolute",
                         inset: 0,
@@ -809,7 +813,7 @@ function LiveEdit({
                         <ActivityIndicator
                             color={theme.blue}
                             size="large"
-                            accessibilityLabel="Saving"
+                            accessibilityLabel={t("Saving")}
                         />
                         <Text
                             style={{

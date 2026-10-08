@@ -25,6 +25,7 @@ import { useAppTheme } from "@/lib/theme";
 import { ui } from "./ui";
 import { FeedIcon } from "../feed-icon";
 import { Avatar } from "./media";
+import { useNookLanguage } from "@/lib/language";
 
 export function Composer({ story = false }: { story?: boolean }) {
 	const router = useRouter();
@@ -32,6 +33,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 	const { width } = useWindowDimensions();
 	const scale = Math.min(1.12, Math.max(0.9, width / 390));
 	const theme = useAppTheme();
+	const { t } = useNookLanguage();
 	const profile = useProfile();
 	const getToken = useChefuAccessToken();
 	const request = useNookApi();
@@ -70,20 +72,20 @@ export function Composer({ story = false }: { story?: boolean }) {
 		if (busy.current) {
 			if (phase === "publishing") {
 				Alert.alert(
-					"Finishing publication",
-					`Keep this screen open while the server confirms your ${story ? "story" : "post"}.`,
+					t("Finishing publication"),
+					`${t("Keep this screen open while the server confirms your")} ${t(story ? "story" : "post")}.`,
 				);
 				return;
 			}
 			Alert.alert(
-				"Cancel upload?",
+				t("Cancel upload?"),
 				story
-					? "Your unfinished upload will be discarded."
-					: "Your unfinished upload and caption will be discarded.",
+					? t("Your unfinished upload will be discarded.")
+					: t("Your unfinished upload and caption will be discarded."),
 				[
-					{ text: "Keep uploading", style: "cancel" },
+					{ text: t("Keep uploading"), style: "cancel" },
 					{
-						text: "Cancel upload",
+						text: t("Cancel upload"),
 						style: "destructive",
 						onPress: () => {
 							controller.current?.abort();
@@ -108,15 +110,15 @@ export function Composer({ story = false }: { story?: boolean }) {
 		};
 		if (asset || caption)
 			Alert.alert(
-				story ? "Discard story?" : "Discard post?",
+				t(story ? "Discard story?" : "Discard post?"),
 				story
-					? "Your selected photo will be discarded."
+					? t("Your selected photo will be discarded.")
 					: asset
-						? "Your selected media and caption will be discarded."
-						: "Your text post will be discarded.",
+						? t("Your selected media and caption will be discarded.")
+						: t("Your text post will be discarded."),
 				[
-					{ text: "Keep editing", style: "cancel" },
-					{ text: "Discard", style: "destructive", onPress: discard },
+					{ text: t("Keep editing"), style: "cancel" },
+					{ text: t("Discard"), style: "destructive", onPress: discard },
 				],
 			);
 		else discard();
@@ -255,7 +257,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 			>
 				<Pressable
 					accessibilityRole="button"
-					accessibilityLabel="Close composer"
+					accessibilityLabel={t("Close composer")}
 					disabled={picking || phase !== "idle"}
 					onPress={close}
 					style={{
@@ -279,11 +281,11 @@ export function Composer({ story = false }: { story?: boolean }) {
 					}}
 					numberOfLines={1}
 				>
-					{story ? "New story" : "New post"}
+					{story ? t("New story") : t("New post")}
 				</Text>
 				<Pressable
 					accessibilityRole="button"
-					accessibilityLabel={phase === "publishing" ? "Publishing" : story ? "Share story" : "Share post"}
+					accessibilityLabel={t(phase === "publishing" ? "Publishing" : story ? "Share story" : "Share post")}
 					accessibilityState={{ disabled: phase !== "idle" || picking || (story ? !asset : !asset && !caption.trim()), busy: phase !== "idle" }}
 					disabled={phase !== "idle" || picking || (story ? !asset : !asset && !caption.trim())}
 					hitSlop={5}
@@ -300,7 +302,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 					onPress={() => void submit()}
 				>
 					<Text style={{ color: (story ? !asset : !asset && !caption.trim()) || phase !== "idle" || picking ? theme.muted : "#FFFFFF", fontSize: 14 * scale, fontWeight: "700" }}>
-						{phase === "publishing" ? "Posting…" : "Share"}
+						{phase === "publishing" ? t("Posting…") : t("Share")}
 					</Text>
 				</Pressable>
 			</View>
@@ -321,8 +323,8 @@ export function Composer({ story = false }: { story?: boolean }) {
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 * scale }}>
 						<Pressable
 							accessibilityRole="button"
-							accessibilityLabel={asset ? "Change media" : "Add media"}
-							accessibilityHint={story ? "Select a photo for your story" : "Select a photo or video for your post"}
+							accessibilityLabel={t(asset ? "Change media" : "Add media")}
+							accessibilityHint={t(story ? "Select a photo for your story" : "Select a photo or video for your post")}
 							accessibilityState={{ disabled: phase !== "idle" || picking, busy: picking }}
 							disabled={phase !== "idle" || picking}
 							onPress={() => void pick()}
@@ -340,14 +342,14 @@ export function Composer({ story = false }: { story?: boolean }) {
 						>
 							<FeedIcon name="photo" size={22 * scale} color={theme.ink} />
 							<Text style={{ color: theme.ink, fontSize: 16 * scale, fontWeight: "600" }}>
-								{picking ? "Opening…" : asset ? "Change media" : "Media"}
+								{picking ? t("Opening…") : asset ? t("Change media") : t("Media")}
 							</Text>
 						</Pressable>
 					</ScrollView>
 					{!!asset && (
 						<Pressable
 							accessibilityRole="button"
-							accessibilityLabel="Change selected media"
+							accessibilityLabel={t("Change selected media")}
 							disabled={phase !== "idle" || picking}
 							onPress={() => void pick()}
 							style={{
@@ -366,7 +368,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 								<View style={{ alignItems: "center", gap: 10 * scale }}>
 									<FeedIcon name="video" size={36 * scale} color="#FFFFFF" />
 									<Text style={{ color: "#FFFFFF", fontSize: 14 * scale, fontWeight: "600" }}>
-										{Math.round((asset.duration ?? 0) / 1000)} sec · {asset.fileName || "Selected video"}
+										{Math.round((asset.duration ?? 0) / 1000)} {t("sec")} · {asset.fileName || t("Selected video")}
 									</Text>
 								</View>
 							)}
@@ -375,8 +377,8 @@ export function Composer({ story = false }: { story?: boolean }) {
 				</View>
 				{!story && (
 					<TextInput
-						accessibilityLabel="Post caption"
-						placeholder="What’s on your mind?"
+						accessibilityLabel={t("Post caption")}
+						placeholder={t("What’s on your mind?")}
 						placeholderTextColor={theme.muted}
 						value={caption}
 						onChangeText={(value) => {
@@ -408,10 +410,10 @@ export function Composer({ story = false }: { story?: boolean }) {
 							<ActivityIndicator color={theme.blue} />
 							<Text accessibilityLiveRegion="polite" style={{ flex: 1, color: theme.secondary, fontSize: 13 * scale, lineHeight: 19 * scale }}>
 							{phase === "uploading"
-								? `Uploading ${Math.round(progress * 100)}%`
+								? `${t("Uploading")} ${Math.round(progress * 100)}%`
 								: phase === "publishing"
-									? "Publishing…"
-									: "Preparing media…"}{" "}
+									? t("Publishing…")
+									: t("Preparing media…")}{" "}
 							</Text>
 						</View>
 						<View
@@ -426,7 +428,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 								}}
 							/>
 						</View>
-						<Text style={{ color: theme.muted, fontSize: 11 * scale }}>Keep this screen open while your {story ? "story" : "post"} is being shared.</Text>
+						<Text style={{ color: theme.muted, fontSize: 11 * scale }}>{t("Keep this screen open while your")} {t(story ? "story" : "post")} {t("is being shared.")}</Text>
 					</View>
 				)}
 				{!!error && (
@@ -440,7 +442,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 							style={[ui.button, { minHeight: 46 * scale, borderRadius: 15 * scale }]}
 							onPress={() => void submit()}
 						>
-							<Text style={ui.buttonText}>Retry sharing</Text>
+							<Text style={ui.buttonText}>{t("Retry sharing")}</Text>
 						</Pressable>
 					</View>
 				)}

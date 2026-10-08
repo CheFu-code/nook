@@ -16,6 +16,7 @@ import { HomeHeader } from "../home-layout";
 import { Stories } from "./stories";
 import { PostCard } from "./post-card";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export function LiveHome() {
     const insets = useSafeAreaInsets();
@@ -23,6 +24,7 @@ export function LiveHome() {
     const { width } = useWindowDimensions();
     const s = width / 390;
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const { results, status, loadMore } = useNookCursorPaginatedQuery<SocialPost>(
         "/nook/posts?feed=home&cursorMode=true",
     );
@@ -55,18 +57,18 @@ export function LiveHome() {
                 ListEmptyComponent={
                     status !== "LoadingFirstPage" ? (
                         <View style={{ padding: 32, gap: 16, alignItems: "center" }}>
-                            <Text style={[ui.title, { color: theme.ink }]}>Your feed starts here</Text>
+                            <Text style={[ui.title, { color: theme.ink }]}>{t("Your feed starts here")}</Text>
                             <Text style={[ui.muted, { textAlign: "center", color: theme.muted }]}>
-                                Share your first moment, or discover people to follow.
+                                {t("Share your first moment, or discover people to follow.")}
                             </Text>
                             <Pressable
                                 style={ui.button}
                                 onPress={() => router.push("/compose")}
                             >
-                                <Text style={ui.buttonText}>Create a post</Text>
+                                <Text style={ui.buttonText}>{t("Create a post")}</Text>
                             </Pressable>
                             <Pressable onPress={() => router.navigate("/explore")}>
-                                <Text style={ui.link}>Explore the community</Text>
+                                <Text style={ui.link}>{t("Explore the community")}</Text>
                             </Pressable>
                         </View>
                     ) : null

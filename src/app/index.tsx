@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNookLanguage } from "@/lib/language";
 
 interface Theme {
   background: string;
@@ -52,6 +53,7 @@ const themes: Record<"light" | "dark", Theme> = {
 
 export default function Index() {
   const { signIn, pendingProvider, isReady } = useSocialAuth();
+  const { t } = useNookLanguage();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
@@ -98,19 +100,18 @@ export default function Index() {
 
               <View style={styles.header}>
                 <Text accessibilityRole="header" style={styles.heading}>
-                  Welcome
+                  {t("Welcome")}
                 </Text>
 
                 <Text style={styles.subtitle}>
-                  Sign in to continue to your account and pick up where you left
-                  off.
+                  {t("Sign in to continue to your account and pick up where you left off.")}
                 </Text>
               </View>
 
               <View style={styles.form}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Continue"
+                  accessibilityLabel={t("Continue")}
                   accessibilityState={{
                     disabled: !canSubmit,
                     busy: isBusy,
@@ -131,11 +132,11 @@ export default function Index() {
                       />
 
                       <Text style={styles.primaryButtonLabel}>
-                        Signing in...
+                        {t("Signing in…")}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={styles.primaryButtonLabel}>Continue</Text>
+                    <Text style={styles.primaryButtonLabel}>{t("Continue")}</Text>
                   )}
                 </Pressable>
               </View>
@@ -144,7 +145,7 @@ export default function Index() {
 
           <View style={styles.footer}>
             <Text style={styles.legal}>
-              By continuing, you agree to our{" "}
+              {t("By continuing, you agree to our")}{" "}
               <Text
                 accessibilityRole="link"
                 onPress={() => {
@@ -152,9 +153,9 @@ export default function Index() {
                 }}
                 style={styles.legalLink}
               >
-                Terms of Service
+                {t("Terms of Service")}
               </Text>{" "}
-              and acknowledge our{" "}
+              {t("and acknowledge our")}{" "}
               <Text
                 accessibilityRole="link"
                 onPress={() => {
@@ -162,7 +163,7 @@ export default function Index() {
                 }}
                 style={styles.legalLink}
               >
-                Privacy Policy
+                {t("Privacy Policy")}
               </Text>
               .
             </Text>

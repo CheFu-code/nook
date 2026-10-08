@@ -5,6 +5,7 @@ import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon, type IconName } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 export type ProfilePanel = "posts" | "videos" | "saved" | "tagged";
 export function useProfileScale() {
@@ -26,6 +27,7 @@ export function ProfileHeader({
 }) {
 	const { s, v } = useProfileScale();
 	const theme = useAppTheme();
+	const { t } = useNookLanguage();
 	const router = useRouter();
 	return (
 		<View
@@ -40,7 +42,7 @@ export function ProfileHeader({
 			{back ? (
 				<Pressable
 					accessibilityRole="button"
-					accessibilityLabel="Go back"
+					accessibilityLabel={t("Go back")}
 					onPress={() => router.back()}
 					style={{ width: 28 * s, minHeight: 44, justifyContent: "center" }}
 				>
@@ -68,7 +70,7 @@ export function ProfileHeader({
 			{onSettings && (
 				<Pressable
 					accessibilityRole="button"
-					accessibilityLabel="Settings"
+					accessibilityLabel={t("Settings")}
 					onPress={onSettings}
 					style={{
 						minWidth: 44,
@@ -104,6 +106,7 @@ export function ProfileSummary({
 }) {
 	const { s, v } = useProfileScale();
 	const theme = useAppTheme();
+	const { t } = useNookLanguage();
 	return (
 		<View style={{ paddingHorizontal: 20 * s }}>
 			<View
@@ -119,7 +122,7 @@ export function ProfileSummary({
 					{onEdit && (
 						<Pressable
 							accessibilityRole="button"
-							accessibilityLabel="Edit your profile photo"
+							accessibilityLabel={t("Edit your profile photo")}
 							onPress={onEdit}
 							style={{
 								position: "absolute",
@@ -152,7 +155,7 @@ export function ProfileSummary({
 						<Pressable
 							key={stat.label}
 							accessibilityRole="button"
-							accessibilityLabel={`${stat.count} ${stat.label}`}
+							accessibilityLabel={`${stat.count} ${t(stat.label)}`}
 							onPress={stat.onPress}
 							style={{
 								flex: 1,
@@ -178,7 +181,7 @@ export function ProfileSummary({
 									letterSpacing: -0.4,
 								}}
 							>
-								{stat.label}
+								{t(stat.label)}
 							</Text>
 						</Pressable>
 					))}
@@ -246,12 +249,12 @@ export function ProfileSummary({
 								letterSpacing: -0.2,
 							}}
 						>
-							Edit Profile
+							{t("Edit Profile")}
 						</Text>
 					</Pressable>
 					<Pressable
 						accessibilityRole="button"
-						accessibilityLabel="Discover people"
+						accessibilityLabel={t("Discover people")}
 						onPress={onDiscover}
 						style={{
 							width: Math.max(44, 40 * s),
@@ -282,13 +285,14 @@ export function ProfileGalleryTabs({
 }) {
 	const { s, v } = useProfileScale();
 	const theme = useAppTheme();
+	const { t } = useNookLanguage();
 	const tabs: { key: ProfilePanel; icon: IconName; label: string }[] = [
-		{ key: "posts", icon: "grid", label: "Posts" },
-		{ key: "videos", icon: "video", label: "Videos" },
+		{ key: "posts", icon: "grid", label: t("Posts") },
+		{ key: "videos", icon: "video", label: t("Videos") },
 		...(showSaved
-			? [{ key: "saved", icon: "bookmark", label: "Saved" } as const]
+			? [{ key: "saved", icon: "bookmark", label: t("Saved") } as const]
 			: []),
-		{ key: "tagged", icon: "tagged", label: "Tagged" },
+		{ key: "tagged", icon: "tagged", label: t("Tagged") },
 	];
 	return (
 		<View

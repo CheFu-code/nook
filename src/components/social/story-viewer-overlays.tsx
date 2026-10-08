@@ -2,6 +2,7 @@ import type { SocialProfile } from "@/lib/social";
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { FeedIcon, type IconName } from "../feed-icon";
 import { Avatar } from "./media";
+import { useNookLanguage } from "@/lib/language";
 
 type StoryViewerProfile = SocialProfile & { viewedAt: number };
 type StoryViewersQuery = {
@@ -45,6 +46,7 @@ export function StoryViewerOverlays({
     onDelete,
     onDismissFeedback,
 }: StoryViewerOverlaysProps) {
+    const { t } = useNookLanguage();
     return (
         <>
             {viewersOpen && (
@@ -65,7 +67,7 @@ export function StoryViewerOverlays({
                         }}
                     >
                         <Pressable
-                            accessibilityLabel="Close story viewers"
+                            accessibilityLabel={t("Close story viewers")}
                             onPress={() => {
                                 onCloseViewers();
                             }}
@@ -244,7 +246,7 @@ export function StoryViewerOverlays({
                     }}
                 >
                     <Pressable
-                        accessibilityLabel="Close story options"
+                        accessibilityLabel={t("Close story options")}
                         onPress={() => {
                             onCancelOptions();
                         }}
@@ -290,8 +292,8 @@ export function StoryViewerOverlays({
                         >
                             <StoryOptionRow
                                 icon="post-share"
-                                title="Share story"
-                                subtitle="Send a link to this story"
+                                title={t("Share story")}
+                                subtitle={t("Send a link to this story")}
                                 onPress={onShare}
                             />
                         {story.author.isOwn && (
@@ -299,8 +301,8 @@ export function StoryViewerOverlays({
                                     <View style={{ height: 1, marginHorizontal: 12, backgroundColor: "#FFFFFF12" }} />
                                     <StoryOptionRow
                                         icon="trash"
-                                        title="Delete story"
-                                        subtitle="Remove it before it expires"
+                                        title={t("Delete story")}
+                                        subtitle={t("Remove it before it expires")}
                                         destructive
                                         onPress={onDeleteRequest}
                                     />
@@ -332,7 +334,7 @@ export function StoryViewerOverlays({
                     }}
                 >
                     <Pressable
-                        accessibilityLabel="Cancel deleting story"
+                        accessibilityLabel={t("Cancel deleting story")}
                         onPress={onCancelDelete}
                         style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
                     />
@@ -395,7 +397,7 @@ export function StoryViewerOverlays({
                     }}
                 >
                     <Pressable
-                        accessibilityLabel="Dismiss message"
+                        accessibilityLabel={t("Dismiss message")}
                         onPress={() => {
                             onDismissFeedback();
                         }}

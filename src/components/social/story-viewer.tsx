@@ -12,6 +12,7 @@ import { FeedIcon } from "../feed-icon";
 import { Avatar } from "./media";
 import { StoryViewerOverlays } from "./story-viewer-overlays";
 import { useStoryViewer } from "./use-story-viewer";
+import { useNookLanguage } from "@/lib/language";
 
 type Story = SocialStory;
 
@@ -37,6 +38,7 @@ export function StoryViewer({
     onBackActionChange: (action: (() => boolean) | null) => void;
 }) {
     const insets = useSafeAreaInsets();
+    const { t } = useNookLanguage();
     const {
         source,
         error,
@@ -136,13 +138,13 @@ export function StoryViewer({
                             {story.author.username}
                         </Text>
                         <Text style={{ color: "#BBC4D5", fontSize: 11 }}>
-                            Story · {formatStoryAge(now - story._creationTime)}
+                            {t("Story")} · {formatStoryAge(now - story._creationTime)}
                         </Text>
                     </View>
                 </Pressable>
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="More story options"
+                    accessibilityLabel={t("More story options")}
                     onPress={openStoryOptions}
                     hitSlop={8}
                     style={{ padding: 6 }}
@@ -174,7 +176,7 @@ export function StoryViewer({
                 <View style={{ position: "absolute", inset: 0, flexDirection: "row" }}>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Previous story"
+                        accessibilityLabel={t("Previous story")}
                         onPress={onPrevious}
                         onLongPress={() => setPaused(true)}
                         onPressIn={() => setPaused(true)}
@@ -183,7 +185,7 @@ export function StoryViewer({
                     />
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Next story"
+                        accessibilityLabel={t("Next story")}
                         onPress={onNext}
                         onLongPress={() => setPaused(true)}
                         onPressIn={() => setPaused(true)}

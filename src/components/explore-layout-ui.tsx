@@ -18,6 +18,7 @@ import type { ExploreLayoutProps } from "./explore-layout.types";
 import { getExploreGridMetrics } from "./explore-layout.types";
 import { FeedIcon } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
+import { useNookLanguage } from "@/lib/language";
 
 const exploreColors = {
   blue: "#087EFF",
@@ -46,6 +47,7 @@ export function ExploreLayoutUi({
   const v = Math.min(Math.max(height / 874, 0.85), 1.15);
   const f = Math.max(1, s);
   const theme = useAppTheme();
+  const { t } = useNookLanguage();
   const c = {
     ...exploreColors,
     ink: theme.ink,
@@ -90,7 +92,7 @@ export function ExploreLayoutUi({
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Search Explore"
+          accessibilityLabel={t("Search Explore")}
           onPress={onSearchPress}
           style={[
             styles.round,
@@ -101,7 +103,7 @@ export function ExploreLayoutUi({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Create a post"
+          accessibilityLabel={t("Create a post")}
           onPress={props.onCompose}
           style={[
             styles.round,
@@ -135,7 +137,7 @@ export function ExploreLayoutUi({
         ListEmptyComponent={
           props.empty ?? (
             <Text style={{ padding: 28, textAlign: "center", color: c.muted }}>
-              No posts found. Try another search or topic.
+              {t("No posts found. Try another search or topic.")}
             </Text>
           )
         }
@@ -157,8 +159,8 @@ export function ExploreLayoutUi({
               <FeedIcon name="search" size={19 * s} color={c.muted} />
               <TextInput
                 ref={searchRef}
-                accessibilityLabel="Search people, posts, or topics"
-                placeholder="Search people, posts, or topics..."
+                accessibilityLabel={t("Search people, posts, or topics")}
+                placeholder={t("Search people, posts, or topics...")}
                 placeholderTextColor={c.muted}
                 value={props.query}
                 onChangeText={props.onQuery}
@@ -194,11 +196,11 @@ export function ExploreLayoutUi({
                   color: c.ink,
                 }}
               >
-                Suggested for you
+                {t("Suggested for you")}
               </Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="See all suggested people"
+                accessibilityLabel={t("See all suggested people")}
                 onPress={props.onPeople}
                 hitSlop={8}
                 style={{
@@ -208,7 +210,7 @@ export function ExploreLayoutUi({
                 }}
               >
                 <Text style={{ fontSize: 12 * f, color: c.blue }}>
-                  See all
+                  {t("See all")}
                 </Text>
                 <View style={{ transform: [{ rotate: "180deg" }] }}>
                   <FeedIcon name="back" size={10 * s} />
@@ -278,7 +280,7 @@ export function ExploreLayoutUi({
                     paddingTop: 20 * s,
                   }}
                 >
-                  No suggested people yet.
+                  {t("No suggested people yet.")}
                 </Text>
               )}
             </ScrollView>
@@ -302,7 +304,7 @@ export function ExploreLayoutUi({
                   <Pressable
                     key={value}
                     accessibilityRole="button"
-                    accessibilityLabel={`${value} topic`}
+                    accessibilityLabel={`${t(value)} topic`}
                     accessibilityState={{ selected: props.topic === value }}
                     onPress={() => onChooseTopic(value)}
                     style={{
@@ -320,14 +322,14 @@ export function ExploreLayoutUi({
                           props.topic === value ? "white" : theme.secondary,
                       }}
                     >
-                      {value}
+                      {t(value)}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Choose a topic"
+                accessibilityLabel={t("Choose a topic")}
                 onPress={props.onTopics}
                 style={[
                   styles.round,
@@ -364,7 +366,7 @@ export function ExploreLayoutUi({
             >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${item.caption || item.name}`}
+                accessibilityLabel={`${t("Open")} ${item.caption || item.name}`}
                 onPress={item.onPress}
                 style={StyleSheet.absoluteFill}
               >
@@ -394,7 +396,7 @@ export function ExploreLayoutUi({
                 pointerEvents="box-none"
               >
                 <Pressable
-                  accessibilityLabel={`View ${item.name}`}
+                  accessibilityLabel={`${t("View")} ${item.name}`}
                   onPress={item.onAuthor}
                   style={{
                     borderRadius: 13 * s,
@@ -419,7 +421,7 @@ export function ExploreLayoutUi({
                   </Text>
                 </Pressable>
                 <Pressable
-                  accessibilityLabel={`Options for ${item.caption || item.name}`}
+                  accessibilityLabel={`${t("Options for")} ${item.caption || item.name}`}
                   onPress={item.onPress}
                   hitSlop={8}
                 >
@@ -436,7 +438,7 @@ export function ExploreLayoutUi({
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${item.liked ? "Unlike" : "Like"} ${item.caption || item.name}`}
+                accessibilityLabel={`${t(item.liked ? "Unlike" : "Like")} ${item.caption || item.name}`}
                 accessibilityState={{
                   selected: item.liked,
                   disabled: item.pending,

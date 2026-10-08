@@ -18,6 +18,7 @@ import { useAppTheme } from "@/lib/theme";
 import type { ChatMessage } from "@/hooks/use-chat-screen";
 import type { SocialProfile } from "@/lib/social";
 import { Avatar } from "./social/media";
+import { useNookLanguage } from "@/lib/language";
 
 export type ReactionTarget = {
     message: ChatMessage;
@@ -41,6 +42,7 @@ function MessageBody({
     scale: number;
     vertical: number;
 }) {
+    const { t } = useNookLanguage();
     return (
         <View
             style={{
@@ -89,15 +91,15 @@ function MessageBody({
                         lineHeight: 13 * vertical,
                     }}
                 >
-                    {message.edited ? "Edited · " : ""}
-                    {message.status === "pending" ? "Sending…" : message.time}
+                    {message.edited ? `${t("Edited")} · ` : ""}
+                    {message.status === "pending" ? t("Sending…") : message.time}
                 </Text>
                 {message.outgoing &&
                     message.status !== "pending" &&
                     message.status !== "failed" &&
                     (message.delivered ? (
                         <View
-                            accessibilityLabel="Delivered"
+                            accessibilityLabel={t("Delivered")}
                             style={{ flexDirection: "row" }}
                         >
                             <FeedIcon
@@ -140,6 +142,7 @@ export function ReplyQuote({
     vertical: number;
     onPress?: () => void;
 }) {
+    const { t } = useNookLanguage();
     const theme = useAppTheme();
     return (
         <Pressable
@@ -172,7 +175,7 @@ export function ReplyQuote({
                     letterSpacing: 0.1,
                 }}
             >
-                {reply.outgoing ? "You" : peerName}
+                {reply.outgoing ? t("You") : peerName}
             </Text>
             <Text
                 numberOfLines={2}
@@ -524,6 +527,7 @@ export function ReactionSpotlight({
     bottomInset: number;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const [actionsVisible, setActionsVisible] = useState(false);
     if (!target) return null;
     return (
@@ -553,7 +557,7 @@ export function ReactionSpotlight({
             />
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Dismiss reactions"
+                accessibilityLabel={t("Dismiss reactions")}
                 onPress={onClose}
                 style={StyleSheet.absoluteFill}
             />
@@ -645,7 +649,7 @@ export function ReactionSpotlight({
                         <Pressable
                             key={emoji}
                             accessibilityRole="button"
-                            accessibilityLabel={`${selected ? "Remove" : "React with"} ${emoji}`}
+                            accessibilityLabel={`${t(selected ? "Remove" : "React with")} ${emoji}`}
                             onPress={() => {
                                 onClose();
                                 onReact(target.message, selected ? null : emoji);
@@ -670,7 +674,7 @@ export function ReactionSpotlight({
                     !target.message.deletedForEveryone && (
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Message options"
+                        accessibilityLabel={t("Message options")}
                         onPress={() => setActionsVisible(true)}
                         style={{
                             width: 37 * scale,
@@ -736,14 +740,15 @@ function MessageActionsSheet({
     onDeleteForEveryone: () => void;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const [confirming, setConfirming] = useState<"me" | "everyone" | null>(null);
     const canDeleteForEveryone = Boolean(message.canDeleteForEveryone);
 
     const action = confirming === "me" ? onDeleteForMe : onDeleteForEveryone;
     const confirmationText =
         confirming === "me"
-            ? "This message will be removed only from your chat."
-            : "This message will be removed for everyone in the conversation.";
+            ? t("This message will be removed only from your chat.")
+            : t("This message will be removed for everyone in the conversation.");
     return (
         <Modal
             visible
@@ -760,7 +765,7 @@ function MessageActionsSheet({
                 }}
             >
                 <Pressable
-                    accessibilityLabel="Close message options"
+                    accessibilityLabel={t("Close message options")}
                     onPress={onClose}
                     style={{ flex: 1 }}
                 />
@@ -782,7 +787,7 @@ function MessageActionsSheet({
                             marginBottom: 10 * scale,
                         }}
                     >
-                        {confirming ? "Delete message?" : "Message options"}
+                        {confirming ? t("Delete message?") : t("Message options")}
                     </Text>
                     {confirming ? (
                         <>
@@ -889,6 +894,7 @@ export function ReactionDetailsSheet({
     onRemove: () => void;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     return (
         <Modal
             visible={visible}
@@ -905,7 +911,7 @@ export function ReactionDetailsSheet({
                 }}
             >
                 <Pressable
-                    accessibilityLabel="Close reaction details"
+                    accessibilityLabel={t("Close reaction details")}
                     onPress={onClose}
                     style={{ flex: 1 }}
                 />
@@ -955,7 +961,7 @@ export function ReactionDetailsSheet({
                         </Text>
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Close reaction details"
+                            accessibilityLabel={t("Close reaction details")}
                             onPress={onClose}
                             hitSlop={10}
                             style={{ marginLeft: "auto", padding: 4 * scale }}
