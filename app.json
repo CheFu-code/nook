@@ -8,6 +8,7 @@
     "scheme": "nook",
     "userInterfaceStyle": "automatic",
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/logo-2.png"

@@ -294,13 +294,13 @@ export function PostCard({
                                     accessibilityLabel={`Explore ${tag}`}
                                     onPress={() => router.navigate("/explore")}
                                     style={{
-                                        backgroundColor: "#EDF4FF",
+                                        backgroundColor: theme.blueSoft,
                                         borderRadius: 12 * s,
                                         paddingHorizontal: 8 * s,
                                         paddingVertical: 3 * v,
                                     }}
                                 >
-                                    <Text style={{ fontSize: 9 * s, color: "#315EAA" }}>
+                                    <Text style={{ fontSize: 9 * s, color: theme.blue }}>
                                         {tag}
                                     </Text>
                                 </Pressable>

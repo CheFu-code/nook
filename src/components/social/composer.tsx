@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import {
 	ActivityIndicator,
 	Alert,
+	Keyboard,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
@@ -41,6 +42,8 @@ export function Composer({ story = false }: { story?: boolean }) {
 	const [progress, setProgress] = useState(0);
 	const [error, setError] = useState("");
 	const [picking, setPicking] = useState(false);
+	const scrollView = useRef<ScrollView>(null);
+	const captionFocused = useRef(false);
 	const pickerBusy = useRef(false);
 	const uploadId = useRef<Id<"uploads"> | null>(null);
 	const uploaded = useRef(false);
@@ -53,6 +56,12 @@ export function Composer({ story = false }: { story?: boolean }) {
 			mounted.current = false;
 			controller.current?.abort();
 		};
+	}, []);
+	useEffect(() => {
+		const subscription = Keyboard.addListener("keyboardDidShow", () => {
+			if (captionFocused.current) scrollView.current?.scrollToEnd({ animated: true });
+		});
+		return () => subscription.remove();
 	}, []);
 	function close() {
 		if (pickerBusy.current) return;
@@ -216,7 +225,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 	return (
 		<KeyboardAvoidingView
 			style={[ui.screen, { paddingTop: insets.top, backgroundColor: theme.background }]}
-			behavior={Platform.OS === "ios" ? "padding" : undefined}
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
 		>
 			<View
 				style={{
@@ -231,7 +240,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 				<Pressable
 					accessibilityRole="button"
 					accessibilityLabel="Close composer"
-					disabled={picking}
+					disabled={picking || phase !== "idle"}
 					onPress={close}
 					style={{
 						width: 42 * scale,
@@ -280,6 +289,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 				</Pressable>
 			</View>
 			<ScrollView
+				ref={scrollView}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 				keyboardDismissMode="interactive"
@@ -301,8 +311,8 @@ export function Composer({ story = false }: { story?: boolean }) {
 							disabled={phase !== "idle" || picking}
 							onPress={() => void pick()}
 							style={({ pressed }) => ({
-								minHeight: 48 * scale,
-								paddingHorizontal: 19 * scale,
+								minHeight: 40 * scale,
+								paddingHorizontal: 15 * scale,
 								borderRadius: 26 * scale,
 								borderWidth: 1,
 								borderColor: theme.border,
@@ -354,16 +364,22 @@ export function Composer({ story = false }: { story?: boolean }) {
 						placeholderTextColor={theme.muted}
 						value={caption}
 						onChangeText={setCaption}
+						onFocus={() => {
+							captionFocused.current = true;
+						}}
+						onBlur={() => {
+							captionFocused.current = false;
+						}}
 						editable={phase === "idle"}
 						multiline
 						maxLength={2200}
 						textAlignVertical="top"
 						style={{
-							minHeight: 220 * scale,
+							minHeight: 200 * scale,
 							padding: 0,
 							color: theme.ink,
-							fontSize: 24 * scale,
-							lineHeight: 32 * scale,
+							fontSize: 16 * scale,
+							lineHeight: 24 * scale,
 						}}
 					/>
 				)}

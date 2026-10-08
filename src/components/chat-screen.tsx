@@ -14,7 +14,10 @@ export function ChatScreen({ onBack, messages, peer, onSend, beforeMessages, onA
   const [draft, setDraft] = useState('');
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardVisible(true));
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => {
+      setKeyboardVisible(true);
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    });
     const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardVisible(false));
     return () => { show.remove(); hide.remove(); };
   }, []);
@@ -40,14 +43,14 @@ export function ChatScreen({ onBack, messages, peer, onSend, beforeMessages, onA
     onSend(draft.trim());
     setDraft('');
   };
-  return <KeyboardAvoidingView style={[styles.screen, { paddingTop: insets.top, backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+  return <KeyboardAvoidingView style={[styles.screen, { paddingTop: insets.top, backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <StatusBar style={theme.isDark ? 'light' : 'dark'} />
     <View style={[styles.header, { height: 62 * v, paddingBottom: 8 * v, paddingHorizontal: fs(12), gap: fs(12) }]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to messages" onPress={onBack} hitSlop={10}><FeedIcon name="back" size={fs(20)} /></Pressable>
       <View style={{ marginLeft: fs(14) }}>{peer.avatar(fs(49))}</View>
       <View style={{ flex: 1, gap: 4 * v }}><Text style={{ color: theme.ink, fontSize: fs(17), fontWeight: '700', letterSpacing: -0.5 }} numberOfLines={1}>{peer.name}</Text><Text style={{ color: theme.muted, fontSize: fs(12) }}>Private conversation</Text></View>
     </View>
-    <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" showsVerticalScrollIndicator={false} scrollEventThrottle={100} onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent; nearBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40; onAtBottom?.(nearBottom.current); }} onContentSizeChange={() => { if (shouldScroll.current) { scrollRef.current?.scrollToEnd({ animated: true }); shouldScroll.current = false; } }} maintainVisibleContentPosition={{ minIndexForVisible: 1 }} contentContainerStyle={{ paddingHorizontal: fs(11), paddingBottom: 10 * v }}>
+    <ScrollView ref={scrollRef} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" showsVerticalScrollIndicator={false} scrollEventThrottle={100} onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent; nearBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40; onAtBottom?.(nearBottom.current); }} onContentSizeChange={() => { if (shouldScroll.current) { scrollRef.current?.scrollToEnd({ animated: true }); shouldScroll.current = false; } }} maintainVisibleContentPosition={{ minIndexForVisible: 1 }} contentContainerStyle={{ paddingHorizontal: fs(11), paddingBottom: 10 * v }}>
       <Text style={{ color: theme.muted, fontSize: fs(11), textAlign: 'center', marginTop: 12 * v, marginBottom: 10 * v }}>Messages</Text>
       {beforeMessages}
       {messages.map(message => <View key={message.id} style={{ marginBottom: 4.5 * v, alignItems: message.outgoing ? 'flex-end' : 'flex-start' }}>

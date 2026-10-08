@@ -1,77 +1,501 @@
-import { randomUUID } from 'expo-crypto';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProfile } from '@/context/social-context';
-import { errorMessage, type Id, type SocialComment, type SocialPost } from '@/lib/social';
-import { useNookApi, useNookPaginatedQuery, useNookQuery } from '@/hooks/use-nook-api';
-import { FeedIcon } from '../feed-icon';
-import { Avatar } from './media';
-import { PostCard } from './post-card';
-import { Header, ConnectionStatus, LoadMore, ui } from './ui';
-import { useAppTheme } from '@/lib/theme';
+import { randomUUID } from "expo-crypto";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useProfile } from "@/context/social-context";
+import {
+  errorMessage,
+  type Id,
+  type SocialComment,
+  type SocialPost,
+} from "@/lib/social";
+import {
+  useNookApi,
+  useNookPaginatedQuery,
+  useNookQuery,
+} from "@/hooks/use-nook-api";
+import { FeedIcon } from "../feed-icon";
+import { Avatar } from "./media";
+import { PostCard } from "./post-card";
+import { Header, ConnectionStatus, LoadMore, ui } from "./ui";
+import { useAppTheme } from "@/lib/theme";
 
 type Comment = SocialComment;
 function relativeTime(timestamp: number, now: number) {
   const minutes = Math.max(0, Math.floor((now - timestamp) / 60000));
-  if (minutes < 1) return 'Just now';
+  if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;
   if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
   return `${Math.floor(minutes / 1440)}d ago`;
 }
 export function PostDetail() {
   const theme = useAppTheme();
-  const { id } = useLocalSearchParams<{ id: Id<'posts'> }>(); const insets = useSafeAreaInsets(); const me = useProfile();
-  const { width } = useWindowDimensions(); const s = width / 390;
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-  const postQuery = useNookQuery<SocialPost | null>(id ? `/nook/posts/${encodeURIComponent(id)}` : null);
+  const { id } = useLocalSearchParams<{ id: Id<"posts"> }>();
+  const insets = useSafeAreaInsets();
+  const me = useProfile();
+  const { width } = useWindowDimensions();
+  const s = width / 390;
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const postQuery = useNookQuery<SocialPost | null>(
+    id ? `/nook/posts/${encodeURIComponent(id)}` : null,
+  );
   const post = postQuery.data;
-  const comments = useNookPaginatedQuery<Comment>(`/nook/posts/${encodeURIComponent(id)}/comments?order=${order}`);
+  const comments = useNookPaginatedQuery<Comment>(
+    `/nook/posts/${encodeURIComponent(id)}/comments?order=${order}`,
+  );
   const requestApi = useNookApi();
-  const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const [replying, setReplying] = useState<string | null>(null); const [keyboardVisible, setKeyboardVisible] = useState(false); const [now, setNow] = useState(Date.now());
-  const request = useRef({ id: randomUUID(), text: '' }); const input = useRef<TextInput>(null);
-  const list = useRef<FlatList<Comment>>(null); const commentsTop = useRef(0); const scrollOffset = useRef(0); const restoreOffset = useRef<number | null>(null);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [replying, setReplying] = useState<string | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const request = useRef({ id: randomUUID(), text: "" });
+  const input = useRef<TextInput>(null);
+  const list = useRef<FlatList<Comment>>(null);
+  const commentsTop = useRef(0);
+  const scrollOffset = useRef(0);
+  const restoreOffset = useRef<number | null>(null);
   const [postVisible, setPostVisible] = useState(true);
-  function sortComments(next: 'asc' | 'desc') { if (next === order) return; restoreOffset.current = scrollOffset.current; setOrder(next); }
+  function sortComments(next: "asc" | "desc") {
+    if (next === order) return;
+    restoreOffset.current = scrollOffset.current;
+    setOrder(next);
+  }
   useEffect(() => {
-    if (comments.status === 'LoadingFirstPage' || restoreOffset.current === null) return;
+    if (
+      comments.status === "LoadingFirstPage" ||
+      restoreOffset.current === null
+    )
+      return;
     const offset = restoreOffset.current;
-    const frame = requestAnimationFrame(() => { list.current?.scrollToOffset({ offset, animated: false }); restoreOffset.current = null; });
+    const frame = requestAnimationFrame(() => {
+      list.current?.scrollToOffset({ offset, animated: false });
+      restoreOffset.current = null;
+    });
     return () => cancelAnimationFrame(frame);
   }, [comments.status, order]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
-    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardVisible(true));
-    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardVisible(false));
-    return () => { clearInterval(timer); show.remove(); hide.remove(); };
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      clearInterval(timer);
+      show.remove();
+      hide.remove();
+    };
   }, []);
   async function submit() {
-    if (!text.trim() || busy) return; setBusy(true); setError('');
-    if (request.current.text !== text.trim()) request.current = { id: randomUUID(), text: text.trim() };
-    try { await requestApi(`/nook/posts/${encodeURIComponent(id)}/comments`, { method: 'POST', body: { text: request.current.text, requestId: request.current.id } }); comments.refresh(); setText(''); setReplying(null); setNow(Date.now()); request.current = { id: randomUUID(), text: '' }; Keyboard.dismiss(); }
-    catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    setError("");
+    if (request.current.text !== text.trim())
+      request.current = { id: randomUUID(), text: text.trim() };
+    try {
+      await requestApi(`/nook/posts/${encodeURIComponent(id)}/comments`, {
+        method: "POST",
+        body: { text: request.current.text, requestId: request.current.id },
+      });
+      comments.refresh();
+      setText("");
+      setReplying(null);
+      setNow(Date.now());
+      request.current = { id: randomUUID(), text: "" };
+      Keyboard.dismiss();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
   }
   function deleteComment(item: Comment) {
     if (!item.isOwn) return;
-    Alert.alert('Delete comment?', 'This cannot be undone.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => { void requestApi(`/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`, { method: 'DELETE' }).then(comments.refresh).catch(e => Alert.alert('Could not delete comment', errorMessage(e))); } }]);
+    Alert.alert("Delete comment?", "This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          void requestApi(
+            `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`,
+            { method: "DELETE" },
+          )
+            .then(comments.refresh)
+            .catch((e) =>
+              Alert.alert("Could not delete comment", errorMessage(e)),
+            );
+        },
+      },
+    ]);
   }
-  return <KeyboardAvoidingView style={[ui.screen, { backgroundColor: theme.background, paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><Header title="Post" back compose={false} /><ConnectionStatus />
-    {post === undefined ? <ActivityIndicator color={theme.blue} /> : post === null ? <View style={[ui.center, { backgroundColor: theme.background }]}><Text style={[ui.title, { color: theme.ink }]}>Post unavailable</Text><Text style={[ui.muted, { color: theme.muted }]}>This post may have been deleted.</Text></View> : <>
-      <FlatList ref={list} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" showsVerticalScrollIndicator={false} data={comments.results} keyExtractor={item => item._id} onScroll={e => { scrollOffset.current = e.nativeEvent.contentOffset.y; setPostVisible(e.nativeEvent.contentOffset.y < 250); }} scrollEventThrottle={100} contentContainerStyle={{ paddingBottom: 12 * s }} ListHeaderComponent={<><PostCard detail post={post} visible={postVisible} onComments={() => list.current?.scrollToOffset({ offset: Math.max(0, commentsTop.current - 100 * s), animated: true })} /><View onLayout={event => { commentsTop.current = event.nativeEvent.layout.y; }} style={{ marginHorizontal: 19 * s, borderTopWidth: 1, borderColor: theme.border, paddingTop: 14 * s, paddingBottom: 16 * s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><Text style={{ color: theme.ink, fontSize: 16 * s, fontWeight: '700', letterSpacing: -0.4 }}>Comments</Text><Pressable accessibilityRole="button" accessibilityLabel={`Sort comments: ${order === 'desc' ? 'Newest' : 'Oldest'}`} onPress={() => Alert.alert('Sort comments', undefined, [{ text: 'Newest first', onPress: () => sortComments('desc') }, { text: 'Oldest first', onPress: () => sortComments('asc') }, { text: 'Cancel', style: 'cancel' }])} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 * s }}><Text style={{ fontSize: 14 * s, color: theme.muted }}>{order === 'desc' ? 'Newest' : 'Oldest'}</Text><View style={{ transform: [{ rotate: '-90deg' }] }}><FeedIcon name="back" size={12 * s} color={theme.muted} /></View></Pressable></View></>}
-        renderItem={({ item }) => <CommentRow item={item} postId={id} scale={s} now={now} onDelete={() => deleteComment(item)} onReply={() => { setReplying(item.author.username); setText(`@${item.author.username} `); input.current?.focus(); }} />}
-        ListEmptyComponent={comments.status !== 'LoadingFirstPage' ? <Text style={[ui.muted, { padding: 20, color: theme.muted }]}>Start the conversation.</Text> : null} ListFooterComponent={<LoadMore status={comments.status} loadMore={comments.loadMore} />} />
-      {!!error && <Text accessibilityRole="alert" style={[ui.error, { paddingHorizontal: 16 }]}>{error}</Text>}
-      {replying && <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8 }}><Text style={[ui.muted, { flex: 1, color: theme.muted }]}>Replying to {replying}</Text><Pressable accessibilityLabel="Cancel reply" onPress={() => { setReplying(null); setText(''); }} hitSlop={10}><FeedIcon name="close" size={16} color={theme.ink} /></Pressable></View>}
-      <View style={{ backgroundColor: theme.background, borderTopWidth: 1, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 * s, paddingTop: 11 * s, paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom, 16) + 8, gap: 10 * s }}><Avatar profile={me} size={39 * s} /><TextInput ref={input} accessibilityLabel="Add a comment" editable={!busy} value={text} onChangeText={setText} maxLength={2000} multiline placeholder="Add a comment..." placeholderTextColor={theme.muted} style={{ flex: 1, maxHeight: 120, minHeight: 40 * s, borderRadius: 24 * s, backgroundColor: theme.input, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 15 * s, paddingVertical: 9 * s, fontSize: 15 * s, color: theme.ink }} /><Pressable accessibilityRole="button" accessibilityState={{ disabled: busy || !text.trim() }} disabled={busy || !text.trim()} onPress={() => void submit()} style={{ backgroundColor: '#087EFF', borderRadius: 14 * s, minHeight: 40 * s, minWidth: 76 * s, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 * s }}><Text style={{ color: 'white', fontWeight: '600', fontSize: 15 * s }}>{busy ? '…' : 'Post'}</Text></Pressable></View>
-    </>}
-  </KeyboardAvoidingView>;
+  return (
+    <KeyboardAvoidingView
+      style={[
+        ui.screen,
+        { backgroundColor: theme.background, paddingTop: insets.top },
+      ]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Header title="Post" back compose={false} />
+      <ConnectionStatus />
+      {post === undefined ? (
+        <ActivityIndicator color={theme.blue} />
+      ) : post === null ? (
+        <View style={[ui.center, { backgroundColor: theme.background }]}>
+          <Text style={[ui.title, { color: theme.ink }]}>Post unavailable</Text>
+          <Text style={[ui.muted, { color: theme.muted }]}>
+            This post may have been deleted.
+          </Text>
+        </View>
+      ) : (
+        <>
+          <FlatList
+            ref={list}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            showsVerticalScrollIndicator={false}
+            data={comments.results}
+            keyExtractor={(item) => item._id}
+            onScroll={(e) => {
+              scrollOffset.current = e.nativeEvent.contentOffset.y;
+              setPostVisible(e.nativeEvent.contentOffset.y < 250);
+            }}
+            scrollEventThrottle={100}
+            contentContainerStyle={{ paddingBottom: 12 * s }}
+            ListHeaderComponent={
+              <>
+                <PostCard
+                  detail
+                  post={post}
+                  visible={postVisible}
+                  onComments={() =>
+                    list.current?.scrollToOffset({
+                      offset: Math.max(0, commentsTop.current - 100 * s),
+                      animated: true,
+                    })
+                  }
+                />
+                <View
+                  onLayout={(event) => {
+                    commentsTop.current = event.nativeEvent.layout.y;
+                  }}
+                  style={{
+                    marginHorizontal: 19 * s,
+                    borderTopWidth: 1,
+                    borderColor: theme.border,
+                    paddingTop: 14 * s,
+                    paddingBottom: 16 * s,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.ink,
+                      fontSize: 16 * s,
+                      fontWeight: "700",
+                      letterSpacing: -0.4,
+                    }}
+                  >
+                    Comments
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Sort comments: ${order === "desc" ? "Newest" : "Oldest"}`}
+                    onPress={() =>
+                      Alert.alert("Sort comments", undefined, [
+                        {
+                          text: "Newest first",
+                          onPress: () => sortComments("desc"),
+                        },
+                        {
+                          text: "Oldest first",
+                          onPress: () => sortComments("asc"),
+                        },
+                        { text: "Cancel", style: "cancel" },
+                      ])
+                    }
+                    hitSlop={10}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10 * s,
+                    }}
+                  >
+                    <Text style={{ fontSize: 14 * s, color: theme.muted }}>
+                      {order === "desc" ? "Newest" : "Oldest"}
+                    </Text>
+                    <View style={{ transform: [{ rotate: "-90deg" }] }}>
+                      <FeedIcon name="back" size={12 * s} color={theme.muted} />
+                    </View>
+                  </Pressable>
+                </View>
+              </>
+            }
+            renderItem={({ item }) => (
+              <CommentRow
+                item={item}
+                postId={id}
+                scale={s}
+                now={now}
+                onDelete={() => deleteComment(item)}
+                onReply={() => {
+                  setReplying(item.author.username);
+                  setText(`@${item.author.username} `);
+                  input.current?.focus();
+                }}
+              />
+            )}
+            ListEmptyComponent={
+              comments.status !== "LoadingFirstPage" ? (
+                <Text style={[ui.muted, { padding: 20, color: theme.muted }]}>
+                  Start the conversation.
+                </Text>
+              ) : null
+            }
+            ListFooterComponent={
+              <LoadMore status={comments.status} loadMore={comments.loadMore} />
+            }
+          />
+          {!!error && (
+            <Text
+              accessibilityRole="alert"
+              style={[ui.error, { paddingHorizontal: 16 }]}
+            >
+              {error}
+            </Text>
+          )}
+          {replying && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 20,
+                paddingVertical: 8,
+              }}
+            >
+              <Text style={[ui.muted, { flex: 1, color: theme.muted }]}>
+                Replying to {replying}
+              </Text>
+              <Pressable
+                accessibilityLabel="Cancel reply"
+                onPress={() => {
+                  setReplying(null);
+                  setText("");
+                }}
+                hitSlop={10}
+              >
+                <FeedIcon name="close" size={16} color={theme.ink} />
+              </Pressable>
+            </View>
+          )}
+          <View
+            style={{
+              backgroundColor: theme.background,
+              borderTopWidth: 1,
+              borderColor: theme.border,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 16 * s,
+              paddingTop: 11 * s,
+              paddingBottom: keyboardVisible
+                ? 8
+                : Math.max(insets.bottom, 16) + 8,
+              gap: 10 * s,
+            }}
+          >
+            <Avatar profile={me} size={39 * s} />
+            <TextInput
+              ref={input}
+              accessibilityLabel="Add a comment"
+              editable={!busy}
+              value={text}
+              onChangeText={setText}
+              maxLength={2000}
+              multiline
+              placeholder="Add a comment..."
+              placeholderTextColor={theme.muted}
+              style={{
+                flex: 1,
+                maxHeight: 120,
+                minHeight: 40 * s,
+                borderRadius: 24 * s,
+                backgroundColor: theme.input,
+                borderWidth: 1,
+                borderColor: theme.border,
+                paddingHorizontal: 15 * s,
+                paddingVertical: 9 * s,
+                fontSize: 15 * s,
+                color: theme.ink,
+              }}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: busy || !text.trim() }}
+              disabled={busy || !text.trim()}
+              onPress={() => void submit()}
+              style={{
+                backgroundColor: "#087EFF",
+                borderRadius: 14 * s,
+                minHeight: 40 * s,
+                minWidth: 76 * s,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 12 * s,
+              }}
+            >
+              <Text
+                style={{ color: "white", fontWeight: "600", fontSize: 15 * s }}
+              >
+                {busy ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  "Post"
+                )}
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      )}
+    </KeyboardAvoidingView>
+  );
 }
-function CommentRow({ item, postId, scale: s, now, onDelete, onReply }: { item: Comment; postId: string; scale: number; now: number; onDelete: () => void; onReply: () => void }) {
-  const request = useNookApi(); const [liked, setLiked] = useState(item.isLiked); const [pending, setPending] = useState(false); const router = useRouter();
+function CommentRow({
+  item,
+  postId,
+  scale: s,
+  now,
+  onDelete,
+  onReply,
+}: {
+  item: Comment;
+  postId: string;
+  scale: number;
+  now: number;
+  onDelete: () => void;
+  onReply: () => void;
+}) {
+  const request = useNookApi();
+  const [liked, setLiked] = useState(item.isLiked);
+  const [pending, setPending] = useState(false);
+  const router = useRouter();
   const theme = useAppTheme();
   useEffect(() => setLiked(item.isLiked), [item._id, item.isLiked]);
-  const openProfile = () => router.push({ pathname: '/member/[id]', params: { id: item.author._id } });
-  return <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 17 * s, paddingHorizontal: 18 * s, paddingBottom: 17 * s }}><Pressable accessibilityLabel={`View ${item.author.username}`} onPress={openProfile}><Avatar profile={item.author} size={42 * s} /></Pressable><View style={{ flex: 1, gap: 3 * s }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 * s }}><Pressable onPress={openProfile} style={{ flexShrink: 1 }}><Text numberOfLines={1} style={{ color: theme.ink, fontWeight: '700', fontSize: 14 * s, letterSpacing: -0.3 }}>{item.author.username}</Text></Pressable><Text style={{ color: theme.muted, fontSize: 12 * s }}>{relativeTime(item._creationTime, now)}</Text></View><Pressable onLongPress={item.isOwn ? onDelete : undefined} accessibilityHint={item.isOwn ? 'Long press to delete your comment' : undefined}><Text style={{ color: theme.ink, fontSize: 14 * s, lineHeight: 19 * s, letterSpacing: -0.25 }}>{item.text}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Reply to ${item.author.username}`} onPress={onReply} style={{ alignSelf: 'flex-start', paddingVertical: 3 * s }}><Text style={{ color: theme.muted, fontSize: 13 * s }}>Reply</Text></Pressable></View><Pressable accessibilityRole="button" accessibilityLabel={liked ? 'Unlike comment' : 'Like comment'} accessibilityState={{ selected: liked }} disabled={pending} onPress={async () => { const next = !liked; setPending(true); try { await request(`/nook/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(item._id)}/like`, { method: 'POST', body: { liked: next } }); setLiked(next); } catch (e) { Alert.alert('Could not update like', errorMessage(e)); } finally { setPending(false); } }} hitSlop={10} style={{ paddingTop: 10 * s, paddingLeft: 2 * s }}><FeedIcon name="heart" size={18 * s} color={liked ? '#FF244E' : theme.ink} filled={liked} /></Pressable></View>;
+  const openProfile = () =>
+    router.push({ pathname: "/member/[id]", params: { id: item.author._id } });
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 17 * s,
+        paddingHorizontal: 18 * s,
+        paddingBottom: 17 * s,
+      }}
+    >
+      <Pressable
+        accessibilityLabel={`View ${item.author.username}`}
+        onPress={openProfile}
+      >
+        <Avatar profile={item.author} size={42 * s} />
+      </Pressable>
+      <View style={{ flex: 1, gap: 3 * s }}>
+        <View
+          style={{ flexDirection: "row", alignItems: "center", gap: 9 * s }}
+        >
+          <Pressable onPress={openProfile} style={{ flexShrink: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: theme.ink,
+                fontWeight: "700",
+                fontSize: 14 * s,
+                letterSpacing: -0.3,
+              }}
+            >
+              {item.author.username}
+            </Text>
+          </Pressable>
+          <Text style={{ color: theme.muted, fontSize: 12 * s }}>
+            {relativeTime(item._creationTime, now)}
+          </Text>
+        </View>
+        <Pressable
+          onLongPress={item.isOwn ? onDelete : undefined}
+          accessibilityHint={
+            item.isOwn ? "Long press to delete your comment" : undefined
+          }
+        >
+          <Text
+            style={{
+              color: theme.ink,
+              fontSize: 14 * s,
+              lineHeight: 19 * s,
+              letterSpacing: -0.25,
+            }}
+          >
+            {item.text}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Reply to ${item.author.username}`}
+          onPress={onReply}
+          style={{ alignSelf: "flex-start", paddingVertical: 3 * s }}
+        >
+          <Text style={{ color: theme.muted, fontSize: 13 * s }}>Reply</Text>
+        </Pressable>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={liked ? "Unlike comment" : "Like comment"}
+        accessibilityState={{ selected: liked }}
+        disabled={pending}
+        onPress={async () => {
+          const next = !liked;
+          setPending(true);
+          try {
+            await request(
+              `/nook/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(item._id)}/like`,
+              { method: "POST", body: { liked: next } },
+            );
+            setLiked(next);
+          } catch (e) {
+            Alert.alert("Could not update like", errorMessage(e));
+          } finally {
+            setPending(false);
+          }
+        }}
+        hitSlop={10}
+        style={{ paddingTop: 10 * s, paddingLeft: 2 * s }}
+      >
+        <FeedIcon
+          name="heart"
+          size={18 * s}
+          color={liked ? "#FF244E" : theme.ink}
+          filled={liked}
+        />
+      </Pressable>
+    </View>
+  );
 }

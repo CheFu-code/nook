@@ -31,6 +31,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
   const pickingRef = useRef(false);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const scrollView = useRef<ScrollView>(null);
   const theme = useAppTheme();
   const s = width / 390;
   const v = Math.max(0.82, (height - insets.top - 20) / 820);
@@ -167,6 +168,15 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
         )}
         <TextInput
           accessibilityLabel={label}
+          onFocus={(event) => {
+            requestAnimationFrame(() => {
+              scrollView.current?.scrollResponderScrollNativeHandleToKeyboard(
+                event.nativeEvent.target,
+                120,
+                true,
+              );
+            });
+          }}
           value={draft[key]}
           onChangeText={(value) => update(key, value)}
           placeholderTextColor={theme.muted}
@@ -236,7 +246,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
           backgroundColor: theme.background,
         },
       ]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <View
@@ -292,6 +302,8 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
         </Pressable>
       </View>
       <ScrollView
+        ref={scrollView}
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}

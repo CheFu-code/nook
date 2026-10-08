@@ -14,6 +14,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
+    ScrollView,
     Text,
     TextInput,
     View,
@@ -146,42 +147,48 @@ function Onboarding({ onCreated }: { onCreated: () => void }) {
     return (
         <KeyboardAvoidingView
             style={[ui.screen, { backgroundColor: theme.background }]}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-            <View style={[ui.center, { backgroundColor: theme.background }]}>
-                <Text style={[ui.title, { color: theme.ink }]}>Make yourself at home</Text>
-                <Text style={[ui.muted, { color: theme.muted }]}>
-                    Choose a unique username so friends can find you.
-                </Text>
-                <TextInput
-                    accessibilityLabel="Username"
-                    placeholder="Username"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    maxLength={30}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholderTextColor={theme.muted}
-                    style={[ui.input, { width: "100%", backgroundColor: theme.input, borderColor: theme.border, color: theme.ink }]}
-                />
-                {!!error && (
-                    <Text accessibilityRole="alert" style={ui.error}>
-                        {error}
+            <ScrollView
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                contentContainerStyle={{ flexGrow: 1 }}
+            >
+                <View style={[ui.center, { backgroundColor: theme.background }]}>
+                    <Text style={[ui.title, { color: theme.ink }]}>Make yourself at home</Text>
+                    <Text style={[ui.muted, { color: theme.muted }]}>
+                        Choose a unique username so friends can find you.
                     </Text>
-                )}
-                <Pressable
-                    disabled={busy || !username.trim()}
-                    style={[
-                        ui.button,
-                        (busy || !username.trim()) && ui.disabled,
-                    ]}
-                    onPress={() => void submit()}
-                >
-                    <Text style={ui.buttonText}>
-                        {busy ? "Creating profile…" : "Continue"}
-                    </Text>
-                </Pressable>
-            </View>
+                    <TextInput
+                        accessibilityLabel="Username"
+                        placeholder="Username"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        maxLength={30}
+                        value={username}
+                        onChangeText={setUsername}
+                        placeholderTextColor={theme.muted}
+                        style={[ui.input, { width: "100%", backgroundColor: theme.input, borderColor: theme.border, color: theme.ink }]}
+                    />
+                    {!!error && (
+                        <Text accessibilityRole="alert" style={ui.error}>
+                            {error}
+                        </Text>
+                    )}
+                    <Pressable
+                        disabled={busy || !username.trim()}
+                        style={[
+                            ui.button,
+                            (busy || !username.trim()) && ui.disabled,
+                        ]}
+                        onPress={() => void submit()}
+                    >
+                        <Text style={ui.buttonText}>
+                            {busy ? "Creating profile…" : "Continue"}
+                        </Text>
+                    </Pressable>
+                </View>
+            </ScrollView>
         </KeyboardAvoidingView>
     );
 }
