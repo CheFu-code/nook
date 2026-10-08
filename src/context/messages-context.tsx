@@ -1,29 +1,38 @@
 import { randomUUID } from 'expo-crypto';
 import { createContext, useContext, useRef, useState, type ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { invalidateNookQueries } from '@/lib/query-client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { nookApiQueryKey } from '@/lib/query-client';
+import { useNookApi } from '@/hooks/use-nook-api';
 import { useAuth } from '@/lib/chefu-auth';
 import type { Id } from '@/lib/social';
 
 type Pending = { id: string; conversationId: Id<'conversations'>; text: string; createdAt: number; status: 'pending' | 'failed' };
 const Context = createContext<{ pending: Pending[]; send: (id: Id<'conversations'>, text: string) => void; retry: (item: Pending) => void } | null>(null);
 export function MessagesProvider({ children }: { children: ReactNode }) {
-  const { getToken, userId } = useAuth();
+  const { userId } = useAuth();
   const queryClient = useQueryClient();
+  const request = useNookApi();
   const [pending, setPending] = useState<Pending[]>([]); const busy = useRef(new Set<string>());
+  const sendMutation = useMutation({
+    mutationFn: (item: Pending) =>
+      request(`/nook/messages/${encodeURIComponent(item.conversationId)}/messages`, {
+        method: 'POST',
+        body: { text: item.text, requestId: item.id },
+      }),
+    onSuccess: (_result, item) => {
+      void queryClient.invalidateQueries({
+        queryKey: nookApiQueryKey(
+          userId,
+          `/nook/conversations/${encodeURIComponent(item.conversationId)}/messages`,
+        ),
+      });
+    },
+  });
   async function retry(item: Pending) {
     if (busy.current.has(item.id)) return; busy.current.add(item.id);
     setPending(items => items.map(row => row.id === item.id ? { ...row, status: 'pending' } : row));
     try {
-      const token = await getToken();
-      if (!token) throw new Error('You must be signed in to send messages.');
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.chefu.co.za'}/nook/messages/${item.conversationId}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'x-chefu-app': 'nook' },
-        body: JSON.stringify({ text: item.text, requestId: item.id }),
-      });
-      if (!response.ok) throw new Error('Unable to send message.');
-      void invalidateNookQueries(queryClient, userId, `/nook/messages/${item.conversationId}/messages`);
+      await sendMutation.mutateAsync(item);
       setPending(items => items.filter(row => row.id !== item.id));
     } catch {
       setPending(items => items.map(row => row.id === item.id ? { ...row, status: 'failed' } : row));
