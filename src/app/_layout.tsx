@@ -10,6 +10,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { MessageNotifications } from '@/components/message-notifications';
 import { PresenceSession } from '@/components/presence-session';
 import { LanguageProvider, useNookLanguage } from '@/lib/language';
+import { BiometricAppLockProvider } from '@/lib/biometric-app-lock';
 
 Sentry.init({
   dsn: 'https://b763f67faea237307e894e7707208c9a@o4512011915296768.ingest.de.sentry.io/4512221576101968',
@@ -108,7 +109,9 @@ function RootLayout() {
   return (
     <LanguageProvider>
       <ChefuAuthProvider>
-        <LanguageReadyRoutes />
+        <BiometricAppLockProvider>
+          <LanguageReadyRoutes />
+        </BiometricAppLockProvider>
       </ChefuAuthProvider>
     </LanguageProvider>
   );

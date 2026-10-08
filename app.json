@@ -40,6 +40,12 @@
       ],
       "expo-secure-store",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow nook to use Face ID to unlock the app."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Choose photos and videos for your nook posts, stories, and profile.",

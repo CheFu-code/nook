@@ -9,6 +9,7 @@ import {
     Alert,
     Linking,
     Modal,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -19,6 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon } from "./feed-icon";
 import { Row, SettingsProps } from "./settings-screen.types";
+import { useBiometricAppLock } from "@/lib/biometric-app-lock";
 
 
 export function SettingsScreen({
@@ -33,12 +35,59 @@ export function SettingsScreen({
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
     const { language, setLanguage, t } = useNookLanguage();
+    const {
+        isAvailable: biometricsAvailable,
+        isLoaded: biometricPreferenceLoaded,
+        isEnabled: biometricLockEnabled,
+        setEnabled: setBiometricLockEnabled,
+    } = useBiometricAppLock();
     const s = width / 390;
     const v = (height - insets.top - insets.bottom) / 810;
     const [signingOut, setSigningOut] = useState(false);
     const [languageOpen, setLanguageOpen] = useState(false);
     const [savingLanguage, setSavingLanguage] = useState(false);
+    const [savingBiometricLock, setSavingBiometricLock] = useState(false);
+
+    async function toggleBiometricLock() {
+        if (savingBiometricLock) return;
+        if (!biometricsAvailable) {
+            Alert.alert(
+                t("Biometrics unavailable"),
+                t("Set up Face ID or fingerprint unlock in your device settings first."),
+            );
+            return;
+        }
+        setSavingBiometricLock(true);
+        try {
+            await setBiometricLockEnabled(!biometricLockEnabled);
+        } catch (error) {
+            Alert.alert(
+                t("Could not update biometric app lock"),
+                t(error instanceof Error ? error.message : "Please try again."),
+            );
+        } finally {
+            setSavingBiometricLock(false);
+        }
+    }
+
+    const biometricRows: Row[] = Platform.OS === "web"
+        ? []
+        : [{
+            label: t("Biometric app lock"),
+            icon: "lock",
+            detail: !biometricPreferenceLoaded
+                ? t("Checking…")
+                : biometricLockEnabled
+                    ? t("On")
+                    : biometricsAvailable
+                        ? t("Off")
+                        : t("Unavailable"),
+            action: biometricPreferenceLoaded && !savingBiometricLock
+                ? () => void toggleBiometricLock()
+                : undefined,
+        }];
     const account: Row[] = [
+        ...biometricRows,
         { label: t("Edit profile"), icon: "profile", action: onEdit },
         {
             label: t("Account"),
