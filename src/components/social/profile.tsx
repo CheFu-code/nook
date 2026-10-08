@@ -22,6 +22,7 @@ import {
 } from "@/lib/social";
 import {
     useNookApi,
+    useNookCursorPaginatedQuery,
     useNookPaginatedQuery,
     useNookQuery,
 } from "@/hooks/use-nook-api";
@@ -62,8 +63,8 @@ function MemberProfile({
     );
     const profile = profileQuery.data;
     const [panel, setPanel] = useState<ProfilePanel>("posts");
-    const posts = useNookPaginatedQuery<SocialPost>(
-        `/nook/posts?feed=profile&profileId=${encodeURIComponent(id)}`,
+    const posts = useNookCursorPaginatedQuery<SocialPost>(
+        `/nook/posts?feed=profile&profileId=${encodeURIComponent(id)}&cursorMode=true`,
         !!profile && (panel === "posts" || panel === "videos"),
     );
     const savedPosts = useNookPaginatedQuery<SocialPost>(

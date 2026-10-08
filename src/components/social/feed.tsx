@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type SocialPost } from "@/lib/social";
-import { useNookPaginatedQuery } from "@/hooks/use-nook-api";
+import { useNookCursorPaginatedQuery } from "@/hooks/use-nook-api";
 import { Header, ConnectionStatus, LoadMore, ui } from "./ui";
 import { HomeHeader } from "../home-layout";
 import { Stories } from "./stories";
@@ -23,8 +23,8 @@ export function LiveHome() {
     const { width } = useWindowDimensions();
     const s = width / 390;
     const theme = useAppTheme();
-    const { results, status, loadMore } = useNookPaginatedQuery<SocialPost>(
-        "/nook/posts?feed=home",
+    const { results, status, loadMore } = useNookCursorPaginatedQuery<SocialPost>(
+        "/nook/posts?feed=home&cursorMode=true",
     );
     const [visible, setVisible] = useState<string[]>([]);
     const onViewableItemsChanged = useRef(

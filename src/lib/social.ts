@@ -101,7 +101,7 @@ export function errorMessage(error: unknown) {
 export async function requestJson<T>(
   getToken: () => Promise<string | null>,
   path: string,
-  options: { method?: string; body?: unknown } = {},
+  options: { method?: string; body?: unknown; signal?: AbortSignal } = {},
 ): Promise<T> {
   const token = await getToken();
   if (!token) throw new Error('Your session has expired. Sign in again.');
@@ -112,6 +112,7 @@ export async function requestJson<T>(
       'x-chefu-app': 'nook',
       ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
+    signal: options.signal,
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
   });
   if (!response.ok) {

@@ -46,6 +46,64 @@ export async function invalidateNookQueries(
     mutationPath: string,
 ) {
     const path = mutationPath.split('?')[0];
+    const userScope = userId ?? 'signed-out';
+    const invalidateSelectedPaths = (matches: (cachedPath: string) => boolean) =>
+        queryClient.invalidateQueries({
+            predicate: query => {
+                const [namespace, cachedUserId, type, cachedPath] = query.queryKey;
+                return namespace === 'nook' &&
+                    cachedUserId === userScope &&
+                    type === 'api' &&
+                    typeof cachedPath === 'string' &&
+                    matches(cachedPath);
+            },
+        });
+
+    if (
+        path === '/nook/presence-token' ||
+        /^\/nook\/stories\/[^/]+\/view$/.test(path) ||
+        /^\/nook\/posts\/[^/]+\/(?:like|bookmark)$/.test(path) ||
+        /^\/nook\/posts\/[^/]+\/comments\/[^/]+\/like$/.test(path) ||
+        /^\/nook\/messages\/[^/]+\/messages\/[^/]+\/reactions?$/.test(path)
+    ) {
+        return;
+    }
+
+    const commentMutation = path.match(
+        /^\/nook\/posts\/([^/]+)\/comments(?:\/[^/]+)?$/,
+    );
+    if (commentMutation) {
+        const postPath = `/nook/posts/${commentMutation[1]}`;
+        const commentsPath = `${postPath}/comments`;
+        await invalidateSelectedPaths(cachedPath =>
+            cachedPath === postPath || cachedPath.startsWith(commentsPath),
+        );
+        return;
+    }
+
+    const followMutation = path.match(/^\/nook\/profiles\/([^/]+)\/follow$/);
+    if (followMutation) {
+        await invalidateSelectedPaths(cachedPath =>
+            cachedPath === '/nook/profile' ||
+            cachedPath === `/nook/profiles/${followMutation[1]}` ||
+            cachedPath.startsWith('/nook/posts?feed=home'),
+        );
+        return;
+    }
+
+    const conversationAction = path.match(/^\/nook\/conversations\/([^/]+)\/(?:request|read)$/);
+    const messageConversation = path.match(/^\/nook\/messages\/([^/]+)\/messages(?:\/[^/]+(?:\/(?:delete-for-me|delete-for-everyone))?)?$/);
+    if (path === '/nook/conversations' || conversationAction || messageConversation) {
+        const targetConversationId = conversationAction?.[1] ?? messageConversation?.[1];
+        await invalidateSelectedPaths(cachedPath =>
+            cachedPath.startsWith('/nook/conversations?') ||
+            (targetConversationId !== undefined &&
+                (cachedPath === `/nook/conversations/${targetConversationId}` ||
+                    cachedPath === `/nook/conversations/${targetConversationId}/messages`)),
+        );
+        return;
+    }
+
     const prefixes: string[] = [];
     if (path.startsWith('/nook/posts')) prefixes.push('/nook/posts');
     if (path.startsWith('/nook/stories')) prefixes.push('/nook/stories');
@@ -69,7 +127,7 @@ export async function invalidateNookQueries(
         predicate: query => {
             const [namespace, cachedUserId, type, cachedPath] = query.queryKey;
             return namespace === 'nook' &&
-                cachedUserId === (userId ?? 'signed-out') &&
+                cachedUserId === userScope &&
                 type === 'api' &&
                 typeof cachedPath === 'string' &&
                 prefixes.some(prefix => cachedPath.startsWith(prefix));

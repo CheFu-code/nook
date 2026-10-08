@@ -28,9 +28,10 @@ export function useMediaSource(
     const request = useNookApi();
     const media = useQuery({
         queryKey: nookMediaQueryKey(userId, kind, id, revision),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const result = await request<{ url: string }>(
                 `/nook/media/${kind}/${encodeURIComponent(id)}?v=${encodeURIComponent(String(revision))}`,
+                { signal },
             );
             return { uri: result.url, headers: {} };
         },

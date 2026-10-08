@@ -11,7 +11,7 @@ type CursorPage<T> = { items: T[]; nextCursor: string | null };
 export function useNookApi() {
     const { getToken, userId } = useAuth();
     const queryClient = useQueryClient();
-    return useCallback(async <T,>(path: string, options: { method?: string; body?: unknown } = {}) => {
+    return useCallback(async <T,>(path: string, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}) => {
         const result = await requestJson<T>(getToken, path, options);
         if (options.method && options.method.toUpperCase() !== 'GET') {
             void invalidateNookQueries(queryClient, userId, path);
@@ -25,7 +25,7 @@ export function useNookQuery<T>(path: string | null) {
     const request = useNookApi();
     const query = useQuery({
         queryKey: nookApiQueryKey(userId, path ?? ''),
-        queryFn: () => request<T>(path!),
+        queryFn: ({ signal }) => request<T>(path!, { signal }),
         enabled: path !== null,
     });
     const { isStale, refetch } = query;
@@ -47,8 +47,11 @@ export function useNookPaginatedQuery<T>(path: string, enabled = true) {
         queryKey: nookApiQueryKey(userId, path),
         enabled,
         initialPageParam: 0,
-        queryFn: ({ pageParam }) =>
-            request<Page<T>>(`${path}${path.includes('?') ? '&' : '?'}page=${pageParam}&limit=20`),
+        queryFn: ({ pageParam, signal }) =>
+            request<Page<T>>(
+                `${path}${path.includes('?') ? '&' : '?'}page=${pageParam}&limit=20`,
+                { signal },
+            ),
         getNextPageParam: (lastPage, _pages, lastPageParam) =>
             lastPage.hasMore ? lastPageParam + 1 : undefined,
     });
@@ -88,10 +91,12 @@ export function useNookCursorPaginatedQuery<T>(path: string, enabled = true) {
         queryKey: nookApiQueryKey(userId, path),
         enabled,
         initialPageParam: null as string | null,
-        queryFn: ({ pageParam }) => {
+        queryFn: ({ pageParam, signal }) => {
             const separator = path.includes('?') ? '&' : '?';
             const cursor = pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : '';
-            return request<CursorPage<T>>(`${path}${separator}limit=20${cursor}`);
+            return request<CursorPage<T>>(`${path}${separator}limit=20${cursor}`, {
+                signal,
+            });
         },
         getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     });
