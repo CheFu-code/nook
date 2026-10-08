@@ -53,6 +53,7 @@ export function MessageNotifications() {
   const insets = useSafeAreaInsets();
   const [alert, setAlert] = useState<IncomingMessageNotification | null>(null);
   const registeredToken = useRef<string | null>(null);
+  const handledResponse = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isSignedIn || !Device.isDevice || Platform.OS === "web") return;
@@ -99,6 +100,20 @@ export function MessageNotifications() {
   }, [isSignedIn, userId, request]);
 
   useEffect(() => {
+    const openNotification = (notification: Notifications.Notification) => {
+      const identifier = notification.request.identifier;
+      if (handledResponse.current === identifier) return;
+      handledResponse.current = identifier;
+      const message = readMessageNotification(notification);
+      void Notifications.clearLastNotificationResponseAsync()
+        .catch(error => Sentry.captureException(error));
+      if (!message) return;
+      setAlert(null);
+      router.push({
+        pathname: "/chat/[id]",
+        params: { id: message.conversationId },
+      });
+    };
     const received = Notifications.addNotificationReceivedListener(notification => {
       const message = readMessageNotification(notification);
       if (!message) return;
@@ -106,26 +121,12 @@ export function MessageNotifications() {
       if (pathname !== openConversationPath) setAlert(message);
     });
     const response = Notifications.addNotificationResponseReceivedListener(event => {
-      const message = readMessageNotification(event.notification);
-      if (!message) return;
-      setAlert(null);
-      router.push({
-        pathname: "/chat/[id]",
-        params: { id: message.conversationId },
-      });
+      openNotification(event.notification);
     });
     void Notifications.getLastNotificationResponseAsync()
       .then(event => {
         if (!event) return;
-        const message = readMessageNotification(event.notification);
-        void Notifications.clearLastNotificationResponseAsync()
-          .catch(error => Sentry.captureException(error));
-        if (message) {
-          router.push({
-            pathname: "/chat/[id]",
-            params: { id: message.conversationId },
-          });
-        }
+        openNotification(event.notification);
       })
       .catch(error => Sentry.captureException(error));
     return () => {
