@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import EmojiPicker from "rn-emoji-keyboard";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BlurTargetView } from "expo-blur";
 import {
@@ -26,6 +27,24 @@ import { useChatScreenLogic, type ChatMessage } from "@/hooks/use-chat-screen";
 
 export type { ChatMessage } from "@/hooks/use-chat-screen";
 
+function messageDateKey(timestamp: number) {
+    const date = new Date(timestamp);
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function messageDateLabel(timestamp: number, now = new Date()) {
+    const date = new Date(timestamp);
+    const dateDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const daysAgo = Math.round((todayDay - dateDay) / 86_400_000);
+    if (daysAgo === 0) return "Today";
+    if (daysAgo === 1) return "Yesterday";
+    if (daysAgo >= 2 && daysAgo < 7) {
+        return date.toLocaleDateString("en-GB", { weekday: "long" });
+    }
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
 export function ChatScreen({
     onBack,
     messages,
@@ -40,6 +59,11 @@ export function ChatScreen({
     reactionDetails,
     onReactionPress,
     onDismissReactionDetails,
+    messageRequest,
+    requestDecisionLoading,
+    onRespondToRequest,
+    onEditMessage,
+    onDeleteMessage,
 }: {
     onBack: () => void;
     messages: ChatMessage[];
@@ -66,6 +90,18 @@ export function ChatScreen({
     } | null;
     onReactionPress: (message: ChatMessage, emoji: string) => void;
     onDismissReactionDetails: () => void;
+    messageRequest: {
+        status: "pending" | "accepted" | "declined";
+        isRequester: boolean;
+        sentCount: number;
+    } | null;
+    requestDecisionLoading: boolean;
+    onRespondToRequest: (decision: "accepted" | "declined") => void;
+    onEditMessage: (message: ChatMessage, text: string) => Promise<boolean>;
+    onDeleteMessage: (
+        message: ChatMessage,
+        scope: "me" | "everyone",
+    ) => Promise<void>;
 }) {
     const {
         draft,
@@ -81,11 +117,30 @@ export function ChatScreen({
         scrollToEnd,
     } = useChatScreenLogic({ messages, onSend, onAtBottom });
     const inputRef = useRef<TextInput>(null);
+    const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+    const [draftSelection, setDraftSelection] = useState({ start: 0, end: 0 });
+    const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
     const blurTargetRef = useRef<View>(null);
     const messageOffsets = useRef(new Map<string, number>());
+    const highlightPulse = useRef(0);
+    const [highlightTarget, setHighlightTarget] = useState<{
+        id: string;
+        pulse: number;
+    } | null>(null);
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
+    const requestPending = messageRequest?.status === "pending";
+    const requestDeclined = messageRequest?.status === "declined";
+    const canSendRequestMessage =
+        !requestDeclined &&
+        (!requestPending ||
+            (messageRequest.isRequester && messageRequest.sentCount < 3));
+    const showRequestActions = requestPending && !messageRequest.isRequester;
+    const requestLimitReached =
+        requestPending &&
+        messageRequest.isRequester &&
+        messageRequest.sentCount >= 3;
     const s = width / 390;
     const v = (height - insets.top - Math.min(insets.bottom, 34)) / 784;
     const fs = (value: number) => value * s;
@@ -129,6 +184,34 @@ export function ChatScreen({
             if (finished) setReactionTarget(null);
         });
     };
+    const startEditingMessage = (message: ChatMessage) => {
+        setEditingMessage(message);
+        setDraft(message.text);
+        setDraftSelection({
+            start: message.text.length,
+            end: message.text.length,
+        });
+        setReplyTo(null);
+        closeReactionPicker();
+        requestAnimationFrame(() => {
+            inputRef.current?.focus();
+            inputRef.current?.setNativeProps({
+                selection: { start: message.text.length, end: message.text.length },
+            });
+        });
+    };
+    const submitComposer = async () => {
+        if (!editingMessage) {
+            send();
+            return;
+        }
+        const text = draft.trim();
+        if (!text) return;
+        if (await onEditMessage(editingMessage, text)) {
+            setDraft("");
+            setEditingMessage(null);
+        }
+    };
     useEffect(
         () => () => {
             if (focusTimer.current) clearTimeout(focusTimer.current);
@@ -158,6 +241,11 @@ export function ChatScreen({
                 scrollRef.current?.scrollTo({
                     y: Math.max(0, offset - 24 * s),
                     animated: true,
+                });
+                highlightPulse.current += 1;
+                setHighlightTarget({
+                    id: target.backendId ?? target.id,
+                    pulse: highlightPulse.current,
                 });
             }
             onJumpToMessageComplete();
@@ -245,34 +333,63 @@ export function ChatScreen({
                     paddingBottom: 10 * v,
                 }}
             >
-                <Text
-                    style={{
-                        color: theme.muted,
-                        fontSize: fs(11),
-                        textAlign: "center",
-                        marginTop: 12 * v,
-                        marginBottom: 10 * v,
-                    }}
-                >
-                    Messages
-                </Text>
                 {beforeMessages}
-                {messages.map((message) => (
-                    <MessageRow
-                        key={message.id}
-                        message={message}
-                        peer={peer}
-                        scale={s}
-                        vertical={v}
-                        onReply={replyToMessage}
-                        onLongPress={openReactionPicker}
-                        onMessageLayout={(messageId, y) => {
-                            messageOffsets.current.set(messageId, y);
-                        }}
-                        onPressReply={onQuotePress}
-                        onReactionPress={onReactionPress}
-                    />
-                ))}
+                {messages.flatMap((message, index) => {
+                    const key = message.createdAt === undefined
+                        ? null
+                        : messageDateKey(message.createdAt);
+                    const previousKey = index === 0 || messages[index - 1].createdAt === undefined
+                        ? null
+                        : messageDateKey(messages[index - 1].createdAt!);
+                    const showDate = key !== null && key !== previousKey;
+                    return [
+                        ...(showDate
+                            ? [
+                                <View
+                                    key={`date-${key}`}
+                                    style={{
+                                        alignSelf: "center",
+                                        marginTop: 12 * v,
+                                        marginBottom: 10 * v,
+                                        paddingHorizontal: 12 * s,
+                                        paddingVertical: 5 * v,
+                                        borderRadius: 14 * s,
+                                        backgroundColor: theme.subtle,
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            color: theme.secondary,
+                                            fontSize: fs(11),
+                                            fontWeight: "600",
+                                        }}
+                                    >
+                                        {messageDateLabel(message.createdAt!)}
+                                    </Text>
+                                </View>,
+                            ]
+                            : []),
+                        <MessageRow
+                            key={message.id}
+                            message={message}
+                            highlightPulse={
+                                highlightTarget?.id === (message.backendId ?? message.id)
+                                    ? highlightTarget.pulse
+                                    : 0
+                            }
+                            peer={peer}
+                            scale={s}
+                            vertical={v}
+                            onReply={replyToMessage}
+                            onLongPress={openReactionPicker}
+                            onMessageLayout={(messageId, y) => {
+                                messageOffsets.current.set(messageId, y);
+                            }}
+                            onPressReply={onQuotePress}
+                            onReactionPress={onReactionPress}
+                        />,
+                    ];
+                })}
             </ScrollView>
             <View
                 style={{
@@ -284,7 +401,36 @@ export function ChatScreen({
                         : Math.max(Math.min(insets.bottom, 34), 12),
                 }}
             >
-                {replyTo && (
+                {editingMessage ? (
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            backgroundColor: theme.subtle,
+                            borderLeftWidth: 3,
+                            borderLeftColor: theme.blue,
+                            borderTopLeftRadius: fs(10),
+                            borderTopRightRadius: fs(10),
+                            padding: fs(9),
+                            marginBottom: 6 * v,
+                        }}
+                    >
+                        <Text style={{ flex: 1, color: theme.blue, fontSize: fs(12), fontWeight: "700" }}>
+                            Editing message
+                        </Text>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Cancel editing"
+                            onPress={() => {
+                                setEditingMessage(null);
+                                setDraft("");
+                            }}
+                            hitSlop={10}
+                        >
+                            <FeedIcon name="close" size={fs(18)} color={theme.muted} />
+                        </Pressable>
+                    </View>
+                ) : replyTo && canSendRequestMessage && (
                     <View
                         style={{
                             flexDirection: "row",
@@ -319,16 +465,87 @@ export function ChatScreen({
                         </Pressable>
                     </View>
                 )}
+                {showRequestActions ? (
+                    <View style={{ gap: 8 * v }}>
+                        <Text
+                            style={{
+                                color: theme.secondary,
+                                fontSize: fs(13),
+                                textAlign: "center",
+                            }}
+                        >
+                            Message request · Accept to reply, or decline.
+                        </Text>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                gap: fs(10),
+                            }}
+                        >
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Decline message request"
+                            disabled={requestDecisionLoading}
+                            onPress={() => onRespondToRequest("declined")}
+                            style={{
+                                flex: 1,
+                                minHeight: fs(46),
+                                borderRadius: fs(24),
+                                borderWidth: 1,
+                                borderColor: theme.border,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                opacity: requestDecisionLoading ? 0.6 : 1,
+                            }}
+                        >
+                            <Text style={{ color: theme.secondary, fontWeight: "700" }}>
+                                Decline
+                            </Text>
+                        </Pressable>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Accept message request"
+                            disabled={requestDecisionLoading}
+                            onPress={() => onRespondToRequest("accepted")}
+                            style={{
+                                flex: 1,
+                                minHeight: fs(46),
+                                borderRadius: fs(24),
+                                backgroundColor: theme.blue,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                opacity: requestDecisionLoading ? 0.6 : 1,
+                            }}
+                        >
+                            <Text style={{ color: "white", fontWeight: "700" }}>
+                                Accept
+                            </Text>
+                        </Pressable>
+                        </View>
+                    </View>
+                ) : canSendRequestMessage || editingMessage ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: fs(9) }}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Open emoji picker"
+                        onPress={() => setEmojiPickerVisible(true)}
+                        hitSlop={6}
+                        style={{
+                            width: fs(40),
+                            height: fs(45),
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <FeedIcon name="emoji" size={fs(24)} color={theme.muted} />
+                    </Pressable>
                     <View
                         style={[
                             styles.inputWrap,
                             {
                                 minHeight: fs(45),
                                 borderRadius: fs(25),
-                                paddingLeft: fs(15),
-                                paddingRight: fs(13),
-                                gap: fs(8),
+                                paddingHorizontal: fs(15),
                                 backgroundColor: theme.input,
                                 borderWidth: 1,
                                 borderColor: theme.border,
@@ -340,7 +557,11 @@ export function ChatScreen({
                             accessibilityLabel="Message"
                             value={draft}
                             onChangeText={setDraft}
-                            placeholder="Message..."
+                            selection={draftSelection}
+                            onSelectionChange={(event) =>
+                                setDraftSelection(event.nativeEvent.selection)
+                            }
+                            placeholder={editingMessage ? "Edit message..." : "Message..."}
                             placeholderTextColor={theme.muted}
                             multiline
                             maxLength={2000}
@@ -356,10 +577,10 @@ export function ChatScreen({
                     </View>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Send message"
+                        accessibilityLabel={editingMessage ? "Save edited message" : "Send message"}
                         accessibilityState={{ disabled: !canSend }}
                         disabled={!canSend}
-                        onPress={send}
+                        onPress={() => void submitComposer()}
                         style={[
                             styles.circle,
                             { width: fs(46), height: fs(46), backgroundColor: theme.blue },
@@ -368,8 +589,91 @@ export function ChatScreen({
                         <FeedIcon name="chat-send" size={fs(23)} color="white" />
                     </Pressable>
                 </View>
+                ) : (
+                    <View
+                        style={{
+                            alignItems: "center",
+                            paddingVertical: 12 * v,
+                            paddingHorizontal: 14 * s,
+                            borderRadius: fs(20),
+                            backgroundColor: theme.subtle,
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: theme.secondary,
+                                fontSize: fs(13),
+                                textAlign: "center",
+                            }}
+                        >
+                            {requestLimitReached
+                                ? "Message limit reached. Waiting for them to accept your request."
+                                : requestDeclined
+                                  ? "This message request was declined."
+                                  : "Messaging is unavailable."}
+                        </Text>
+                    </View>
+                )}
             </View>
             </BlurTargetView>
+            <EmojiPicker
+                open={emojiPickerVisible}
+                onClose={() => setEmojiPickerVisible(false)}
+                onEmojiSelected={({ emoji }) => {
+                    const start = Math.min(draftSelection.start, draft.length);
+                    const end = Math.min(draftSelection.end, draft.length);
+                    const nextDraft = (
+                        draft.slice(0, start) +
+                        emoji +
+                        draft.slice(end)
+                    ).slice(0, 2000);
+                    const cursor = Math.min(start + emoji.length, nextDraft.length);
+                    setDraft(nextDraft);
+                    setDraftSelection({ start: cursor, end: cursor });
+                    setEmojiPickerVisible(false);
+                    requestAnimationFrame(() => inputRef.current?.focus());
+                }}
+                categoryPosition="bottom"
+                defaultHeight="45%"
+                enableRecentlyUsed
+                disableSafeArea
+                styles={{
+                    container: {
+                        marginBottom: Math.max(insets.bottom, 8),
+                        borderTopLeftRadius: 24 * s,
+                        borderTopRightRadius: 24 * s,
+                        overflow: "hidden",
+                    },
+                }}
+                theme={{
+                    backdrop: theme.isDark
+                        ? "rgba(0, 0, 0, 0.68)"
+                        : "rgba(13, 21, 41, 0.38)",
+                    knob: theme.border,
+                    container: theme.surface,
+                    header: theme.ink,
+                    skinTonesContainer: theme.subtle,
+                    category: {
+                        icon: theme.muted,
+                        iconActive: theme.blue,
+                        container: theme.subtle,
+                        containerActive: theme.surface,
+                    },
+                    search: {
+                        text: theme.ink,
+                        placeholder: theme.muted,
+                        icon: theme.muted,
+                        background: theme.input,
+                    },
+                    customButton: {
+                        icon: theme.muted,
+                        iconPressed: theme.blue,
+                        background: theme.subtle,
+                        backgroundPressed: theme.blueSoft,
+                    },
+                    emoji: { selected: theme.blueSoft },
+                }}
+            />
             <ReactionSpotlight
                 target={reactionTarget}
                 animation={reactionAnimation}
@@ -381,6 +685,14 @@ export function ChatScreen({
                 onClose={closeReactionPicker}
                 onReact={onReact}
                 onPressReply={onQuotePress}
+                onEditMessage={startEditingMessage}
+                onDeleteMessageForMe={(message) => {
+                    void onDeleteMessage(message, "me");
+                }}
+                onDeleteMessageForEveryone={(message) => {
+                    void onDeleteMessage(message, "everyone");
+                }}
+                bottomInset={insets.bottom}
             />
             <ReactionDetailsSheet
                 visible={Boolean(reactionDetails)}

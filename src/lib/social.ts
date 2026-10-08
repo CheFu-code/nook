@@ -62,6 +62,11 @@ export type Conversation = {
   unread: boolean;
   unreadCount: number;
   unreadCountExact: boolean;
+  messageRequest?: {
+    status: 'pending' | 'accepted' | 'declined';
+    isRequester: boolean;
+    sentCount: number;
+  } | null;
 };
 
 export type Message = {
@@ -71,6 +76,10 @@ export type Message = {
   _creationTime: number;
   outgoing: boolean;
   requestId?: string;
+  edited?: boolean;
+  canDeleteForEveryone?: boolean;
+  deletedForMe?: boolean;
+  deletedForEveryone?: boolean;
   replyTo?: {
     id: string;
     text: string;

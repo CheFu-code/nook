@@ -5,16 +5,6 @@ export type NestedComment = Comment & {
   depth: number;
   parentUsername?: string;
 };
-export type DialogAction = {
-  label: string;
-  tone?: "default" | "destructive";
-  onPress?: () => void;
-};
-export type Dialog = {
-  title: string;
-  message?: string;
-  actions: DialogAction[];
-};
 
 export function nestComments(
   items: Comment[],

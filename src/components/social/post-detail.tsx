@@ -2,6 +2,7 @@ import { randomUUID } from "expo-crypto";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   FlatList,
   Keyboard,
@@ -28,12 +29,10 @@ import {
 import { FeedIcon } from "../feed-icon";
 import { Avatar } from "./media";
 import { PostCard } from "./post-card";
-import { CommentRow, PostDetailDialog } from "./post-detail-ui";
+import { CommentRow, CommentSortMenu } from "./post-detail-ui";
 import {
   nestComments,
   type Comment,
-  type Dialog,
-  type DialogAction,
   type NestedComment,
 } from "./post-detail-logic";
 import { Header, ConnectionStatus, LoadMore, ui } from "./ui";
@@ -60,7 +59,6 @@ export function PostDetail() {
   const [error, setError] = useState("");
   const [replying, setReplying] = useState<{ id: string; username: string } | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<Dialog | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [now, setNow] = useState(Date.now());
   const request = useRef({ id: randomUUID(), text: "", parentId: undefined as string | undefined });
@@ -71,13 +69,6 @@ export function PostDetail() {
   const restoreOffset = useRef<number | null>(null);
   const [postVisible, setPostVisible] = useState(true);
   const visibleComments = nestComments(comments.results, order);
-  function showDialog(next: Dialog) {
-    setDialog(next);
-  }
-  function runDialogAction(action: DialogAction) {
-    setDialog(null);
-    action.onPress?.();
-  }
   function sortComments(next: "asc" | "desc") {
     if (next === order) return;
     restoreOffset.current = scrollOffset.current;
@@ -165,14 +156,14 @@ export function PostDetail() {
   }
   function deleteComment(item: Comment) {
     if (!item.isOwn) return;
-    showDialog({
-      title: "Delete comment?",
-      message: "This comment and its replies will no longer be visible.",
-      actions: [
-        { label: "Cancel" },
+    Alert.alert(
+      "Delete comment?",
+      "This comment and its replies will no longer be visible.",
+      [
+        { text: "Cancel", style: "cancel" },
         {
-          label: "Delete comment",
-          tone: "destructive",
+          text: "Delete",
+          style: "destructive",
           onPress: () => {
             void requestApi(
               `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`,
@@ -180,16 +171,22 @@ export function PostDetail() {
             )
               .then(comments.refresh)
               .catch((e) =>
-                showDialog({
-                  title: "Could not delete comment",
-                  message: errorMessage(e),
-                  actions: [{ label: "OK" }],
-                }),
+                Alert.alert("Could not delete comment", errorMessage(e)),
               );
           },
         },
       ],
-    });
+      { cancelable: true },
+    );
+  }
+  function editComment(item: Comment) {
+    setReplying(null);
+    setEditingCommentId(item._id);
+    setText(item.text);
+    input.current?.focus();
+  }
+  function showError(title: string, message: string) {
+    Alert.alert(title, message);
   }
   return (
     <KeyboardAvoidingView
@@ -263,39 +260,11 @@ export function PostDetail() {
                   >
                     Comments
                   </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Sort comments: ${order === "desc" ? "Newest" : "Oldest"}`}
-                    onPress={() =>
-                      showDialog({
-                        title: "Sort comments",
-                        actions: [
-                          {
-                            label: "Newest first",
-                            onPress: () => sortComments("desc"),
-                          },
-                          {
-                            label: "Oldest first",
-                            onPress: () => sortComments("asc"),
-                          },
-                          { label: "Cancel" },
-                        ],
-                      })
-                    }
-                    hitSlop={10}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 10 * s,
-                    }}
-                  >
-                    <Text style={{ fontSize: 14 * s, color: theme.muted }}>
-                      {order === "desc" ? "Newest" : "Oldest"}
-                    </Text>
-                    <View style={{ transform: [{ rotate: "-90deg" }] }}>
-                      <FeedIcon name="back" size={12 * s} color={theme.muted} />
-                    </View>
-                  </Pressable>
+                  <CommentSortMenu
+                    order={order}
+                    scale={s}
+                    onSelect={sortComments}
+                  />
                 </View>
               </>
             }
@@ -305,31 +274,9 @@ export function PostDetail() {
                 postId={id}
                 scale={s}
                 now={now}
-                onOptions={() =>
-                  showDialog({
-                    title: "Your comment",
-                    actions: [
-                      {
-                        label: "Edit comment",
-                        onPress: () => {
-                          setReplying(null);
-                          setEditingCommentId(item._id);
-                          setText(item.text);
-                          input.current?.focus();
-                        },
-                      },
-                      {
-                        label: "Delete comment",
-                        tone: "destructive",
-                        onPress: () => deleteComment(item),
-                      },
-                      { label: "Cancel" },
-                    ],
-                  })
-                }
-                onError={(title, message) =>
-                  showDialog({ title, message, actions: [{ label: "OK" }] })
-                }
+                onEdit={() => editComment(item)}
+                onDelete={() => deleteComment(item)}
+                onError={showError}
                 onReply={() => {
                   setEditingCommentId(null);
                   setReplying({ id: item._id, username: item.author.username });
@@ -457,37 +404,29 @@ export function PostDetail() {
             </View>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={
+                editingCommentId ? "Save comment" : replying ? "Send reply" : "Post comment"
+              }
               accessibilityState={{ disabled: busy || !text.trim() }}
               disabled={busy || !text.trim()}
               onPress={() => void submit()}
               style={{
                 backgroundColor: "#087EFF",
                 borderRadius: 14 * s,
-                minHeight: 40 * s,
-                minWidth: 76 * s,
+                width: 42 * s,
+                height: 42 * s,
                 alignItems: "center",
                 justifyContent: "center",
-                paddingHorizontal: 12 * s,
+                opacity: busy || !text.trim() ? 0.55 : 1,
               }}
             >
-              <Text
-                style={{ color: "white", fontWeight: "600", fontSize: 15 * s }}
-              >
-                {busy ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  editingCommentId ? "Save" : "Post"
-                )}
-              </Text>
+              {busy ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <FeedIcon name="chat-send" size={18 * s} color="white" />
+              )}
             </Pressable>
           </View>
-          <PostDetailDialog
-            dialog={dialog}
-            scale={s}
-            bottomInset={insets.bottom}
-            onDismiss={() => setDialog(null)}
-            onAction={runDialogAction}
-          />
         </>
       )}
     </KeyboardAvoidingView>

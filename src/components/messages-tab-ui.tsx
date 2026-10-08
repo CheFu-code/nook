@@ -222,29 +222,21 @@ function ConversationRow({
                         params: { id: profileId },
                     })
                 }
+                style={{ zIndex: 1, elevation: 1 }}
             >
                 {avatar(60 * s)}
             </Pressable>
             <View style={{ flex: 1, gap: 5 * s }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`View ${name}'s profile`}
-                        onPress={() =>
-                            router.push({
-                                pathname: "/member/[id]",
-                                params: { id: profileId },
-                            })
-                        }
-                        style={{ flex: 1 }}
-                    >
                     <Text
                         numberOfLines={1}
-                        style={[styles.name, { fontSize: 18 * s, color: theme.ink }]}
+                        style={[
+                            styles.name,
+                            { flex: 1, fontSize: 18 * s, color: theme.ink },
+                        ]}
                     >
                         {name}
                     </Text>
-                    </Pressable>
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`Open chat with ${name}`}

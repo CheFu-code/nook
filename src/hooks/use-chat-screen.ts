@@ -12,7 +12,12 @@ export type ChatMessage = {
     backendId?: string;
     text: string;
     outgoing: boolean;
+    createdAt?: number;
     time: string;
+    edited?: boolean;
+    canDeleteForEveryone?: boolean;
+    deletedForMe?: boolean;
+    deletedForEveryone?: boolean;
     status?: "pending" | "sent" | "failed";
     retry?: () => void;
     replyTo?: {

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
     Animated,
     ActivityIndicator,
@@ -29,6 +29,78 @@ export type MessageReactor = {
     emoji: string;
     isOwn: boolean;
 };
+
+function MessageBody({
+    message,
+    theme,
+    scale,
+    vertical,
+}: {
+    message: ChatMessage;
+    theme: ReturnType<typeof useAppTheme>;
+    scale: number;
+    vertical: number;
+}) {
+    return (
+        <View
+            style={{
+                flexDirection: "row",
+                alignItems: "flex-end",
+            }}
+        >
+            <Text
+                style={{
+                    flexShrink: 1,
+                    fontSize: scale * 14,
+                    lineHeight: 19 * vertical,
+                    color: message.deletedForMe || message.deletedForEveryone
+                        ? theme.muted
+                        : message.outgoing
+                          ? "white"
+                          : theme.ink,
+                    letterSpacing: -0.2,
+                    fontStyle:
+                        message.deletedForMe || message.deletedForEveryone
+                            ? "italic"
+                            : "normal",
+                }}
+            >
+                {message.text}
+            </Text>
+            <View
+                style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    gap: 3 * scale,
+                    marginLeft: 6 * scale,
+                }}
+            >
+                <Text
+                    style={{
+                        color: message.outgoing
+                            ? "rgba(255,255,255,0.72)"
+                            : theme.muted,
+                        fontSize: 10 * scale,
+                        lineHeight: 13 * vertical,
+                    }}
+                >
+                    {message.edited ? "Edited · " : ""}
+                    {message.status === "pending" ? "Sending…" : message.time}
+                </Text>
+                {message.outgoing &&
+                    message.status !== "pending" &&
+                    message.status !== "failed" && (
+                        <FeedIcon
+                            name="check"
+                            size={13 * scale}
+                            color="rgba(255,255,255,0.72)"
+                        />
+                    )}
+            </View>
+        </View>
+    );
+}
 
 export function ReplyQuote({
     reply,
@@ -114,9 +186,7 @@ export function SpotlightMessage({
             style={{
                 alignSelf: message.outgoing ? "flex-end" : "flex-start",
                 maxWidth: "100%",
-                padding: 3,
                 borderRadius: fs(20),
-                backgroundColor: theme.background,
             }}
         >
             <View
@@ -125,7 +195,7 @@ export function SpotlightMessage({
                     borderRadius: fs(16),
                     paddingHorizontal: fs(14),
                     paddingVertical: 9 * vertical,
-                    maxWidth: fs(310),
+                    maxWidth: fs(290),
                 }}
             >
                 {message.replyTo && (
@@ -138,16 +208,12 @@ export function SpotlightMessage({
                         onPress={() => onPressReply(message.replyTo!.id)}
                     />
                 )}
-                <Text
-                    style={{
-                        fontSize: fs(14),
-                        lineHeight: 19 * vertical,
-                        color: message.outgoing ? "white" : theme.ink,
-                        letterSpacing: -0.2,
-                    }}
-                >
-                    {message.text}
-                </Text>
+                <MessageBody
+                    message={message}
+                    theme={theme}
+                    scale={scale}
+                    vertical={vertical}
+                />
             </View>
         </View>
     );
@@ -155,6 +221,7 @@ export function SpotlightMessage({
 
 export function MessageRow({
     message,
+    highlightPulse,
     peer,
     scale,
     vertical,
@@ -165,6 +232,7 @@ export function MessageRow({
     onReactionPress,
 }: {
     message: ChatMessage;
+    highlightPulse: number;
     peer: {
         name: string;
         avatar: (size: number) => ReactNode;
@@ -183,7 +251,28 @@ export function MessageRow({
     const theme = useAppTheme();
     const fs = (value: number) => value * scale;
     const [translateX] = useState(() => new Animated.Value(0));
+    const [highlightOpacity] = useState(() => new Animated.Value(0));
     const bubbleRef = useRef<View>(null);
+    useEffect(() => {
+        if (!highlightPulse) return;
+        highlightOpacity.stopAnimation();
+        highlightOpacity.setValue(0);
+        const animation = Animated.sequence([
+            Animated.timing(highlightOpacity, {
+                toValue: 0.55,
+                duration: 180,
+                useNativeDriver: true,
+            }),
+            Animated.delay(500),
+            Animated.timing(highlightOpacity, {
+                toValue: 0,
+                duration: 750,
+                useNativeDriver: true,
+            }),
+        ]);
+        animation.start();
+        return () => animation.stop();
+    }, [highlightOpacity, highlightPulse]);
     const panResponder = useMemo(
         () =>
             PanResponder.create({
@@ -232,6 +321,8 @@ export function MessageRow({
     );
     const canReact =
         Boolean(message.backendId) &&
+        !message.deletedForMe &&
+        !message.deletedForEveryone &&
         message.status !== "pending" &&
         message.status !== "failed";
     return (
@@ -281,8 +372,19 @@ export function MessageRow({
                                 borderRadius: fs(16),
                                 paddingHorizontal: fs(14),
                                 paddingVertical: 9 * vertical,
+                                overflow: "hidden",
                             }}
                         >
+                            <Animated.View
+                                pointerEvents="none"
+                                style={[
+                                    StyleSheet.absoluteFill,
+                                    {
+                                        backgroundColor: theme.blueSoft,
+                                        opacity: highlightOpacity,
+                                    },
+                                ]}
+                            />
                             {message.replyTo && (
                                 <ReplyQuote
                                     reply={message.replyTo}
@@ -295,16 +397,12 @@ export function MessageRow({
                                     }
                                 />
                             )}
-                            <Text
-                                style={{
-                                    fontSize: fs(14),
-                                    lineHeight: 19 * vertical,
-                                    color: message.outgoing ? "white" : theme.ink,
-                                    letterSpacing: -0.2,
-                                }}
-                            >
-                                {message.text}
-                            </Text>
+                            <MessageBody
+                                message={message}
+                                theme={theme}
+                                scale={scale}
+                                vertical={vertical}
+                            />
                         </View>
                     </View>
                 </View>
@@ -350,35 +448,6 @@ export function MessageRow({
                     ))}
                 </View>
             )}
-            <View
-                style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: fs(8),
-                    marginTop: 4 * vertical,
-                    marginLeft: message.outgoing ? 0 : fs(47),
-                    marginRight: message.outgoing ? fs(5) : 0,
-                }}
-            >
-                <Text
-                    style={{
-                        color: theme.muted,
-                        fontSize: fs(11),
-                        lineHeight: 13 * vertical,
-                    }}
-                >
-                    {message.status === "pending" ? "Sending…" : message.time}
-                </Text>
-                {message.outgoing &&
-                    message.status !== "pending" &&
-                    message.status !== "failed" && (
-                        <FeedIcon
-                            name="check"
-                            size={fs(16)}
-                            color={theme.muted}
-                        />
-                    )}
-            </View>
             {message.status === "failed" && (
                 <Pressable
                     accessibilityRole="button"
@@ -405,6 +474,10 @@ export function ReactionSpotlight({
     onClose,
     onReact,
     onPressReply,
+    onEditMessage,
+    onDeleteMessageForMe,
+    onDeleteMessageForEveryone,
+    bottomInset,
 }: {
     target: ReactionTarget | null;
     animation: Animated.Value;
@@ -416,8 +489,13 @@ export function ReactionSpotlight({
     onClose: () => void;
     onReact: (message: ChatMessage, emoji: string | null) => void;
     onPressReply: (messageId: string) => void;
+    onEditMessage: (message: ChatMessage) => void;
+    onDeleteMessageForMe: (message: ChatMessage) => void;
+    onDeleteMessageForEveryone: (message: ChatMessage) => void;
+    bottomInset: number;
 }) {
     const theme = useAppTheme();
+    const [actionsVisible, setActionsVisible] = useState(false);
     if (!target) return null;
     return (
         <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
@@ -500,7 +578,7 @@ export function ReactionSpotlight({
                         : Math.min(width - 310 * scale, 12 * scale),
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 3 * scale,
+                    gap: 2 * scale,
                     padding: 6 * scale,
                     borderRadius: 28 * scale,
                     backgroundColor: theme.surface,
@@ -544,7 +622,7 @@ export function ReactionSpotlight({
                                 onReact(target.message, selected ? null : emoji);
                             }}
                             style={{
-                                width: 42 * scale,
+                                width: 37 * scale,
                                 height: 44 * scale,
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -558,8 +636,207 @@ export function ReactionSpotlight({
                         </Pressable>
                     );
                 })}
+                {target.message.backendId &&
+                    !target.message.deletedForMe &&
+                    !target.message.deletedForEveryone && (
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Message options"
+                        onPress={() => setActionsVisible(true)}
+                        style={{
+                            width: 37 * scale,
+                            height: 44 * scale,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 22 * scale,
+                        }}
+                    >
+                        <FeedIcon
+                            name="more-vertical"
+                            size={20 * scale}
+                            color={theme.muted}
+                        />
+                    </Pressable>
+                )}
             </Animated.View>
+            {actionsVisible &&
+                target.message.backendId &&
+                !target.message.deletedForMe &&
+                !target.message.deletedForEveryone && (
+                <MessageActionsSheet
+                    message={target.message}
+                    scale={scale}
+                    bottomInset={bottomInset}
+                    onClose={() => setActionsVisible(false)}
+                    onEdit={() => {
+                        setActionsVisible(false);
+                        onClose();
+                        onEditMessage(target.message);
+                    }}
+                    onDeleteForMe={() => {
+                        setActionsVisible(false);
+                        onClose();
+                        onDeleteMessageForMe(target.message);
+                    }}
+                    onDeleteForEveryone={() => {
+                        setActionsVisible(false);
+                        onClose();
+                        onDeleteMessageForEveryone(target.message);
+                    }}
+                />
+            )}
         </View>
+    );
+}
+
+function MessageActionsSheet({
+    message,
+    scale,
+    bottomInset,
+    onClose,
+    onEdit,
+    onDeleteForMe,
+    onDeleteForEveryone,
+}: {
+    message: ChatMessage;
+    scale: number;
+    bottomInset: number;
+    onClose: () => void;
+    onEdit: () => void;
+    onDeleteForMe: () => void;
+    onDeleteForEveryone: () => void;
+}) {
+    const theme = useAppTheme();
+    const [confirming, setConfirming] = useState<"me" | "everyone" | null>(null);
+    const canDeleteForEveryone = Boolean(message.canDeleteForEveryone);
+
+    const action = confirming === "me" ? onDeleteForMe : onDeleteForEveryone;
+    const confirmationText =
+        confirming === "me"
+            ? "This message will be removed only from your chat."
+            : "This message will be removed for everyone in the conversation.";
+    return (
+        <Modal
+            visible
+            transparent
+            animationType="slide"
+            statusBarTranslucent
+            onRequestClose={onClose}
+        >
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: "flex-end",
+                    backgroundColor: "rgba(5, 12, 25, 0.42)",
+                }}
+            >
+                <Pressable
+                    accessibilityLabel="Close message options"
+                    onPress={onClose}
+                    style={{ flex: 1 }}
+                />
+                <View
+                    style={{
+                        paddingHorizontal: 20 * scale,
+                        paddingTop: 18 * scale,
+                        paddingBottom: Math.max(bottomInset, 16) + 12 * scale,
+                        borderTopLeftRadius: 24 * scale,
+                        borderTopRightRadius: 24 * scale,
+                        backgroundColor: theme.surface,
+                    }}
+                >
+                    <Text
+                        style={{
+                            color: theme.ink,
+                            fontSize: 16 * scale,
+                            fontWeight: "700",
+                            marginBottom: 10 * scale,
+                        }}
+                    >
+                        {confirming ? "Delete message?" : "Message options"}
+                    </Text>
+                    {confirming ? (
+                        <>
+                            <Text
+                                style={{
+                                    color: theme.secondary,
+                                    fontSize: 14 * scale,
+                                    marginBottom: 16 * scale,
+                                }}
+                            >
+                                {confirmationText}
+                            </Text>
+                            <View style={{ flexDirection: "row", gap: 10 * scale }}>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={() => setConfirming(null)}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 13 * scale,
+                                        alignItems: "center",
+                                        borderRadius: 14 * scale,
+                                        backgroundColor: theme.subtle,
+                                    }}
+                                >
+                                    <Text style={{ color: theme.ink, fontWeight: "600" }}>
+                                        Cancel
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={action}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 13 * scale,
+                                        alignItems: "center",
+                                        borderRadius: 14 * scale,
+                                        backgroundColor: "#D93848",
+                                    }}
+                                >
+                                    <Text style={{ color: "white", fontWeight: "700" }}>
+                                        Delete
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </>
+                    ) : (
+                        <View style={{ gap: 4 * scale }}>
+                            {message.outgoing && (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={onEdit}
+                                    style={{ paddingVertical: 13 * scale }}
+                                >
+                                    <Text style={{ color: theme.ink, fontSize: 15 * scale }}>
+                                        Edit
+                                    </Text>
+                                </Pressable>
+                            )}
+                            <Pressable
+                                accessibilityRole="button"
+                                onPress={() => setConfirming("me")}
+                                style={{ paddingVertical: 13 * scale }}
+                            >
+                                <Text style={{ color: theme.ink, fontSize: 15 * scale }}>
+                                    Delete for me
+                                </Text>
+                            </Pressable>
+                            {canDeleteForEveryone && (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={() => setConfirming("everyone")}
+                                    style={{ paddingVertical: 13 * scale }}
+                                >
+                                    <Text style={{ color: "#D93848", fontSize: 15 * scale }}>
+                                        Delete for everyone
+                                    </Text>
+                                </Pressable>
+                            )}
+                        </View>
+                    )}
+                </View>
+            </View>
+        </Modal>
     );
 }
 

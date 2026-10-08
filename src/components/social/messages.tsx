@@ -55,7 +55,9 @@ export function LiveChat() {
   const { id } = useLocalSearchParams<{ id: Id<"conversations"> }>();
   const router = useRouter();
   const theme = useAppTheme();
-  const conversationQuery = useNookQuery<Pick<Conversation, "_id" | "other">>(
+  const conversationQuery = useNookQuery<
+    Pick<Conversation, "_id" | "other" | "messageRequest">
+  >(
     id ? `/nook/conversations/${encodeURIComponent(id)}` : null,
   );
   const conversation = conversationQuery.data;
@@ -69,6 +71,7 @@ export function LiveChat() {
   const outbox = useMessages();
   const { confirmDelivered } = outbox;
   const [atBottom, setAtBottom] = useState(true);
+  const [requestDecisionLoading, setRequestDecisionLoading] = useState(false);
   const [focused, setFocused] = useState(true);
   const [active, setActive] = useState(AppState.currentState === "active");
   const [reactionOverrides, setReactionOverrides] = useState<
@@ -125,11 +128,16 @@ export function LiveChat() {
     );
     return () => subscription.remove();
   }, []);
+  const refreshHistory = history.refresh;
+  const refreshConversation = conversationQuery.refresh;
   useEffect(() => {
     if (!focused || !active) return;
-    const timer = setInterval(history.refresh, 5000);
+    const timer = setInterval(() => {
+      void refreshHistory();
+      refreshConversation();
+    }, 5000);
     return () => clearInterval(timer);
-  }, [focused, active, history.refresh]);
+  }, [focused, active, refreshHistory, refreshConversation]);
   const latest = history.results.reduce(
     (max, item) => Math.max(max, item.sequence),
     0,
@@ -185,8 +193,13 @@ export function LiveChat() {
       id: item.requestId ?? item._id,
       backendId: item._id,
       text: item.text,
-      time: `${new Date(item._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${messageTime(item._creationTime)}`,
+      createdAt: item._creationTime,
+      time: messageTime(item._creationTime),
       outgoing: item.outgoing,
+      edited: item.edited,
+      canDeleteForEveryone: item.canDeleteForEveryone,
+      deletedForMe: item.deletedForMe,
+      deletedForEveryone: item.deletedForEveryone,
       replyTo: item.replyTo,
       reactions: reactionOverrides[item._id] ?? item.reactions,
     }));
@@ -200,12 +213,28 @@ export function LiveChat() {
     messages.push({
       id: item.id,
       text: item.text,
+      createdAt: item.createdAt,
       time: messageTime(item.createdAt),
       outgoing: true,
       status: item.status,
       retry: () => outbox.retry(item),
       replyTo: item.replyTo,
     });
+  const messageRequest = conversation?.messageRequest
+    ? {
+        ...conversation.messageRequest,
+        sentCount: Math.max(
+          conversation.messageRequest.sentCount,
+          messages.filter(
+            (message) =>
+              message.outgoing &&
+              (message.backendId ||
+                message.status === "pending" ||
+                message.status === "sent"),
+          ).length,
+        ),
+      }
+    : null;
   if (!conversation && !conversationQuery.error)
     return (
       <View style={[ui.center, { backgroundColor: theme.background }]}>
@@ -232,6 +261,38 @@ export function LiveChat() {
         </Pressable>
       </View>
     );
+  const editMessage = async (message: ChatMessage, text: string) => {
+    if (!message.backendId) return false;
+    try {
+      await request(
+        `/nook/messages/${encodeURIComponent(id)}/messages/${encodeURIComponent(message.backendId)}`,
+        { method: "PATCH", body: { text } },
+      );
+      await history.refresh();
+      conversationQuery.refresh();
+      return true;
+    } catch (error) {
+      Alert.alert("Could not edit message", errorMessage(error));
+      return false;
+    }
+  };
+  const deleteMessage = async (
+    message: ChatMessage,
+    scope: "me" | "everyone",
+  ) => {
+    if (!message.backendId) return;
+    const action = scope === "me" ? "delete-for-me" : "delete-for-everyone";
+    try {
+      await request(
+        `/nook/messages/${encodeURIComponent(id)}/messages/${encodeURIComponent(message.backendId)}/${action}`,
+        { method: "POST" },
+      );
+      await history.refresh();
+      conversationQuery.refresh();
+    } catch (error) {
+      Alert.alert("Could not delete message", errorMessage(error));
+    }
+  };
   return (
     <ChatScreen
       onAtBottom={setAtBottom}
@@ -241,6 +302,24 @@ export function LiveChat() {
       reactionDetails={reactionDetails}
       onReactionPress={onReactionPress}
       onDismissReactionDetails={dismissReactionDetails}
+      messageRequest={messageRequest}
+      requestDecisionLoading={requestDecisionLoading}
+      onRespondToRequest={async (decision) => {
+        setRequestDecisionLoading(true);
+        try {
+          await request(
+            `/nook/conversations/${encodeURIComponent(id)}/request`,
+            { method: "POST", body: { decision } },
+          );
+          conversationQuery.refresh();
+        } catch (error) {
+          Alert.alert("Could not update message request", errorMessage(error));
+        } finally {
+          setRequestDecisionLoading(false);
+        }
+      }}
+      onEditMessage={editMessage}
+      onDeleteMessage={deleteMessage}
       onBack={() => router.back()}
       messages={messages}
       onSend={(text, replyTo) => outbox.send(id, text, replyTo)}

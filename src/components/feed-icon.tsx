@@ -42,7 +42,8 @@ export type IconName =
     | "photo"
     | "check"
     | "double-check"
-    | "chat-send";
+    | "chat-send"
+    | "emoji";
 const symbols = {
     bell: { ios: "bell", android: "notifications" },
     lock: { ios: "lock", android: "lock" },
@@ -85,6 +86,7 @@ const symbols = {
     check: { ios: "checkmark", android: "check" },
     "double-check": { ios: "checkmark", android: "done_all" },
     "chat-send": { ios: "paperplane.fill", android: "send" },
+    emoji: { ios: "face.smiling", android: "mood" },
 } as const satisfies Record<IconName, SymbolViewProps["name"]>;
 
 export function FeedIcon({
