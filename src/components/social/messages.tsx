@@ -246,51 +246,84 @@ export function NewConversation({ close }: { close: () => void }) {
           keyboardShouldPersistTaps="handled"
           data={members}
           keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <Pressable
-              disabled={opening}
-              onPress={async () => {
-                setOpening(true);
-                try {
-                  const conversation = await request<{ id: string }>(
-                    "/nook/conversations",
-                    { method: "POST", body: { profileId: item._id } },
-                  );
-                  cacheNookConversationPreview(
-                    queryClient,
-                    userId,
-                    conversation.id,
-                    item,
-                  );
-                  close();
-                  router.push({
-                    pathname: "/chat/[id]",
-                    params: { id: conversation.id },
-                  });
-                } catch (e) {
-                  Alert.alert("Could not open chat", errorMessage(e));
-                } finally {
-                  setOpening(false);
-                }
-              }}
-              style={{
-                padding: 18,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <Avatar profile={item} size={50} />
-              <View>
-                <Text style={[ui.text, { color: theme.ink }]}>
-                  {item.username}
-                </Text>
-                <Text style={[ui.muted, { color: theme.muted }]}>
-                  {item.name}
-                </Text>
+          renderItem={({ item }) => {
+            const openConversation = async () => {
+              if (opening) return;
+              setOpening(true);
+              try {
+                const conversation = await request<{ id: string }>(
+                  "/nook/conversations",
+                  { method: "POST", body: { profileId: item._id } },
+                );
+                cacheNookConversationPreview(
+                  queryClient,
+                  userId,
+                  conversation.id,
+                  item,
+                );
+                close();
+                router.push({
+                  pathname: "/chat/[id]",
+                  params: { id: conversation.id },
+                });
+              } catch (e) {
+                Alert.alert("Could not open chat", errorMessage(e));
+              } finally {
+                setOpening(false);
+              }
+            };
+            const openProfile = () => {
+              close();
+              router.push({ pathname: "/member/[id]", params: { id: item._id } });
+            };
+            return (
+              <View
+                style={{
+                  padding: 18,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 14,
+                }}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Message ${item.username}`}
+                  disabled={opening}
+                  onPress={() => void openConversation()}
+                  style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`View ${item.username}'s profile`}
+                  onPress={openProfile}
+                >
+                  <Avatar profile={item} size={50} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`View ${item.username}'s profile`}
+                  onPress={openProfile}
+                  style={{ flex: 1 }}
+                >
+                  <Text style={[ui.text, { color: theme.ink }]}>
+                    {item.username}
+                  </Text>
+                  <Text style={[ui.muted, { color: theme.muted }]}>
+                    {item.name}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Message ${item.username}`}
+                  disabled={opening}
+                  onPress={() => void openConversation()}
+                  style={{ padding: 10 }}
+                >
+                  <Text style={[ui.link, { color: theme.blue }]}>Message</Text>
+                </Pressable>
               </View>
-            </Pressable>
-          )}
+            );
+          }}
           ListEmptyComponent={
             result.status !== "LoadingFirstPage" ? (
               <Text

@@ -75,6 +75,10 @@ export function Stories() {
         setSelected(id);
         setSeen((values) => (values.includes(id) ? values : [...values, id]));
     };
+    const openProfile = (id: string) => {
+        setSelected(null);
+        router.push({ pathname: "/member/[id]", params: { id } });
+    };
     const next = () => {
         if (ordered[index + 1]) open(ordered[index + 1]._id);
         else setSelected(null);
@@ -127,11 +131,8 @@ export function Stories() {
                     );
                     const unread = group.find((story) => !seen.includes(story._id));
                     return (
-                        <Pressable
+                        <View
                             key={person._id}
-                            accessibilityRole="button"
-                            accessibilityLabel={`View ${person.isOwn ? "your" : person.username + "'s"} stories`}
-                            onPress={() => open((unread ?? group[0])._id)}
                             style={{
                                 width: 53 * s,
                                 alignItems: "center",
@@ -139,33 +140,68 @@ export function Stories() {
                                 marginTop: -2 * v,
                             }}
                         >
-                            <LinearGradient
-                                colors={
-                                    !unread
-                                        ? ["#C9CFDA", "#C9CFDA"]
-                                        : i % 2
-                                            ? ["#CF60EC", "#FFD3A4"]
-                                            : ["#0788FF", "#BBDEFF"]
-                                }
-                                style={{ padding: 1.3 * s, borderRadius: 30 * s }}
-                            >
-                                <View
+                            <View style={{ width: 53 * s, height: 53 * s }}>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`View ${person.username}'s stories`}
+                                    onPress={() => open((unread ?? group[0])._id)}
                                     style={{
-                                        padding: 2 * s,
-                                        backgroundColor: theme.background,
-                                        borderRadius: 30 * s,
+                                        position: "absolute",
+                                        inset: 0,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <LinearGradient
+                                        colors={
+                                            !unread
+                                                ? ["#C9CFDA", "#C9CFDA"]
+                                                : i % 2
+                                                    ? ["#CF60EC", "#FFD3A4"]
+                                                    : ["#0788FF", "#BBDEFF"]
+                                        }
+                                        style={{
+                                            padding: 1.3 * s,
+                                            borderRadius: 30 * s,
+                                        }}
+                                    >
+                                        <View
+                                            style={{
+                                                width: 50 * s,
+                                                height: 50 * s,
+                                                backgroundColor: theme.background,
+                                                borderRadius: 30 * s,
+                                            }}
+                                        />
+                                    </LinearGradient>
+                                </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`View ${person.username}'s profile`}
+                                    onPress={() => openProfile(person._id)}
+                                    style={{
+                                        position: "absolute",
+                                        top: 3 * s,
+                                        left: 3 * s,
                                     }}
                                 >
                                     <Avatar profile={person} size={47 * s} />
-                                </View>
-                            </LinearGradient>
-                            <Text
-                                numberOfLines={1}
-                                style={{ color: theme.ink, fontSize: 9.5 * s }}
+                                </Pressable>
+                            </View>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={`View ${person.username}'s profile`}
+                                onPress={() => openProfile(person._id)}
+                                style={{ maxWidth: "100%" }}
                             >
-                                {person.isOwn ? "Your photos" : person.username}
-                            </Text>
-                        </Pressable>
+                                <Text
+                                    numberOfLines={1}
+                                    style={{ color: theme.ink, fontSize: 9.5 * s }}
+                                >
+                                    {person.isOwn ? "Your photos" : person.username}
+                                </Text>
+                            </Pressable>
+                        </View>
                     );
                 })}
                 {stories === undefined ? (
@@ -203,6 +239,7 @@ export function Stories() {
                             if (ordered[index - 1]) open(ordered[index - 1]._id);
                         }}
                         onClose={() => setSelected(null)}
+                        onAuthorPress={() => openProfile(current.author._id)}
                     />
                 )}
             </Modal>
@@ -217,6 +254,7 @@ function StoryViewer({
     onNext,
     onPrevious,
     onClose,
+    onAuthorPress,
 }: {
     story: Story;
     now: number;
@@ -225,6 +263,7 @@ function StoryViewer({
     onNext: () => void;
     onPrevious: () => void;
     onClose: () => void;
+    onAuthorPress: () => void;
 }) {
     const insets = useSafeAreaInsets();
     const { source, error, retry } = useMediaSource(story._id, "story");
@@ -340,15 +379,27 @@ function StoryViewer({
                     padding: 14,
                 }}
             >
-                <Avatar profile={story.author} size={34} />
-                <View style={{ flex: 1 }}>
-                    <Text style={{ color: "white", fontWeight: "600" }}>
-                        {story.author.username}
-                    </Text>
-                    <Text style={{ color: "#BBC4D5", fontSize: 11 }}>
-                        Story · {formatStoryAge(now - story._creationTime)}
-                    </Text>
-                </View>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${story.author.username}'s profile`}
+                    onPress={onAuthorPress}
+                    style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                    }}
+                >
+                    <Avatar profile={story.author} size={34} />
+                    <View>
+                        <Text style={{ color: "white", fontWeight: "600" }}>
+                            {story.author.username}
+                        </Text>
+                        <Text style={{ color: "#BBC4D5", fontSize: 11 }}>
+                            Story · {formatStoryAge(now - story._creationTime)}
+                        </Text>
+                    </View>
+                </Pressable>
                 {story.author.isOwn && (
                     <Pressable
                         accessibilityRole="button"

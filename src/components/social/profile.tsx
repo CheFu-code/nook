@@ -126,7 +126,12 @@ function MemberProfile({
                 },
             ]}
         >
-            <ProfileHeader back={back} onSettings={() => setSheet("settings")} />
+            <ProfileHeader
+                back={back}
+                onSettings={
+                    profile?.isOwn ? () => setSheet("settings") : undefined
+                }
+            />
             <ConnectionStatus />
             {!profile ? (
                 profile === undefined ? (

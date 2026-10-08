@@ -21,7 +21,7 @@ export function ProfileHeader({
 	onSettings,
 	back = false,
 }: {
-	onSettings: () => void;
+	onSettings?: () => void;
 	back?: boolean;
 }) {
 	const { s, v } = useProfileScale();
@@ -65,19 +65,21 @@ export function ProfileHeader({
 			>
 				nook
 			</Text>
-			<Pressable
-				accessibilityRole="button"
-				accessibilityLabel="Settings"
-				onPress={onSettings}
-				style={{
-					minWidth: 44,
-					minHeight: 44,
-					alignItems: "center",
-					justifyContent: "center",
-				}}
-			>
-				<FeedIcon name="settings" size={23 * s} color={theme.ink} />
-			</Pressable>
+			{onSettings && (
+				<Pressable
+					accessibilityRole="button"
+					accessibilityLabel="Settings"
+					onPress={onSettings}
+					style={{
+						minWidth: 44,
+						minHeight: 44,
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<FeedIcon name="settings" size={23 * s} color={theme.ink} />
+				</Pressable>
+			)}
 		</View>
 	);
 }

@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import {
     Modal,
@@ -45,6 +46,7 @@ export function MessagesTabView({
     const liveRows = conversations.map((item) => (
         <ConversationRow
             key={item._id}
+            profileId={item.other._id}
             name={item.other.username}
             text={item.preview}
             previewIsOwn={item.previewIsOwn}
@@ -173,6 +175,7 @@ function ConversationRow({
     time,
     unreadCount,
     unreadCountExact,
+    profileId,
     avatar,
     onPress,
 }: {
@@ -182,18 +185,17 @@ function ConversationRow({
     time: string;
     unreadCount: number;
     unreadCountExact: boolean;
+    profileId: string;
     avatar: (size: number) => ReactNode;
     onPress: () => void;
 }) {
     const { width, height } = useWindowDimensions();
     const theme = useAppTheme();
+    const router = useRouter();
     const s = width / 390;
     const vertical = Math.max(1, Math.min(1.12, height / width / (1502 / 739)));
     return (
-        <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open chat with ${name}${unreadCount > 0 ? `, ${unreadCountExact ? unreadCount : "at least one"} unread messages` : ""}`}
-            onPress={onPress}
+        <View
             style={{
                 backgroundColor: theme.subtle,
                 borderRadius: 18 * s,
@@ -205,27 +207,67 @@ function ConversationRow({
                 gap: 19 * s,
             }}
         >
-            <View>{avatar(60 * s)}</View>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open chat with ${name}${unreadCount > 0 ? `, ${unreadCountExact ? unreadCount : "at least one"} unread messages` : ""}`}
+                onPress={onPress}
+                style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+            />
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`View ${name}'s profile`}
+                onPress={() =>
+                    router.push({
+                        pathname: "/member/[id]",
+                        params: { id: profileId },
+                    })
+                }
+            >
+                {avatar(60 * s)}
+            </Pressable>
             <View style={{ flex: 1, gap: 5 * s }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`View ${name}'s profile`}
+                        onPress={() =>
+                            router.push({
+                                pathname: "/member/[id]",
+                                params: { id: profileId },
+                            })
+                        }
+                        style={{ flex: 1 }}
+                    >
                     <Text
                         numberOfLines={1}
-                        style={[styles.name, { flex: 1, fontSize: 18 * s, color: theme.ink }]}
+                        style={[styles.name, { fontSize: 18 * s, color: theme.ink }]}
                     >
                         {name}
                     </Text>
-                    <Text
+                    </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open chat with ${name}`}
+                        onPress={onPress}
+                    >
+                        <Text
                         style={{
                             color: theme.muted,
                             fontSize: 13 * s,
                             marginRight: 9 * s,
                             letterSpacing: -0.4,
                         }}
-                    >
-                        {time}
-                    </Text>
+                        >
+                            {time}
+                        </Text>
+                    </Pressable>
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 7 * s }}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open chat with ${name}${unreadCount > 0 ? `, ${unreadCountExact ? unreadCount : "at least one"} unread messages` : ""}`}
+                    onPress={onPress}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 7 * s }}
+                >
                     <Text
                         numberOfLines={1}
                         style={[styles.preview, { flex: 1, fontSize: 15 * s, color: theme.muted }]}
@@ -249,9 +291,9 @@ function ConversationRow({
                             </Text>
                         </View>
                     )}
-                </View>
+                </Pressable>
             </View>
-        </Pressable>
+        </View>
     );
 }
 
