@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import {
     Animated,
     KeyboardAvoidingView,
@@ -51,6 +51,11 @@ export function ChatScreen({
         handleContentSizeChange,
         scrollToEnd,
     } = useChatScreenLogic({ messages, onSend, onAtBottom });
+    const inputRef = useRef<TextInput>(null);
+    const replyToMessage = (message: ChatMessage) => {
+        setReplyTo(message);
+        inputRef.current?.focus();
+    };
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
@@ -149,7 +154,7 @@ export function ChatScreen({
                         peer={peer}
                         scale={s}
                         vertical={v}
-                        onReply={setReplyTo}
+                        onReply={replyToMessage}
                     />
                 ))}
             </ScrollView>
@@ -181,7 +186,7 @@ export function ChatScreen({
                             <Text style={{ color: theme.blue, fontSize: fs(12), fontWeight: "700" }}>
                                 Replying to {replyTo.outgoing ? "you" : peer.name}
                             </Text>
-                            <Text numberOfLines={1} style={{ color: theme.muted, fontSize: fs(12) }}>
+                            <Text numberOfLines={2} style={{ color: theme.muted, fontSize: fs(12) }}>
                                 {replyTo.text}
                             </Text>
                         </View>
@@ -212,6 +217,7 @@ export function ChatScreen({
                         ]}
                     >
                         <TextInput
+                            ref={inputRef}
                             accessibilityLabel="Message"
                             value={draft}
                             onChangeText={setDraft}
@@ -271,14 +277,32 @@ function MessageRow({
         () =>
             PanResponder.create({
                 onStartShouldSetPanResponder: () => false,
-                onMoveShouldSetPanResponder: (_, gesture) =>
-                    !message.status &&
-                    gesture.dx > 12 &&
-                    gesture.dx > Math.abs(gesture.dy) * 1.2,
-                onPanResponderMove: (_, gesture) =>
-                    translateX.setValue(Math.min(68 * scale, Math.max(0, gesture.dx))),
+                onMoveShouldSetPanResponder: (_, gesture) => {
+                    const swipeTowardReply = message.outgoing
+                        ? gesture.dx < -12
+                        : gesture.dx > 12;
+                    return (
+                        message.status !== "pending" &&
+                        message.status !== "failed" &&
+                        swipeTowardReply &&
+                        Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2
+                    );
+                },
+                onPanResponderMove: (_, gesture) => {
+                    const offset = message.outgoing
+                        ? Math.max(-68 * scale, Math.min(0, gesture.dx))
+                        : Math.min(68 * scale, Math.max(0, gesture.dx));
+                    translateX.setValue(offset);
+                },
                 onPanResponderRelease: (_, gesture) => {
-                    if (gesture.dx >= 58 * scale && !message.status) {
+                    const reachedReplyThreshold = message.outgoing
+                        ? gesture.dx <= -58 * scale
+                        : gesture.dx >= 58 * scale;
+                    if (
+                        reachedReplyThreshold &&
+                        message.status !== "pending" &&
+                        message.status !== "failed"
+                    ) {
                         onReply(message);
                     }
                     Animated.spring(translateX, {
