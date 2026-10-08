@@ -98,9 +98,13 @@ export async function requestJson<T>(
     const responseText = await response.text();
     let message = `Request failed (${response.status}).`;
     try {
-      const body = JSON.parse(responseText) as { message?: string | string[] };
-      if (Array.isArray(body.message)) message = body.message.join(' ');
-      else if (body.message) message = body.message;
+      const body = JSON.parse(responseText) as {
+        message?: string | string[];
+        error?: string | string[];
+      };
+      const detail = body.message ?? body.error;
+      if (Array.isArray(detail)) message = detail.join(' ');
+      else if (detail) message = detail;
     } catch {
       if (responseText) message = responseText;
     }

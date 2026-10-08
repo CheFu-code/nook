@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FeedIcon } from "./feed-icon";
+import { FeedIcon, type IconName } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
 
 export type ProfilePanel = "posts" | "videos" | "saved" | "tagged";
@@ -261,7 +261,7 @@ export function ProfileSummary({
 							justifyContent: "center",
 						}}
 					>
-						<FeedIcon name="person-plus" size={23 * s} />
+						<FeedIcon name="person-plus" size={23 * s} color={theme.ink} />
 					</Pressable>
 				</View>
 			)}
@@ -272,12 +272,22 @@ export function ProfileSummary({
 export function ProfileGalleryTabs({
 	panel,
 	onChange,
+	showSaved = true,
 }: {
 	panel: ProfilePanel;
 	onChange: (panel: ProfilePanel) => void;
+	showSaved?: boolean;
 }) {
 	const { s, v } = useProfileScale();
 	const theme = useAppTheme();
+	const tabs: { key: ProfilePanel; icon: IconName; label: string }[] = [
+		{ key: "posts", icon: "grid", label: "Posts" },
+		{ key: "videos", icon: "video", label: "Videos" },
+		...(showSaved
+			? [{ key: "saved", icon: "bookmark", label: "Saved" } as const]
+			: []),
+		{ key: "tagged", icon: "tagged", label: "Tagged" },
+	];
 	return (
 		<View
 			style={{
@@ -287,14 +297,7 @@ export function ProfileGalleryTabs({
 				paddingHorizontal: 6 * s,
 			}}
 		>
-			{(
-				[
-					{ key: "posts", icon: "grid", label: "Posts" },
-					{ key: "videos", icon: "video", label: "Videos" },
-					{ key: "saved", icon: "bookmark", label: "Saved" },
-					{ key: "tagged", icon: "tagged", label: "Tagged" },
-				] as const
-			).map((item) => (
+			{tabs.map((item) => (
 				<Pressable
 					key={item.key}
 					accessibilityRole="tab"

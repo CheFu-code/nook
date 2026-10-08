@@ -169,9 +169,10 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
         <TextInput
           accessibilityLabel={label}
           onFocus={(event) => {
+            const target = event.nativeEvent.target;
             requestAnimationFrame(() => {
               scrollView.current?.scrollResponderScrollNativeHandleToKeyboard(
-                event.nativeEvent.target,
+                target,
                 120,
                 true,
               );
@@ -373,21 +374,7 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
         {field("bio", "Bio", "bio")}
         {field("website", "Website", "link")}
         {field("location", "Location", "location")}
-        <Pressable
-          accessibilityRole="button"
-          disabled={picking}
-          onPress={save}
-          style={[
-            styles.save,
-            { height: 43 * v, borderRadius: fs(22), marginTop: 15 * v },
-          ]}
-        >
-          <Text
-            style={{ color: "white", fontSize: fs(14.5), fontWeight: "500" }}
-          >
-            Save Changes
-          </Text>
-        </Pressable>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );

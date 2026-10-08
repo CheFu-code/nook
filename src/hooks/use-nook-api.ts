@@ -39,11 +39,12 @@ export function useNookQuery<T>(path: string | null) {
     return { data: query.data, error: query.error ?? null, refresh };
 }
 
-export function useNookPaginatedQuery<T>(path: string) {
+export function useNookPaginatedQuery<T>(path: string, enabled = true) {
     const { userId } = useAuth();
     const request = useNookApi();
     const query = useInfiniteQuery({
         queryKey: nookApiQueryKey(userId, path),
+        enabled,
         initialPageParam: 0,
         queryFn: ({ pageParam }) =>
             request<Page<T>>(`${path}${path.includes('?') ? '&' : '?'}page=${pageParam}&limit=20`),
@@ -53,8 +54,8 @@ export function useNookPaginatedQuery<T>(path: string) {
     const { isStale, refetch, isFetching, isFetchingNextPage, isPending, isError, data, hasNextPage, fetchNextPage, error } = query;
 
     useFocusEffect(useCallback(() => {
-        if (isStale && !isFetching) void refetch();
-    }, [isStale, isFetching, refetch]));
+        if (enabled && isStale && !isFetching) void refetch();
+    }, [enabled, isStale, isFetching, refetch]));
 
     const results = data?.pages.flatMap(page => page.items) ?? [];
     let status: NookQueryStatus;

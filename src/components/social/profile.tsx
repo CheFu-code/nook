@@ -62,6 +62,10 @@ function MemberProfile({
     const posts = useNookPaginatedQuery<SocialPost>(
         `/nook/posts?feed=profile&profileId=${encodeURIComponent(id)}`,
     );
+    const savedPosts = useNookPaginatedQuery<SocialPost>(
+        "/nook/posts/saved",
+        !!profile?.isOwn,
+    );
     const request = useNookApi();
     const router = useRouter();
     const { signOut } = useAuth();
@@ -76,8 +80,11 @@ function MemberProfile({
             ? posts.results
             : panel === "videos"
                 ? posts.results.filter((post) => post.kind === "video")
-                : [];
-    const hasPostFeed = panel === "posts" || panel === "videos";
+                : panel === "saved" && profile?.isOwn
+                    ? savedPosts.results
+                    : [];
+    const hasPostFeed = panel === "posts" || panel === "videos" || (panel === "saved" && profile?.isOwn === true);
+    const galleryStatus = panel === "saved" ? savedPosts.status : posts.status;
     if (sheet === "settings")
         return (
             <SettingsScreen
@@ -185,7 +192,7 @@ function MemberProfile({
                                         </View>
                                     )}
                                 </ProfileSummary>
-                                <ProfileGalleryTabs panel={panel} onChange={setPanel} />
+                                <ProfileGalleryTabs panel={panel} onChange={setPanel} showSaved={profile.isOwn} />
                                 <View style={{ height: 4 * v }} />
                             </>
                         }
@@ -212,11 +219,14 @@ function MemberProfile({
                             </Pressable>
                         )}
                         onEndReached={() => {
-                            if (hasPostFeed && posts.status === "CanLoadMore")
+                            if (!hasPostFeed) return;
+                            if (panel === "saved" && savedPosts.status === "CanLoadMore")
+                                savedPosts.loadMore(21);
+                            else if (panel !== "saved" && posts.status === "CanLoadMore")
                                 posts.loadMore(21);
                         }}
                         ListEmptyComponent={
-                            !hasPostFeed || posts.status !== "LoadingFirstPage" ? (
+                            !hasPostFeed || galleryStatus !== "LoadingFirstPage" ? (
                                 <View style={{ alignItems: "center", padding: 38, gap: 16 }}>
                                     <FeedIcon
                                         name={
@@ -238,7 +248,9 @@ function MemberProfile({
                                         ]}
                                     >
                                         {panel === "saved"
-                                            ? "Saved posts gallery is not available yet."
+                                            ? savedPosts.status === "Error"
+                                                ? "Couldn’t load saved posts. Tap Saved again to retry."
+                                                : "No saved posts yet."
                                             : panel === "tagged"
                                                 ? "Tagged posts are not available yet."
                                                 : panel === "videos"
@@ -250,7 +262,9 @@ function MemberProfile({
                         }
                         ListFooterComponent={
                             hasPostFeed ? (
-                                <LoadMore status={posts.status} loadMore={posts.loadMore} />
+                                panel === "saved"
+                                    ? <LoadMore status={savedPosts.status} loadMore={savedPosts.loadMore} />
+                                    : <LoadMore status={posts.status} loadMore={posts.loadMore} />
                             ) : null
                         }
                     />
