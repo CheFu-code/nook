@@ -1,2 +1,10 @@
 import { Composer } from '@/components/social/composer';
-export default function StoryComposer() { return <Composer story />; }
+import { ProfileGate } from '@/context/social-context';
+
+export default function StoryComposer() {
+  return (
+    <ProfileGate>
+      <Composer story />
+    </ProfileGate>
+  );
+}

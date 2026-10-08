@@ -87,14 +87,26 @@ export function validateMedia(asset: ImagePickerAsset, avatar = false) {
   };
 }
 
-export function sendUpload(id: string, uri: string, blob: Blob, token: string, progress: (value: number) => void, signal?: AbortSignal) {
+export function sendUpload(
+  id: string,
+  uri: string,
+  mimeType: string,
+  blob: Blob | null,
+  token: string,
+  progress: (value: number) => void,
+  signal?: AbortSignal,
+) {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const form = new FormData();
     if (Platform.OS === 'web') {
+      if (!blob) {
+        reject(new Error('Unable to prepare the selected file. Please choose it again.'));
+        return;
+      }
       form.append('file', blob, 'upload');
     } else {
-      appendNativeFile(form, { uri, name: 'upload', type: blob.type });
+      appendNativeFile(form, { uri, name: 'upload', type: mimeType });
     }
     const abort = () => xhr.abort();
     signal?.addEventListener('abort', abort);

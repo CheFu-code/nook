@@ -2,6 +2,15 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import Animated, {
+    cancelAnimation,
+    Easing,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 import {
     ActivityIndicator,
     Alert,
@@ -23,6 +32,7 @@ import { Avatar, useMediaSource } from "./media";
 import { useAppTheme } from "@/lib/theme";
 
 type Story = SocialStory;
+const STORY_DURATION_MS = 5000;
 export function Stories() {
     const { user } = useAuth();
     const theme = useAppTheme();
@@ -225,7 +235,10 @@ function StoryViewer({
     const [foreground, setForeground] = useState(
         AppState.currentState === "active",
     );
-    const [progress, setProgress] = useState(0);
+    const progress = useSharedValue(0);
+    const progressStyle = useAnimatedStyle(() => ({
+        width: `${interpolate(progress.get(), [0, 1], [0, 100])}%`,
+    }));
     useEffect(() => {
         const listener = AppState.addEventListener("change", (state) =>
             setForeground(state === "active"),
@@ -234,15 +247,18 @@ function StoryViewer({
     }, []);
     useEffect(() => {
         if (!ready || paused || !foreground || failed) return;
-        const timer = setInterval(
-            () => setProgress((value) => Math.min(1, value + 0.02)),
-            100,
-        );
-        return () => clearInterval(timer);
-    }, [ready, paused, foreground, failed]);
-    useEffect(() => {
-        if (progress >= 1) onNext();
-    }, [progress, onNext]);
+        progress.set(withTiming(
+            1,
+            {
+                duration: STORY_DURATION_MS * (1 - progress.get()),
+                easing: Easing.linear,
+            },
+            (finished) => {
+                if (finished) runOnJS(onNext)();
+            },
+        ));
+        return () => cancelAnimation(progress);
+    }, [ready, paused, foreground, failed, onNext, progress]);
     useEffect(() => {
         const timer = setTimeout(
             onClose,
@@ -303,13 +319,16 @@ function StoryViewer({
                             overflow: "hidden",
                         }}
                     >
-                        <View
-                            style={{
-                                height: 3,
-                                width: `${i < index ? 100 : i === index ? progress * 100 : 0}%`,
-                                backgroundColor: "white",
-                            }}
-                        />
+                        {i < index ? (
+                            <View style={{ height: 3, width: "100%", backgroundColor: "white" }} />
+                        ) : i === index ? (
+                            <Animated.View
+                                style={[
+                                    { height: 3, backgroundColor: "white" },
+                                    progressStyle,
+                                ]}
+                            />
+                        ) : null}
                     </View>
                 ))}
             </View>
@@ -327,12 +346,7 @@ function StoryViewer({
                         {story.author.username}
                     </Text>
                     <Text style={{ color: "#BBC4D5", fontSize: 11 }}>
-                        Story ·{" "}
-                        {Math.max(
-                            1,
-                            Math.ceil((now - story._creationTime) / 3600000),
-                        )}
-                        h ago
+                        Story · {formatStoryAge(now - story._creationTime)}
                     </Text>
                 </View>
                 {story.author.isOwn && (
@@ -426,4 +440,11 @@ function StoryViewer({
             </Pressable>
         </View>
     );
+}
+
+function formatStoryAge(ageMs: number) {
+    const ageMinutes = Math.max(0, Math.floor(ageMs / 60_000));
+    if (ageMinutes === 0) return "Just now";
+    if (ageMinutes < 60) return `${ageMinutes}m ago`;
+    return `${Math.floor(ageMinutes / 60)}h ago`;
 }

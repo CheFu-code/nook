@@ -171,16 +171,14 @@ export function Composer({ story = false }: { story?: boolean }) {
 				const activeId = uploadId.current;
 				if (!activeId)
 					throw new Error("Upload session is missing. Please try again.");
-				const blob = await readUploadBlob(
-					asset.uri,
-					meta.max,
-					meta.mime,
-				);
+				const blob = Platform.OS === "web"
+					? await readUploadBlob(asset.uri, meta.max, meta.mime)
+					: null;
 				const token = await getToken();
 				if (!token) throw new Error("Session expired. Sign in again.");
 				if (signal.aborted) return;
 				setPhase("uploading");
-				await sendUpload(activeId, asset.uri, blob, token, setProgress, signal);
+				await sendUpload(activeId, asset.uri, meta.mime, blob, token, setProgress, signal);
 				uploaded.current = true;
 			}
 			if (signal.aborted) return;
