@@ -89,6 +89,20 @@ function MemberProfile({
                     : [];
     const hasPostFeed = panel === "posts" || panel === "videos" || (panel === "saved" && profile?.isOwn === true);
     const galleryStatus = panel === "saved" ? savedPosts.status : posts.status;
+    const emptyGalleryMessage =
+        panel === "saved"
+            ? savedPosts.status === "Error"
+                ? "Couldn’t load saved posts. Tap Saved again to retry."
+                : "No saved posts yet."
+            : panel === "tagged"
+                ? "Tagged posts are not available yet."
+                : panel === "videos"
+                    ? profile?.isOwn
+                        ? "No videos to show."
+                        : `No videos from @${profile?.username} yet.`
+                    : profile?.isOwn
+                        ? "No posts yet. Your moments will appear here."
+                        : `No posts yet. @${profile?.username} hasn’t shared any moments.`;
     if (sheet === "settings")
         return (
             <SettingsScreen
@@ -257,15 +271,7 @@ function MemberProfile({
                                             { textAlign: "center", color: theme.muted },
                                         ]}
                                     >
-                                        {panel === "saved"
-                                            ? savedPosts.status === "Error"
-                                                ? "Couldn’t load saved posts. Tap Saved again to retry."
-                                                : "No saved posts yet."
-                                            : panel === "tagged"
-                                                ? "Tagged posts are not available yet."
-                                                : panel === "videos"
-                                                    ? "No videos to show."
-                                                    : "No posts yet. Your moments will appear here."}
+                                        {emptyGalleryMessage}
                                     </Text>
                                 </View>
                             ) : null
