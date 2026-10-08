@@ -9,6 +9,8 @@ export type SocialProfile = {
   location?: string;
   isOwn?: boolean;
   isFollowing?: boolean;
+  isBlockedByMe?: boolean;
+  isBlockingMe?: boolean;
   hasAvatar?: boolean;
   avatarVersion?: number;
   avatarUrl?: string;

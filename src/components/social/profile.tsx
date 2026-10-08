@@ -41,6 +41,7 @@ import {
 } from "../profile-layout";
 import { FeedIcon } from "../feed-icon";
 import { SettingsScreen } from "../settings-screen";
+import { BlockedUsersScreen } from "../blocked-users-screen";
 import { useAppTheme } from "@/lib/theme";
 
 export function OwnProfile() {
@@ -65,7 +66,8 @@ function MemberProfile({
     const [panel, setPanel] = useState<ProfilePanel>("posts");
     const posts = useNookCursorPaginatedQuery<SocialPost>(
         `/nook/posts?feed=profile&profileId=${encodeURIComponent(id)}&cursorMode=true`,
-        !!profile && (panel === "posts" || panel === "videos"),
+        !!profile && !profile.isBlockedByMe && !profile.isBlockingMe &&
+            (panel === "posts" || panel === "videos"),
     );
     const savedPosts = useNookPaginatedQuery<SocialPost>(
         "/nook/posts/saved",
@@ -78,8 +80,10 @@ function MemberProfile({
     const { s, v, width, insets } = useProfileScale();
     const theme = useAppTheme();
     const [sheet, setSheet] = useState<
-        "followers" | "following" | "edit" | "settings" | null
+        "followers" | "following" | "edit" | "settings" | "blocked-users" | null
     >(null);
+    const [blockBusy, setBlockBusy] = useState(false);
+    const [blockConfirmationOpen, setBlockConfirmationOpen] = useState(false);
     const gallery =
         panel === "posts"
             ? posts.results
@@ -114,9 +118,36 @@ function MemberProfile({
                     setPanel("saved");
                     setSheet(null);
                 }}
+                onBlockedUsers={() => setSheet("blocked-users")}
                 onSignOut={signOut}
             />
         );
+    if (sheet === "blocked-users")
+        return <BlockedUsersScreen onClose={() => setSheet("settings")} />;
+
+    async function updateBlock(blocked: boolean) {
+        if (!profile || blockBusy) return;
+        setBlockBusy(true);
+        try {
+            await request(
+                `/nook/profiles/${encodeURIComponent(profile._id)}/block`,
+                { method: blocked ? "POST" : "DELETE" },
+            );
+            await profileQuery.refresh();
+        } catch (error) {
+            Alert.alert(
+                blocked ? "Could not block user" : "Could not unblock user",
+                errorMessage(error),
+            );
+        } finally {
+            setBlockBusy(false);
+        }
+    }
+
+    function confirmBlock() {
+        if (!profile) return;
+        setBlockConfirmationOpen(true);
+    }
     return (
         <View
             style={[
@@ -144,10 +175,17 @@ function MemberProfile({
                         </Text>
                     </View>
                 )
+            ) : profile.isBlockingMe ? (
+                <View style={[ui.center, { backgroundColor: theme.background, padding: 28 }]}>
+                    <Text style={[ui.title, { color: theme.ink }]}>Profile unavailable</Text>
+                    <Text style={[ui.muted, { color: theme.muted, textAlign: "center" }]}>
+                        This profile isn’t available.
+                    </Text>
+                </View>
             ) : (
                 <>
                     <FlatList
-                        data={gallery}
+                        data={profile.isBlockedByMe ? [] : gallery}
                         numColumns={3}
                         keyExtractor={(item) => item._id}
                         showsVerticalScrollIndicator={false}
@@ -168,7 +206,7 @@ function MemberProfile({
                                     bio={profile.bio ?? ""}
                                     onEdit={profile.isOwn ? () => setSheet("edit") : undefined}
                                     onDiscover={() => router.navigate("/explore")}
-                                    stats={[
+                                    stats={profile.isBlockedByMe ? [] : [
                                         {
                                             label: "Posts",
                                             count: profile.postsCount ?? 0,
@@ -187,48 +225,114 @@ function MemberProfile({
                                     ]}
                                 >
                                     {!profile.isOwn && (
-                                        <View
-                                            style={{
-                                                flexDirection: "row",
-                                                alignItems: "center",
-                                                gap: 12,
-                                                marginTop: 16 * v,
-                                            }}
-                                        >
-                                            <FollowButton profile={profile} />
+                                        profile.isBlockedByMe ? (
                                             <Pressable
                                                 accessibilityRole="button"
-                                                style={[ui.button, { flex: 1 }]}
-                                                onPress={async () => {
-                                                    try {
-                                                        const conversation = await request<{ id: string }>(
-                                                            "/nook/conversations",
-                                                            {
-                                                                method: "POST",
-                                                                body: { profileId: profile._id },
-                                                            },
-                                                        );
-                                                        cacheNookConversationPreview(
-                                                            queryClient,
-                                                            userId,
-                                                            conversation.id,
-                                                            profile,
-                                                        );
-                                                        router.push({
-                                                            pathname: "/chat/[id]",
-                                                            params: { id: conversation.id },
-                                                        });
-                                                    } catch (e) {
-                                                        Alert.alert("Could not open chat", errorMessage(e));
-                                                    }
+                                                accessibilityState={{ disabled: blockBusy, busy: blockBusy }}
+                                                disabled={blockBusy}
+                                                style={{
+                                                    minHeight: Math.max(44, 42 * v),
+                                                    width: "100%",
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    gap: 8 * s,
+                                                    marginTop: 12 * v,
+                                                    borderRadius: 14 * s,
+                                                    borderWidth: 1,
+                                                    borderColor: theme.border,
+                                                    backgroundColor: theme.subtle,
                                                 }}
+                                                onPress={() => void updateBlock(false)}
                                             >
-                                                <Text style={ui.buttonText}>Message</Text>
+                                                <FeedIcon name="blocked" size={16 * s} color={theme.ink} />
+                                                <Text style={{ color: theme.ink, fontSize: 14 * s, fontWeight: "600" }}>
+                                                    {blockBusy ? "Unblocking…" : "Unblock"}
+                                                </Text>
                                             </Pressable>
-                                        </View>
+                                        ) : (
+                                            <>
+                                                <View
+                                                    style={{
+                                                        flexDirection: "row",
+                                                        alignItems: "center",
+                                                        gap: 12,
+                                                        marginTop: 16 * v,
+                                                    }}
+                                                >
+                                                    <FollowButton profile={profile} />
+                                                    <Pressable
+                                                        accessibilityRole="button"
+                                                        style={[ui.button, { flex: 1 }]}
+                                                        onPress={async () => {
+                                                            try {
+                                                                const conversation = await request<{ id: string }>(
+                                                                    "/nook/conversations",
+                                                                    {
+                                                                        method: "POST",
+                                                                        body: { profileId: profile._id },
+                                                                    },
+                                                                );
+                                                                cacheNookConversationPreview(
+                                                                    queryClient,
+                                                                    userId,
+                                                                    conversation.id,
+                                                                    profile,
+                                                                );
+                                                                router.push({
+                                                                    pathname: "/chat/[id]",
+                                                                    params: { id: conversation.id },
+                                                                });
+                                                            } catch (e) {
+                                                                Alert.alert("Could not open chat", errorMessage(e));
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Text style={ui.buttonText}>Message</Text>
+                                                    </Pressable>
+                                                </View>
+                                                <Pressable
+                                                    accessibilityRole="button"
+                                                    accessibilityState={{ disabled: blockBusy }}
+                                                    disabled={blockBusy}
+                                                    onPress={confirmBlock}
+                                                    style={{
+                                                        minHeight: Math.max(44, 42 * v),
+                                                        width: "100%",
+                                                        flexDirection: "row",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        gap: 8 * s,
+                                                        marginTop: 8 * v,
+                                                        borderRadius: 14 * s,
+                                                        borderWidth: 1,
+                                                        borderColor: theme.isDark ? "#68313D" : "#F4D6DA",
+                                                        backgroundColor: theme.isDark ? "#321E27" : "#FFF5F6",
+                                                    }}
+                                                >
+                                                    <FeedIcon name="blocked" size={16 * s} color="#E5485D" />
+                                                    <Text style={{ color: "#E5485D", fontSize: 14 * s, fontWeight: "600" }}>
+                                                        Block user
+                                                    </Text>
+                                                </Pressable>
+                                            </>
+                                        )
                                     )}
                                 </ProfileSummary>
-                                <ProfileGalleryTabs panel={panel} onChange={setPanel} showSaved={profile.isOwn} />
+                                {profile.isBlockedByMe ? (
+                                    <Text
+                                        style={{
+                                            color: theme.muted,
+                                            textAlign: "center",
+                                            marginTop: 18 * v,
+                                            paddingHorizontal: 24,
+                                        }}
+                                    >
+                                        You’ve blocked this account. Unblock them to see their posts and interact again.
+                                    </Text>
+                                ) : (
+                                    <ProfileGalleryTabs panel={panel} onChange={setPanel} showSaved={profile.isOwn} />
+                                )}
                                 <View style={{ height: 4 * v }} />
                             </>
                         }
@@ -323,6 +427,135 @@ function MemberProfile({
                                 />
                             )
                         )}
+                    </Modal>
+                    <Modal
+                        visible={blockConfirmationOpen}
+                        transparent
+                        animationType="fade"
+                        statusBarTranslucent
+                        onRequestClose={() => {
+                            if (!blockBusy) setBlockConfirmationOpen(false);
+                        }}
+                    >
+                        <View
+                            style={{
+                                flex: 1,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: 24,
+                                backgroundColor: "rgba(5, 10, 20, 0.58)",
+                            }}
+                        >
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Cancel block confirmation"
+                                disabled={blockBusy}
+                                onPress={() => setBlockConfirmationOpen(false)}
+                                style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+                            />
+                            <View
+                                accessibilityViewIsModal
+                                style={{
+                                    width: "100%",
+                                    maxWidth: 380,
+                                    alignItems: "center",
+                                    paddingHorizontal: 24,
+                                    paddingTop: 26,
+                                    paddingBottom: 20,
+                                    borderRadius: 24,
+                                    borderWidth: 1,
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.surface,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 54,
+                                        height: 54,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: 27,
+                                        backgroundColor: theme.isDark ? "#482731" : "#FFF0F1",
+                                        marginBottom: 16,
+                                    }}
+                                >
+                                    <FeedIcon name="blocked" size={24} color="#E5485D" />
+                                </View>
+                                <Text
+                                    accessibilityRole="header"
+                                    style={{
+                                        color: theme.ink,
+                                        fontSize: 19,
+                                        fontWeight: "700",
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    Block @{profile?.username}?
+                                </Text>
+                                <Text
+                                    style={{
+                                        color: theme.secondary,
+                                        fontSize: 14,
+                                        lineHeight: 21,
+                                        textAlign: "center",
+                                        marginTop: 9,
+                                    }}
+                                >
+                                    They won’t be able to see your posts or message you. You won’t see their posts, and you’ll both be unfollowed.
+                                </Text>
+                                <View
+                                    style={{
+                                        width: "100%",
+                                        flexDirection: "row",
+                                        gap: 10,
+                                        marginTop: 24,
+                                    }}
+                                >
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        disabled={blockBusy}
+                                        onPress={() => setBlockConfirmationOpen(false)}
+                                        style={{
+                                            flex: 1,
+                                            minHeight: 46,
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            borderRadius: 14,
+                                            backgroundColor: theme.subtle,
+                                            borderWidth: 1,
+                                            borderColor: theme.border,
+                                            opacity: blockBusy ? 0.6 : 1,
+                                        }}
+                                    >
+                                        <Text style={{ color: theme.ink, fontSize: 14, fontWeight: "600" }}>
+                                            Cancel
+                                        </Text>
+                                    </Pressable>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityState={{ disabled: blockBusy, busy: blockBusy }}
+                                        disabled={blockBusy}
+                                        onPress={() => {
+                                            setBlockConfirmationOpen(false);
+                                            void updateBlock(true);
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            minHeight: 46,
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            borderRadius: 14,
+                                            backgroundColor: "#E5485D",
+                                            opacity: blockBusy ? 0.6 : 1,
+                                        }}
+                                    >
+                                        <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>
+                                            {blockBusy ? "Blocking…" : "Block"}
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        </View>
                     </Modal>
                 </>
             )}

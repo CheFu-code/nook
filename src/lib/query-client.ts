@@ -91,6 +91,19 @@ export async function invalidateNookQueries(
         return;
     }
 
+    const blockMutation = path.match(/^\/nook\/profiles\/([^/]+)\/block$/);
+    if (blockMutation) {
+        await invalidateSelectedPaths(cachedPath =>
+            cachedPath === '/nook/blocks' ||
+            cachedPath === '/nook/profile' ||
+            cachedPath.startsWith('/nook/profiles') ||
+            cachedPath.startsWith('/nook/posts') ||
+            cachedPath.startsWith('/nook/stories') ||
+            cachedPath.startsWith('/nook/conversations'),
+        );
+        return;
+    }
+
     const conversationAction = path.match(/^\/nook\/conversations\/([^/]+)\/(?:request|read)$/);
     const messageConversation = path.match(/^\/nook\/messages\/([^/]+)\/messages(?:\/[^/]+(?:\/(?:delete-for-me|delete-for-everyone))?)?$/);
     if (path === '/nook/conversations' || conversationAction || messageConversation) {

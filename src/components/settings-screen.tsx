@@ -20,6 +20,7 @@ type SettingsProps = {
     onClose: () => void;
     onEdit: () => void;
     onSaved: () => void;
+    onBlockedUsers: () => void;
     onSignOut: () => Promise<void>;
     accountName: string;
     preview?: boolean;
@@ -36,6 +37,7 @@ export function SettingsScreen({
     onClose,
     onEdit,
     onSaved,
+    onBlockedUsers,
     onSignOut,
     accountName,
     preview = false,
@@ -57,7 +59,7 @@ export function SettingsScreen({
         },
         // { label: 'Notifications', icon: 'bell', action: unavailable('Notifications', 'Notification preferences are not available yet.') },
         // { label: 'Privacy', icon: 'lock', action: unavailable('Privacy', 'Privacy controls are not available yet.') },
-        // { label: 'Blocked users', icon: 'blocked', action: unavailable('Blocked users', 'Blocking controls are not available yet.') },
+        { label: "Blocked users", icon: "blocked", action: onBlockedUsers },
         { label: "Saved posts", icon: "bookmark", action: onSaved },
     ];
     const support: Row[] = [

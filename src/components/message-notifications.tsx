@@ -54,9 +54,22 @@ export function MessageNotifications() {
   const [alert, setAlert] = useState<IncomingMessageNotification | null>(null);
   const registeredToken = useRef<string | null>(null);
   const handledResponse = useRef<string | null>(null);
+  const warnedMissingAndroidFirebase = useRef(false);
 
   useEffect(() => {
     if (!isSignedIn || !Device.isDevice || Platform.OS === "web") return;
+    if (
+      Platform.OS === "android" &&
+      !Constants.expoConfig?.android?.googleServicesFile
+    ) {
+      if (!warnedMissingAndroidFirebase.current) {
+        console.warn(
+          "Android push registration skipped: configure android.googleServicesFile with the Firebase google-services.json, then rebuild the app.",
+        );
+        warnedMissingAndroidFirebase.current = true;
+      }
+      return;
+    }
     let cancelled = false;
 
     async function register() {
