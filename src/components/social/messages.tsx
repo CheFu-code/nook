@@ -63,6 +63,7 @@ export function LiveChat() {
   );
   const request = useNookApi();
   const outbox = useMessages();
+  const { confirmDelivered } = outbox;
   const [atBottom, setAtBottom] = useState(true);
   const [focused, setFocused] = useState(true);
   const [active, setActive] = useState(AppState.currentState === "active");
@@ -87,6 +88,16 @@ export function LiveChat() {
     (max, item) => Math.max(max, item.sequence),
     0,
   );
+  const deliveredRequestIds = history.results
+    .map((item) => item.requestId)
+    .filter((requestId): requestId is string => Boolean(requestId))
+    .join("|");
+  useEffect(() => {
+    confirmDelivered(
+      id,
+      deliveredRequestIds ? deliveredRequestIds.split("|") : [],
+    );
+  }, [id, deliveredRequestIds, confirmDelivered]);
   useEffect(() => {
     if (focused && active && atBottom && latest)
       void request(`/nook/conversations/${encodeURIComponent(id)}/read`, {
@@ -98,7 +109,7 @@ export function LiveChat() {
     .slice()
     .reverse()
     .map((item) => ({
-      id: item._id,
+      id: item.requestId ?? item._id,
       text: item.text,
       time: `${new Date(item._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${messageTime(item._creationTime)}`,
       outgoing: item.outgoing,

@@ -56,6 +56,7 @@ export type Conversation = {
   _id: string;
   other: SocialProfile;
   preview: string;
+  previewIsOwn: boolean;
   lastMessageAt: number;
   unread: boolean;
   unreadCount: number;

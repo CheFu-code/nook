@@ -47,6 +47,7 @@ export function MessagesTabView({
             key={item._id}
             name={item.other.username}
             text={item.preview}
+            previewIsOwn={item.previewIsOwn}
             time={inboxTime(item.lastMessageAt)}
             unreadCount={item.unreadCount}
             unreadCountExact={item.unreadCountExact}
@@ -168,6 +169,7 @@ export function MessagesTabView({
 function ConversationRow({
     name,
     text,
+    previewIsOwn,
     time,
     unreadCount,
     unreadCountExact,
@@ -176,6 +178,7 @@ function ConversationRow({
 }: {
     name: string;
     text: string;
+    previewIsOwn: boolean;
     time: string;
     unreadCount: number;
     unreadCountExact: boolean;
@@ -227,7 +230,7 @@ function ConversationRow({
                         numberOfLines={1}
                         style={[styles.preview, { flex: 1, fontSize: 15 * s, color: theme.muted }]}
                     >
-                        {text}
+                        {previewIsOwn && text ? `You: ${text}` : text}
                     </Text>
                     {unreadCount > 0 && (
                         <View

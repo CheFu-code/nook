@@ -187,7 +187,9 @@ export function ChatScreen({
                             >
                                 {message.status === "pending" ? "Sending…" : message.time}
                             </Text>
-                            {message.outgoing && !message.status && (
+                            {message.outgoing &&
+                                message.status !== "pending" &&
+                                message.status !== "failed" && (
                                 <FeedIcon name="check" size={fs(16)} color={theme.muted} />
                             )}
                         </View>

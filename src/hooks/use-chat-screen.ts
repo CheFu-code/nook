@@ -12,7 +12,7 @@ export type ChatMessage = {
     text: string;
     outgoing: boolean;
     time: string;
-    status?: "pending" | "failed";
+    status?: "pending" | "sent" | "failed";
     retry?: () => void;
 };
 
