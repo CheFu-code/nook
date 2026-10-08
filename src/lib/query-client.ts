@@ -57,7 +57,10 @@ export async function invalidateNookQueries(
     ) {
         prefixes.push('/nook/profile', '/nook/profiles', '/nook/posts');
     }
-    if (path.startsWith('/nook/conversations') || path.startsWith('/nook/messages')) {
+    if (
+        path.startsWith('/nook/conversations') ||
+        (path.startsWith('/nook/messages') && path !== '/nook/messages/push-token')
+    ) {
         prefixes.push('/nook/conversations');
     }
     if (!prefixes.length) return;

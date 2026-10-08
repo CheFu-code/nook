@@ -7,6 +7,7 @@ import { useAppTheme } from '@/lib/theme';
 import { createNookQueryClient } from '@/lib/query-client';
 import { focusManager, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
+import { MessageNotifications } from '@/components/message-notifications';
 
 Sentry.init({
   dsn: 'https://d49d5db24e3765ff90211c22ad7532b3@o4509813037137920.ingest.de.sentry.io/4512078093942864',
@@ -51,6 +52,7 @@ function AuthenticatedRoutes() {
   return (
     <UserScopedQueryProvider key={userId ?? "signed-out"}>
       <MessagesProvider>
+        <MessageNotifications />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
           <Stack.Protected guard={!isSignedIn}>
             <Stack.Screen name="index" />
