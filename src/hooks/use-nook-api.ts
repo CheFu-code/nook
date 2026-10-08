@@ -15,11 +15,7 @@ function cacheKeyFor(userId: string | undefined, path: string) {
 }
 
 function readCache<T>(key: string): QueryCacheEntry & { value: T } | undefined {
-    const entry = queryCache.get(key);
-    if (!entry) return undefined;
-    queryCache.delete(key);
-    queryCache.set(key, entry);
-    return entry as QueryCacheEntry & { value: T };
+    return queryCache.get(key) as (QueryCacheEntry & { value: T }) | undefined;
 }
 
 function writeCache(key: string, value: unknown) {
@@ -37,10 +33,37 @@ function isCacheFresh(key: string) {
     return entry !== undefined && Date.now() - entry.updatedAt < CACHE_FRESH_MS;
 }
 
+export function invalidateNookQueryCache(userId: string | undefined, mutationPath: string) {
+    const path = mutationPath.split('?')[0];
+    const prefixes: string[] = [];
+    if (path.startsWith('/nook/posts')) prefixes.push('/nook/posts');
+    if (path.startsWith('/nook/stories')) prefixes.push('/nook/stories');
+    if (path.startsWith('/nook/profiles') || path === '/nook/profile' ||
+        path === '/auth/profile' || path === '/auth/profile-picture') {
+        prefixes.push('/nook/profile', '/nook/profiles', '/nook/posts');
+    }
+    if (path.startsWith('/nook/conversations') || path.startsWith('/nook/messages')) {
+        prefixes.push('/nook/conversations');
+    }
+    if (!prefixes.length) return;
+    for (const key of queryCache.keys()) {
+        const [cachedUserId, cachedPath] = JSON.parse(key) as [string, string];
+        if (cachedUserId === (userId ?? 'signed-out') &&
+            prefixes.some(prefix => cachedPath.startsWith(prefix))) {
+            queryCache.delete(key);
+        }
+    }
+}
+
 export function useNookApi() {
-    const { getToken } = useAuth();
-    return useCallback(<T,>(path: string, options: { method?: string; body?: unknown } = {}) =>
-        requestJson<T>(getToken, path, options), [getToken]);
+    const { getToken, userId } = useAuth();
+    return useCallback(async <T,>(path: string, options: { method?: string; body?: unknown } = {}) => {
+        const result = await requestJson<T>(getToken, path, options);
+        if (options.method && options.method.toUpperCase() !== 'GET') {
+            invalidateNookQueryCache(userId, path);
+        }
+        return result;
+    }, [getToken, userId]);
 }
 
 export function useNookQuery<T>(path: string | null) {
@@ -154,17 +177,17 @@ export function useNookPaginatedQuery<T>(path: string) {
             : previous);
         const nextPage = pageRef.current.key === queryKey ? pageRef.current.page + 1 : 0;
         void request<Page<T>>(`${path}${path.includes('?') ? '&' : '?'}page=${nextPage}&limit=20`).then(result => {
-            if (pageRef.current.key === queryKey) pageRef.current = { key: queryKey, page: nextPage };
-            setQuery(previous => {
-                if (previous?.key !== queryKey) return previous;
-                const results = [...previous.results, ...result.items];
-                writeCache(cacheKey, { results, hasMore: result.hasMore, page: nextPage });
-                return {
+            if (pageRef.current.key !== queryKey) return;
+            pageRef.current = { key: queryKey, page: nextPage };
+            const results = [...(current?.results ?? []), ...result.items];
+            writeCache(cacheKey, { results, hasMore: result.hasMore, page: nextPage });
+            setQuery(previous => previous?.key === queryKey
+                ? {
                     ...previous,
                     results,
                     status: result.hasMore ? 'CanLoadMore' : 'Exhausted',
-                };
-            });
+                }
+                : previous);
         }).catch(reason => {
             setQuery(previous => previous?.key === queryKey
                 ? { ...previous, status: 'Error', error: reason instanceof Error ? reason : new Error(String(reason)) }
@@ -172,7 +195,7 @@ export function useNookPaginatedQuery<T>(path: string) {
         }).finally(() => {
             if (loadingRef.current === queryKey) loadingRef.current = null;
         });
-    }, [path, cacheKey, queryKey, request, status]);
+    }, [path, cacheKey, queryKey, request, status, current?.results]);
 
     return { results: current?.results ?? [], status, error: current?.error ?? null, loadMore, refresh };
 }

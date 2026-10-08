@@ -358,7 +358,7 @@ function StoryViewer({
                 {source && (
                     <Image
                         source={source}
-                        cachePolicy="none"
+                        cachePolicy="memory"
                         contentFit="contain"
                         style={{ width: "100%", height: "100%" }}
                         onLoad={() => setReady(true)}

@@ -15,41 +15,74 @@ import { useAuth } from "@/lib/chefu-auth";
 import { useAppTheme } from "@/lib/theme";
 import { ui } from "./ui";
 
+const MEDIA_URL_CACHE_TTL = 4 * 60_000;
+const MEDIA_URL_CACHE_LIMIT = 200;
+const mediaUrlCache = new Map<string, { source: { uri: string; headers: Record<string, string> }; updatedAt: number }>();
+
+function mediaCacheKey(userId: string | undefined, kind: "post" | "avatar" | "story", id: string, revision: string | number) {
+    return JSON.stringify([userId ?? "signed-out", kind, id, revision]);
+}
+
+function readCachedMedia(key: string) {
+    const entry = mediaUrlCache.get(key);
+    if (!entry) return undefined;
+    return Date.now() - entry.updatedAt < MEDIA_URL_CACHE_TTL ? entry.source : undefined;
+}
+
+function writeCachedMedia(key: string, source: { uri: string; headers: Record<string, string> }) {
+    mediaUrlCache.delete(key);
+    mediaUrlCache.set(key, { source, updatedAt: Date.now() });
+    while (mediaUrlCache.size > MEDIA_URL_CACHE_LIMIT) {
+        const oldestKey = mediaUrlCache.keys().next().value;
+        if (oldestKey === undefined) break;
+        mediaUrlCache.delete(oldestKey);
+    }
+}
+
 export function useMediaSource(
     id: string,
     kind: "post" | "avatar" | "story",
     enabled = true,
-    revision = 0,
+    revision: string | number = 0,
 ) {
+    const { userId } = useAuth();
     const request = useNookApi();
-    const [source, setSource] = useState<{
-        uri: string;
-        headers: Record<string, string>;
-    } | null>(null);
-    const [error, setError] = useState(false);
+    const key = enabled ? mediaCacheKey(userId, kind, id, revision) : '';
+    const [loaded, setLoaded] = useState<{ key: string; source: { uri: string; headers: Record<string, string> } } | null>(null);
+    const [failure, setFailure] = useState<{ key: string; error: boolean } | null>(null);
     const [attempt, setAttempt] = useState(0);
     useEffect(() => {
-        if (!enabled) {
-            setSource(null);
-            return;
-        }
+        if (!enabled) return;
+        const cached = readCachedMedia(key);
+        if (cached) return;
         let active = true;
-        setSource(null);
-        setError(false);
         void request<{ url: string }>(
-            `/nook/media/${kind}/${encodeURIComponent(id)}?v=${revision}`,
+            `/nook/media/${kind}/${encodeURIComponent(id)}?v=${encodeURIComponent(String(revision))}`,
         )
             .then((result) => {
-                if (active) setSource({ uri: result.url, headers: {} });
+                if (active) {
+                    const source = { uri: result.url, headers: {} };
+                    writeCachedMedia(key, source);
+                    setLoaded({ key, source });
+                }
             })
             .catch(() => {
-                if (active) setError(true);
+                if (active) setFailure({ key, error: true });
             });
         return () => {
             active = false;
         };
-    }, [id, kind, enabled, revision, attempt, request]);
-    return { source, error, retry: () => setAttempt((value) => value + 1) };
+    }, [id, kind, enabled, key, revision, attempt, request]);
+    const source = loaded?.key === key ? loaded.source : enabled ? readCachedMedia(key) ?? null : null;
+    const error = !source && failure?.key === key && failure.error;
+    return {
+        source,
+        error,
+        retry: () => {
+            mediaUrlCache.delete(key);
+            setAttempt((value) => value + 1);
+        },
+    };
 }
 
 export function Avatar({
@@ -65,7 +98,7 @@ export function Avatar({
         profile._id,
         "avatar",
         profile.hasAvatar,
-        profile.avatarVersion,
+        profile.avatarVersion ?? profile.avatarUrl ?? 0,
     );
     const accountPhoto = profile.isOwn
         ? user?.photoURL || user?.imageUrl
@@ -79,7 +112,7 @@ export function Avatar({
     return photo ? (
         <Image
             source={photo}
-            cachePolicy="none"
+            cachePolicy="memory"
             style={{ width: size, height: size, borderRadius: size / 2 }}
         />
     ) : (
@@ -153,7 +186,7 @@ export function PostMedia({
             ) : (
                 <Image
                     source={source}
-                    cachePolicy="none"
+                    cachePolicy="memory"
                     style={{ width: "100%", height: "100%" }}
                     contentFit={thumbnail ? "cover" : "contain"}
                     onError={() => setFailed(true)}
