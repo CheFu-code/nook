@@ -29,7 +29,7 @@ export function MessagesTabView({
 }: {
     conversations: Conversation[];
     onFilter: (unread: boolean) => void;
-    onOpenConversation: (id: Conversation["_id"]) => void;
+    onOpenConversation: (conversation: Conversation) => void;
     footerStatus: NookQueryStatus;
     loadMore: (count?: number) => void;
     loading: boolean;
@@ -51,7 +51,7 @@ export function MessagesTabView({
             unreadCount={item.unreadCount}
             unreadCountExact={item.unreadCountExact}
             avatar={(size) => <Avatar profile={item.other} size={size} />}
-            onPress={() => onOpenConversation(item._id)}
+            onPress={() => onOpenConversation(item)}
         />
     ));
 
@@ -246,9 +246,6 @@ function ConversationRow({
                             </Text>
                         </View>
                     )}
-                    <View style={{ transform: [{ rotate: "180deg" }], marginRight: 3 * s }}>
-                        <FeedIcon name="back" size={16 * s} color={theme.muted} />
-                    </View>
                 </View>
             </View>
         </Pressable>

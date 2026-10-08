@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useAuth } from "@/lib/chefu-auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { cacheNookConversationPreview } from "@/lib/query-client";
 import {
     ActivityIndicator,
     Alert,
@@ -70,7 +72,8 @@ function MemberProfile({
     );
     const request = useNookApi();
     const router = useRouter();
-    const { signOut } = useAuth();
+    const { signOut, userId } = useAuth();
+    const queryClient = useQueryClient();
     const { s, v, width, insets } = useProfileScale();
     const theme = useAppTheme();
     const [sheet, setSheet] = useState<
@@ -178,6 +181,12 @@ function MemberProfile({
                                                                 method: "POST",
                                                                 body: { profileId: profile._id },
                                                             },
+                                                        );
+                                                        cacheNookConversationPreview(
+                                                            queryClient,
+                                                            userId,
+                                                            conversation.id,
+                                                            profile,
                                                         );
                                                         router.push({
                                                             pathname: "/chat/[id]",

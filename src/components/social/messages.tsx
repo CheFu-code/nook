@@ -27,6 +27,9 @@ import {
   useNookQuery,
 } from "@/hooks/use-nook-api";
 import { useMessages } from "@/context/messages-context";
+import { useAuth } from "@/lib/chefu-auth";
+import { cacheNookConversationPreview } from "@/lib/query-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChatScreen, type ChatMessage } from "../chat-screen";
 import { Avatar } from "./media";
 import { ConnectionStatus, LoadMore, ui } from "./ui";
@@ -50,6 +53,7 @@ export function inboxTime(timestamp: number) {
 export function LiveChat() {
   const { id } = useLocalSearchParams<{ id: Id<"conversations"> }>();
   const router = useRouter();
+  const theme = useAppTheme();
   const conversationQuery = useNookQuery<Pick<Conversation, "_id" | "other">>(
     id ? `/nook/conversations/${encodeURIComponent(id)}` : null,
   );
@@ -114,12 +118,29 @@ export function LiveChat() {
       status: item.status,
       retry: () => outbox.retry(item),
     });
+  if (!conversation && !conversationQuery.error)
+    return (
+      <View style={[ui.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator color={theme.blue} />
+        <Text style={[ui.muted, { color: theme.muted }]}>
+          Opening conversation…
+        </Text>
+      </View>
+    );
   if (!conversation)
     return (
-      <View style={ui.center}>
-        <ActivityIndicator color="#087EFF" />
-        <Pressable onPress={() => router.back()} style={{ padding: 20 }}>
-          <Text style={ui.link}>Back to messages</Text>
+      <View style={[ui.center, { backgroundColor: theme.background }]}>
+        <Text style={[ui.title, { color: theme.ink }]}>
+          Couldn’t open conversation
+        </Text>
+        <Text style={[ui.muted, { color: theme.muted, textAlign: "center" }]}>
+          Check your connection and try again.
+        </Text>
+        <Pressable onPress={conversationQuery.refresh} style={ui.button}>
+          <Text style={ui.buttonText}>Try again</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={{ padding: 12 }}>
+          <Text style={[ui.link, { color: theme.blue }]}>Back to messages</Text>
         </Pressable>
       </View>
     );
@@ -159,6 +180,8 @@ export function NewConversation({ close }: { close: () => void }) {
   const [text, setText] = useState("");
   const [opening, setOpening] = useState(false);
   const router = useRouter();
+  const { userId } = useAuth();
+  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const result = useNookCursorPaginatedQuery<SocialProfile>(
@@ -216,6 +239,12 @@ export function NewConversation({ close }: { close: () => void }) {
                   const conversation = await request<{ id: string }>(
                     "/nook/conversations",
                     { method: "POST", body: { profileId: item._id } },
+                  );
+                  cacheNookConversationPreview(
+                    queryClient,
+                    userId,
+                    conversation.id,
+                    item,
                   );
                   close();
                   router.push({

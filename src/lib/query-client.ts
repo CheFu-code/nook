@@ -1,4 +1,5 @@
 import { QueryClient, type QueryClient as QueryClientType } from '@tanstack/react-query';
+import type { SocialProfile } from './social';
 
 export function createNookQueryClient() {
     return new QueryClient({
@@ -15,6 +16,19 @@ export function createNookQueryClient() {
 
 export function nookApiQueryKey(userId: string | undefined, path: string) {
     return ['nook', userId ?? 'signed-out', 'api', path] as const;
+}
+
+export function cacheNookConversationPreview(
+    queryClient: QueryClientType,
+    userId: string | undefined,
+    conversationId: string,
+    other: SocialProfile,
+) {
+    const path = `/nook/conversations/${encodeURIComponent(conversationId)}`;
+    queryClient.setQueryData(nookApiQueryKey(userId, path), {
+        _id: conversationId,
+        other,
+    });
 }
 
 export function nookMediaQueryKey(
