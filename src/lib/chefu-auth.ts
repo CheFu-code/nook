@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
+import type { SocialProfile } from './social';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,6 +27,7 @@ export type ChefuAuthSession = {
   refreshToken?: string;
   expiresAt: number;
   user: ChefuUser;
+  nookProfile?: SocialProfile;
 };
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.chefu.co.za';
@@ -81,6 +83,7 @@ async function readStoredSession(): Promise<ChefuAuthSession | null> {
       refreshToken: parsed.refreshToken,
       expiresAt: parsed.expiresAt,
       user: parsed.user,
+      nookProfile: parsed.nookProfile,
     };
   } catch {
     return null;
@@ -141,6 +144,7 @@ export type ChefuAuthContextValue = {
   signInWithChefuAccount: () => Promise<ChefuUser | null>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<ChefuUser | null>;
+  saveNookProfile: (profile: SocialProfile) => Promise<void>;
 };
 
 const ChefuAuthContext = createContext<ChefuAuthContextValue | null>(null);
@@ -187,11 +191,20 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
     if (current.expiresAt > Date.now() + TOKEN_REFRESH_BUFFER_MS) return current;
     return refreshSession(current);
   }, [refreshSession]);
+  const saveNookProfile = useCallback(async (profile: SocialProfile) => {
+    if (!session || JSON.stringify(session.nookProfile) === JSON.stringify(profile)) {
+      return;
+    }
+    const updated = { ...session, nookProfile: profile };
+    await writeStoredSession(updated);
+    setSession(updated);
+  }, [session]);
 
   useEffect(() => {
     void (async () => {
       try {
         const saved = await readStoredSession();
+        setIsLoaded(true);
         if (!saved) return;
         setSession(saved);
         try {
@@ -305,7 +318,8 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-  }), [getValidSession, isAuthenticating, isLoaded, session]);
+    saveNookProfile,
+  }), [getValidSession, isAuthenticating, isLoaded, saveNookProfile, session]);
 
   return createElement(ChefuAuthContext.Provider, { value }, children);
 }

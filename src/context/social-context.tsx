@@ -7,6 +7,7 @@ import { useAppTheme } from "@/lib/theme";
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
     type ReactNode,
 } from "react";
@@ -28,19 +29,28 @@ export function useProfile() {
 }
 
 export function ProfileGate({ children }: { children: ReactNode }) {
-    const { isSignedIn, isLoaded, signOut } = useAuth();
+    const { isSignedIn, isLoaded, signOut, session, saveNookProfile } = useAuth();
     const theme = useAppTheme();
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState("");
     const profile = useNookQuery<SocialProfile | null>(
         isSignedIn ? "/nook/profile" : null,
     );
+    const visibleProfile =
+        profile.data !== undefined ? profile.data : session?.nookProfile;
     const refreshProfile = () => profile.refresh();
 
+    useEffect(() => {
+        if (profile.data) {
+            void saveNookProfile(profile.data).catch((error) => {
+                console.warn("Unable to cache Nook profile for startup.", error);
+            });
+        }
+    }, [profile.data, saveNookProfile]);
 
     if (
         !isLoaded ||
-        (isSignedIn && !profile.error && profile.data === undefined)
+        (isSignedIn && !visibleProfile && !profile.error)
     ) {
         return <ProfileLoading
         />;
@@ -60,7 +70,7 @@ export function ProfileGate({ children }: { children: ReactNode }) {
             </View>
         );
     }
-    if (profile.error && profile.data === undefined) {
+    if (profile.error && !visibleProfile) {
         const failure = profile.error;
         const sessionExpired = /session.*expired|sign in again/i.test(
             failure?.message ?? "",
@@ -110,12 +120,12 @@ export function ProfileGate({ children }: { children: ReactNode }) {
             </View>
         );
     }
-    if (!profile.data)
+    if (!visibleProfile)
         return (
             <Onboarding onCreated={refreshProfile} />
         );
     return (
-        <ProfileContext.Provider value={profile.data}>
+        <ProfileContext.Provider value={visibleProfile}>
             {children}
         </ProfileContext.Provider>
     );
