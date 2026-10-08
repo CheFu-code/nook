@@ -89,7 +89,7 @@ export default function Index() {
           <View style={styles.centerArea}>
             <View style={styles.main}>
               <Image
-                source={require("../../assets/images/ct-logo.png")}
+                source={require("../../assets/images/logo-2.png")}
                 contentFit="contain"
                 tintColor={theme.ink}
                 style={styles.logo}
@@ -98,7 +98,7 @@ export default function Index() {
 
               <View style={styles.header}>
                 <Text accessibilityRole="header" style={styles.heading}>
-                  Welcome back
+                  Welcome
                 </Text>
 
                 <Text style={styles.subtitle}>
@@ -201,8 +201,8 @@ function createStyles(theme: Theme) {
     },
 
     logo: {
-      width: 52,
-      height: 37,
+      width: 92,
+      height: 92,
       alignSelf: "center",
     },
 

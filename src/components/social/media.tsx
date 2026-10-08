@@ -2,6 +2,7 @@ import { Image, type ImageSource } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
     ActivityIndicator,
     AppState,
@@ -12,32 +13,9 @@ import {
 import { type SocialProfile, type SocialPost } from "@/lib/social";
 import { useNookApi } from "@/hooks/use-nook-api";
 import { useAuth } from "@/lib/chefu-auth";
+import { nookMediaQueryKey } from "@/lib/query-client";
 import { useAppTheme } from "@/lib/theme";
 import { ui } from "./ui";
-
-const MEDIA_URL_CACHE_TTL = 4 * 60_000;
-const MEDIA_URL_CACHE_LIMIT = 200;
-const mediaUrlCache = new Map<string, { source: { uri: string; headers: Record<string, string> }; updatedAt: number }>();
-
-function mediaCacheKey(userId: string | undefined, kind: "post" | "avatar" | "story", id: string, revision: string | number) {
-    return JSON.stringify([userId ?? "signed-out", kind, id, revision]);
-}
-
-function readCachedMedia(key: string) {
-    const entry = mediaUrlCache.get(key);
-    if (!entry) return undefined;
-    return Date.now() - entry.updatedAt < MEDIA_URL_CACHE_TTL ? entry.source : undefined;
-}
-
-function writeCachedMedia(key: string, source: { uri: string; headers: Record<string, string> }) {
-    mediaUrlCache.delete(key);
-    mediaUrlCache.set(key, { source, updatedAt: Date.now() });
-    while (mediaUrlCache.size > MEDIA_URL_CACHE_LIMIT) {
-        const oldestKey = mediaUrlCache.keys().next().value;
-        if (oldestKey === undefined) break;
-        mediaUrlCache.delete(oldestKey);
-    }
-}
 
 export function useMediaSource(
     id: string,
@@ -47,41 +25,22 @@ export function useMediaSource(
 ) {
     const { userId } = useAuth();
     const request = useNookApi();
-    const key = enabled ? mediaCacheKey(userId, kind, id, revision) : '';
-    const [loaded, setLoaded] = useState<{ key: string; source: { uri: string; headers: Record<string, string> } } | null>(null);
-    const [failure, setFailure] = useState<{ key: string; error: boolean } | null>(null);
-    const [attempt, setAttempt] = useState(0);
-    useEffect(() => {
-        if (!enabled) return;
-        const cached = readCachedMedia(key);
-        if (cached) return;
-        let active = true;
-        void request<{ url: string }>(
-            `/nook/media/${kind}/${encodeURIComponent(id)}?v=${encodeURIComponent(String(revision))}`,
-        )
-            .then((result) => {
-                if (active) {
-                    const source = { uri: result.url, headers: {} };
-                    writeCachedMedia(key, source);
-                    setLoaded({ key, source });
-                }
-            })
-            .catch(() => {
-                if (active) setFailure({ key, error: true });
-            });
-        return () => {
-            active = false;
-        };
-    }, [id, kind, enabled, key, revision, attempt, request]);
-    const source = loaded?.key === key ? loaded.source : enabled ? readCachedMedia(key) ?? null : null;
-    const error = !source && failure?.key === key && failure.error;
-    return {
-        source,
-        error,
-        retry: () => {
-            mediaUrlCache.delete(key);
-            setAttempt((value) => value + 1);
+    const media = useQuery({
+        queryKey: nookMediaQueryKey(userId, kind, id, revision),
+        queryFn: async () => {
+            const result = await request<{ url: string }>(
+                `/nook/media/${kind}/${encodeURIComponent(id)}?v=${encodeURIComponent(String(revision))}`,
+            );
+            return { uri: result.url, headers: {} };
         },
+        enabled,
+        staleTime: 4 * 60_000,
+        gcTime: 10 * 60_000,
+    });
+    return {
+        source: media.data ?? null,
+        error: media.isError,
+        retry: () => void media.refetch(),
     };
 }
 

@@ -1,9 +1,12 @@
 import { MessagesProvider } from '@/context/messages-context';
 import { useAuth, ChefuAuthProvider } from '@/lib/chefu-auth';
 import { Stack } from 'expo-router';
-import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, StyleSheet, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { useAppTheme } from '@/lib/theme';
+import { createNookQueryClient } from '@/lib/query-client';
+import { focusManager, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect, useState, type ReactNode } from 'react';
 
 Sentry.init({
   dsn: 'https://d49d5db24e3765ff90211c22ad7532b3@o4509813037137920.ingest.de.sentry.io/4512078093942864',
@@ -46,21 +49,38 @@ function AuthenticatedRoutes() {
     return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color={theme.blue} accessibilityLabel="Loading your account" /></View>;
   }
   return (
-    <MessagesProvider key={userId ?? "signed-out"}><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
-      <Stack.Protected guard={!isSignedIn}>
-        <Stack.Screen name="index" />
-      </Stack.Protected>
-      <Stack.Protected guard={!!isSignedIn}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="story-compose" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        <Stack.Screen name="compose" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        <Stack.Screen name="post/[id]" />
-        <Stack.Screen name="member/[id]" />
-        <Stack.Screen name="chat/[id]" />
-      </Stack.Protected>
-      <Stack.Screen name="sso-callback" />
-    </Stack></MessagesProvider>
+    <UserScopedQueryProvider key={userId ?? "signed-out"}>
+      <MessagesProvider>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
+          <Stack.Protected guard={!isSignedIn}>
+            <Stack.Screen name="index" />
+          </Stack.Protected>
+          <Stack.Protected guard={!!isSignedIn}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="story-compose" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+            <Stack.Screen name="compose" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+            <Stack.Screen name="post/[id]" />
+            <Stack.Screen name="member/[id]" />
+            <Stack.Screen name="chat/[id]" />
+          </Stack.Protected>
+          <Stack.Screen name="sso-callback" />
+        </Stack>
+      </MessagesProvider>
+    </UserScopedQueryProvider>
   );
+}
+
+function UserScopedQueryProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createNookQueryClient);
+  useEffect(() => {
+    focusManager.setEventListener(handleFocus => {
+      const subscription = AppState.addEventListener('change', state => {
+        handleFocus(state === 'active');
+      });
+      return () => subscription.remove();
+    });
+  }, []);
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
 function RootLayout() {
