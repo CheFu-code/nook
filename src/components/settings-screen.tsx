@@ -62,7 +62,7 @@ export function SettingsScreen({
             icon: "settings",
             action: unavailable(t("Account"), `${t("Signed in as")} ${accountName}.`),
         },
-        { label: t("Language"), icon: "language", detail: language === "zu" ? "isiZulu" : t("English"), action: () => setLanguageOpen(true) },
+        { label: t("Language"), icon: "language", detail: language === "zu" ? "isiZulu" : language === "fr" ? "Français" : t("English"), action: () => setLanguageOpen(true) },
         { label: t("Blocked users"), icon: "blocked", action: onBlockedUsers },
         { label: t("Saved posts"), icon: "bookmark", action: onSaved },
     ];
@@ -407,6 +407,7 @@ export function SettingsScreen({
                         {([
                             ["en", "English"],
                             ["zu", "isiZulu"],
+                            ["fr", "Français"],
                         ] as const).map(([value, label]) => {
                             const selected = language === value;
                             return (

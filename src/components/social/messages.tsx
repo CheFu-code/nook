@@ -40,7 +40,7 @@ import { useNookLanguage } from "@/lib/language";
 import type { NookLanguage } from "@/lib/language";
 
 export const messageTime = (timestamp: number, language: NookLanguage = "en") =>
-  new Date(timestamp).toLocaleTimeString(language === "zu" ? "zu-ZA" : "en-US", {
+  new Date(timestamp).toLocaleTimeString(language === "zu" ? "zu-ZA" : language === "fr" ? "fr-FR" : "en-US", {
     hour: "numeric",
     minute: "2-digit",
   });
@@ -56,7 +56,7 @@ export function inboxTime(
   today.setDate(today.getDate() - 1);
   return date.toDateString() === today.toDateString()
     ? t("Yesterday")
-    : date.toLocaleDateString(language === "zu" ? "zu-ZA" : "en-US", { month: "short", day: "numeric" });
+    : date.toLocaleDateString(language === "zu" ? "zu-ZA" : language === "fr" ? "fr-FR" : "en-US", { month: "short", day: "numeric" });
 }
 export function LiveChat() {
   const { id } = useLocalSearchParams<{ id: Id<"conversations"> }>();

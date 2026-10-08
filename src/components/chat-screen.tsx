@@ -47,9 +47,9 @@ function messageDateLabel(
     if (daysAgo === 0) return t("Today");
     if (daysAgo === 1) return t("Yesterday");
     if (daysAgo >= 2 && daysAgo < 7) {
-        return date.toLocaleDateString(language === "zu" ? "zu-ZA" : "en-GB", { weekday: "long" });
+        return date.toLocaleDateString(language === "zu" ? "zu-ZA" : language === "fr" ? "fr-FR" : "en-GB", { weekday: "long" });
     }
-    return date.toLocaleDateString(language === "zu" ? "zu-ZA" : "en-GB", { day: "numeric", month: "short" });
+    return date.toLocaleDateString(language === "zu" ? "zu-ZA" : language === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" });
 }
 
 function lastSeenLabel(timestamp: number, now = new Date()) {
