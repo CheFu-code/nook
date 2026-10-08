@@ -200,7 +200,11 @@ export function PostCard({
                             member();
                         }}
                     >
-                        <Avatar profile={author as any} size={39 * s} />
+                        <Avatar
+                            profile={author as any}
+                            size={39 * s}
+                            showPresence
+                        />
                     </Pressable>
                     <Pressable
                         onPress={(event) => {
@@ -432,7 +436,7 @@ export function PostCard({
                         member();
                     }}
                 >
-                    <Avatar profile={author as any} />
+                    <Avatar profile={author as any} showPresence />
                 </Pressable>
                 <Pressable
                     onPress={(event) => {

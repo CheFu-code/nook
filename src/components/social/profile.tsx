@@ -155,7 +155,13 @@ function MemberProfile({
                         ListHeaderComponent={
                             <>
                                 <ProfileSummary
-                                    avatar={<Avatar profile={profile} size={108 * s} />}
+                                    avatar={
+                                        <Avatar
+                                            profile={profile}
+                                            size={108 * s}
+                                            showPresence
+                                        />
+                                    }
                                     username={profile.username}
                                     name={profile.name}
                                     bio={profile.bio ?? ""}
@@ -374,7 +380,7 @@ function Connections({
                                 });
                             }}
                         >
-                            <Avatar profile={item as any} size={48} />
+                            <Avatar profile={item as any} size={48} showPresence />
                         </Pressable>
                         <Pressable
                             style={{ flex: 1 }}

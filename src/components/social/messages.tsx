@@ -373,7 +373,9 @@ export function LiveChat() {
       }}
       peer={{
         name: conversation.other.username,
-        avatar: (size) => <Avatar profile={conversation.other} size={size} />,
+        avatar: (size) => (
+          <Avatar profile={conversation.other} size={size} showPresence />
+        ),
         onPress: () =>
           router.push({
             pathname: "/member/[id]",
@@ -507,7 +509,7 @@ export function NewConversation({ close }: { close: () => void }) {
                   accessibilityLabel={`View ${item.username}'s profile`}
                   onPress={openProfile}
                 >
-                  <Avatar profile={item} size={50} />
+                  <Avatar profile={item} size={50} showPresence />
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"

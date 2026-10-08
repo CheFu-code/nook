@@ -234,7 +234,11 @@ export function CommentRow({
         accessibilityLabel={`View ${item.author.username}`}
         onPress={openProfile}
       >
-        <Avatar profile={item.author} size={(item.depth ? 32 : 42) * s} />
+        <Avatar
+          profile={item.author}
+          size={(item.depth ? 32 : 42) * s}
+          showPresence
+        />
       </Pressable>
       <View style={{ flex: 1, gap: 3 * s }}>
         <View

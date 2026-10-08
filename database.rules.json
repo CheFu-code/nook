@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "presence": {
+      "$uid": {
+        ".read": "auth != null && auth.token.nook === true",
+        "$sessionId": {
+          ".write": "auth != null && auth.token.nook === true && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['state', 'lastChanged']) && newData.child('state').val() === 'online'"
+        }
+      }
+    }
+  }
+}

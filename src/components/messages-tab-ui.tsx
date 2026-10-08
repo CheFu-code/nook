@@ -53,7 +53,9 @@ export function MessagesTabView({
             time={inboxTime(item.lastMessageAt)}
             unreadCount={item.unreadCount}
             unreadCountExact={item.unreadCountExact}
-            avatar={(size) => <Avatar profile={item.other} size={size} />}
+            avatar={(size) => (
+              <Avatar profile={item.other} size={size} showPresence />
+            )}
             onPress={() => onOpenConversation(item)}
         />
     ));

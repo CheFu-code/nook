@@ -92,7 +92,7 @@ export function LiveExplore() {
           )}
         </View>
       ),
-      avatar: <Avatar profile={post.author} size={22 * s} />,
+      avatar: <Avatar profile={post.author} size={22 * s} showPresence />,
       likes: post.likesCount,
       liked,
       pending:
@@ -140,7 +140,11 @@ export function LiveExplore() {
                     borderRadius: 30 * s,
                   }}
                 >
-                  <Avatar profile={profile} size={52.2 * s} />
+                  <Avatar
+                    profile={profile}
+                    size={52.2 * s}
+                    showPresence
+                  />
                 </View>
               </LinearGradient>
             ),
@@ -243,7 +247,7 @@ export function LiveExplore() {
                           member(profile._id);
                         }}
                       >
-                        <Avatar profile={profile} size={48} />
+                        <Avatar profile={profile} size={48} showPresence />
                       </Pressable>
                       <Pressable
                         style={{ flex: 1 }}

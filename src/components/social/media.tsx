@@ -13,6 +13,7 @@ import {
 import { type SocialProfile, type SocialPost } from "@/lib/social";
 import { useNookApi } from "@/hooks/use-nook-api";
 import { useAuth } from "@/lib/chefu-auth";
+import { useUserPresence } from "@/hooks/use-user-presence";
 import { nookMediaQueryKey } from "@/lib/query-client";
 import { useAppTheme } from "@/lib/theme";
 import { ui } from "./ui";
@@ -47,12 +48,15 @@ export function useMediaSource(
 export function Avatar({
     profile,
     size = 40,
+    showPresence = false,
 }: {
     profile: SocialProfile;
     size?: number;
+    showPresence?: boolean;
 }) {
     const { user } = useAuth();
     const theme = useAppTheme();
+    const online = useUserPresence(profile._id, showPresence);
     const { source } = useMediaSource(
         profile._id,
         "avatar",
@@ -71,30 +75,58 @@ export function Avatar({
     return (
         <View
             style={{
+                position: "relative",
                 width: size,
                 height: size,
-                borderRadius: size / 2,
-                backgroundColor: theme.blueSoft,
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
             }}
         >
-            <Text
-                style={{ color: theme.blue, fontWeight: "700", fontSize: size * 0.4 }}
+            <View
+                style={{
+                    width: size,
+                    height: size,
+                    borderRadius: size / 2,
+                    backgroundColor: theme.blueSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                }}
             >
-                {profile.name[0]?.toUpperCase()}
-            </Text>
-            {photo && (
-                <Image
-                    source={photo}
-                    cachePolicy="memory-disk"
-                    transition={100}
+                <Text
+                    style={{
+                        color: theme.blue,
+                        fontWeight: "700",
+                        fontSize: size * 0.4,
+                    }}
+                >
+                    {profile.name[0]?.toUpperCase()}
+                </Text>
+                {photo && (
+                    <Image
+                        source={photo}
+                        cachePolicy="memory-disk"
+                        transition={100}
+                        style={{
+                            position: "absolute",
+                            width: size,
+                            height: size,
+                            borderRadius: size / 2,
+                        }}
+                    />
+                )}
+            </View>
+            {online && (
+                <View
+                    accessibilityLabel="Online"
                     style={{
                         position: "absolute",
-                        width: size,
-                        height: size,
-                        borderRadius: size / 2,
+                        right: -1,
+                        bottom: -1,
+                        width: Math.max(9, size * 0.27),
+                        height: Math.max(9, size * 0.27),
+                        borderRadius: size,
+                        backgroundColor: "#22C55E",
+                        borderWidth: Math.max(1.5, size * 0.05),
+                        borderColor: theme.background,
                     }}
                 />
             )}
