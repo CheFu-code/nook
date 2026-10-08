@@ -168,6 +168,17 @@ export function EditProfileScreen({ initial, avatar, onSave, onClose }: Props) {
         )}
         <TextInput
           accessibilityLabel={label}
+          placeholder={
+            key === "username"
+              ? "Choose a username"
+              : key === "name"
+                ? "Your name"
+                : key === "bio"
+                  ? "Tell people about yourself"
+                  : key === "website"
+                    ? "https://example.com"
+                    : "City, country"
+          }
           onFocus={(event) => {
             const target = event.nativeEvent.target;
             requestAnimationFrame(() => {
