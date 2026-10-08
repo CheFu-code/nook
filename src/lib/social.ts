@@ -58,6 +58,8 @@ export type Conversation = {
   preview: string;
   lastMessageAt: number;
   unread: boolean;
+  unreadCount: number;
+  unreadCountExact: boolean;
 };
 
 export type Message = {

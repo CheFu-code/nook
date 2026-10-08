@@ -1,7 +1,6 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
-    Keyboard,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -15,15 +14,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon } from "./feed-icon";
 import { useAppTheme } from "@/lib/theme";
+import { useChatScreenLogic, type ChatMessage } from "@/hooks/use-chat-screen";
 
-export type ChatMessage = {
-    id: string;
-    text: string;
-    outgoing: boolean;
-    time: string;
-    status?: "pending" | "failed";
-    retry?: () => void;
-};
+export type { ChatMessage } from "@/hooks/use-chat-screen";
 export function ChatScreen({
     onBack,
     messages,
@@ -39,51 +32,23 @@ export function ChatScreen({
     beforeMessages?: ReactNode;
     onAtBottom?: (atBottom: boolean) => void;
 }) {
-    const [draft, setDraft] = useState("");
-    const [keyboardVisible, setKeyboardVisible] = useState(false);
-    useEffect(() => {
-        const show = Keyboard.addListener(
-            Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-            () => {
-                setKeyboardVisible(true);
-                requestAnimationFrame(() =>
-                    scrollRef.current?.scrollToEnd({ animated: true }),
-                );
-            },
-        );
-        const hide = Keyboard.addListener(
-            Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-            () => setKeyboardVisible(false),
-        );
-        return () => {
-            show.remove();
-            hide.remove();
-        };
-    }, []);
-    const scrollRef = useRef<ScrollView>(null);
-    const shouldScroll = useRef(false);
-    const nearBottom = useRef(true);
-    const lastId = messages.at(-1)?.id;
-    useEffect(() => {
-        if (!lastId || !nearBottom.current) return;
-        const frame = requestAnimationFrame(() =>
-            scrollRef.current?.scrollToEnd({ animated: false }),
-        );
-        return () => cancelAnimationFrame(frame);
-    }, [lastId]);
+    const {
+        draft,
+        setDraft,
+        keyboardVisible,
+        scrollRef,
+        canSend,
+        send,
+        handleScroll,
+        handleContentSizeChange,
+        scrollToEnd,
+    } = useChatScreenLogic({ messages, onSend, onAtBottom });
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
     const s = width / 390;
     const v = (height - insets.top - Math.min(insets.bottom, 34)) / 784;
     const fs = (value: number) => value * s;
-    const canSend = !!draft.trim();
-    const send = () => {
-        if (!canSend) return;
-        shouldScroll.current = true;
-        onSend(draft.trim());
-        setDraft("");
-    };
     return (
         <KeyboardAvoidingView
             style={[
@@ -137,20 +102,8 @@ export function ChatScreen({
                 keyboardDismissMode="interactive"
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={100}
-                onScroll={(event) => {
-                    const { contentOffset, contentSize, layoutMeasurement } =
-                        event.nativeEvent;
-                    nearBottom.current =
-                        contentOffset.y + layoutMeasurement.height >=
-                        contentSize.height - 40;
-                    onAtBottom?.(nearBottom.current);
-                }}
-                onContentSizeChange={() => {
-                    if (shouldScroll.current) {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                        shouldScroll.current = false;
-                    }
-                }}
+                onScroll={handleScroll}
+                onContentSizeChange={handleContentSizeChange}
                 maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
                 contentContainerStyle={{
                     paddingHorizontal: fs(11),
@@ -287,7 +240,7 @@ export function ChatScreen({
                         placeholderTextColor={theme.muted}
                         multiline
                         maxLength={2000}
-                        onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
+                        onFocus={() => scrollToEnd(true)}
                         style={{
                             flex: 1,
                             color: theme.ink,
