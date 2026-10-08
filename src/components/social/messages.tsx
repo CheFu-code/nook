@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { errorMessage, type Id, type Conversation, type Message, type SocialProfile } from '@/lib/social';
-import { useNookApi, useNookPaginatedQuery, useNookQuery } from '@/hooks/use-nook-api';
+import { useNookApi, useNookCursorPaginatedQuery, useNookPaginatedQuery, useNookQuery } from '@/hooks/use-nook-api';
 import { useMessages } from '@/context/messages-context';
 import { ChatScreen, type ChatMessage } from '../chat-screen';
 import { Avatar } from './media';
@@ -42,7 +42,7 @@ export function LiveChat() {
 export function NewConversation({ close }: { close: () => void }) {
   const [text, setText] = useState(''); const [opening, setOpening] = useState(false); const router = useRouter(); const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const result = useNookPaginatedQuery<SocialProfile>(`/nook/profiles?q=${encodeURIComponent(text)}`); const request = useNookApi();
+  const result = useNookCursorPaginatedQuery<SocialProfile>(`/nook/profiles?cursorMode=true&q=${encodeURIComponent(text)}`); const request = useNookApi();
   const members = result.results.filter(item => !item.isOwn);
   return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><View style={[ui.screen, { paddingTop: insets.top, backgroundColor: theme.background }]}><View style={ui.header}><Text style={[ui.title, { flex: 1, color: theme.ink }]}>New message</Text><Pressable onPress={close} style={{ padding: 10 }}><Text style={[ui.link, { color: theme.blue }]}>Cancel</Text></Pressable></View>
     <TextInput accessibilityLabel="Search members to message" value={text} onChangeText={setText} placeholder="Search name or username" placeholderTextColor={theme.muted} autoCapitalize="none" style={{ backgroundColor: theme.input, borderColor: theme.border, borderWidth: 1, color: theme.ink, borderRadius: 16, padding: 16, margin: 18, fontSize: 16 }} />

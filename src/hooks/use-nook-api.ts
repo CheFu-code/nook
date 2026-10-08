@@ -6,6 +6,7 @@ import { invalidateNookQueries, nookApiQueryKey } from '@/lib/query-client';
 import { requestJson, type Page } from '@/lib/social';
 
 export type NookQueryStatus = 'LoadingFirstPage' | 'LoadingMore' | 'CanLoadMore' | 'Exhausted' | 'Error';
+type CursorPage<T> = { items: T[]; nextCursor: string | null };
 
 export function useNookApi() {
     const { getToken, userId } = useAuth();
@@ -50,6 +51,49 @@ export function useNookPaginatedQuery<T>(path: string, enabled = true) {
             request<Page<T>>(`${path}${path.includes('?') ? '&' : '?'}page=${pageParam}&limit=20`),
         getNextPageParam: (lastPage, _pages, lastPageParam) =>
             lastPage.hasMore ? lastPageParam + 1 : undefined,
+    });
+    const { isStale, refetch, isFetching, isFetchingNextPage, isPending, isError, data, hasNextPage, fetchNextPage, error } = query;
+
+    useFocusEffect(useCallback(() => {
+        if (enabled && isStale && !isFetching) void refetch();
+    }, [enabled, isStale, isFetching, refetch]));
+
+    const results = data?.pages.flatMap(page => page.items) ?? [];
+    let status: NookQueryStatus;
+    if (isFetchingNextPage) status = 'LoadingMore';
+    else if (isPending) status = 'LoadingFirstPage';
+    else if (isError && !data) status = 'Error';
+    else if (hasNextPage) status = 'CanLoadMore';
+    else status = 'Exhausted';
+
+    const loadMore = useCallback((_count = 20) => {
+        if (isFetchingNextPage) return;
+        if (isError && !data) {
+            void refetch();
+            return;
+        }
+        if (hasNextPage) void fetchNextPage();
+    }, [data, fetchNextPage, hasNextPage, isError, isFetchingNextPage, refetch]);
+
+    const refresh = useCallback(() => {
+        void refetch();
+    }, [refetch]);
+    return { results, status, error: error ?? null, loadMore, refresh };
+}
+
+export function useNookCursorPaginatedQuery<T>(path: string, enabled = true) {
+    const { userId } = useAuth();
+    const request = useNookApi();
+    const query = useInfiniteQuery({
+        queryKey: nookApiQueryKey(userId, path),
+        enabled,
+        initialPageParam: null as string | null,
+        queryFn: ({ pageParam }) => {
+            const separator = path.includes('?') ? '&' : '?';
+            const cursor = pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : '';
+            return request<CursorPage<T>>(`${path}${separator}limit=20${cursor}`);
+        },
+        getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     });
     const { isStale, refetch, isFetching, isFetchingNextPage, isPending, isError, data, hasNextPage, fetchNextPage, error } = query;
 
