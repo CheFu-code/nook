@@ -38,9 +38,6 @@ jobs:
             exit 1
           fi
 
-      - name: Generate native Android project
-        run: npx expo prebuild --platform android --non-interactive
-
       - name: Restore keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
