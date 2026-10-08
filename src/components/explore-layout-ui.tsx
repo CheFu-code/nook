@@ -1,0 +1,498 @@
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import type { RefObject } from "react";
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { topics } from "@/lib/explore-data";
+import type { ExploreLayoutProps } from "./explore-layout.types";
+import { FeedIcon } from "./feed-icon";
+import { useAppTheme } from "@/lib/theme";
+
+const exploreColors = {
+  blue: "#087EFF",
+  ink: "#0C1230",
+  muted: "#808AA5",
+};
+
+type ExploreLayoutUiProps = ExploreLayoutProps & {
+  searchRef: RefObject<TextInput | null>;
+  listRef: RefObject<FlatList<ExploreLayoutProps["posts"][number]> | null>;
+  onSearchPress: () => void;
+  onChooseTopic: (value: string) => void;
+};
+
+export function ExploreLayoutUi({
+  searchRef,
+  listRef,
+  onSearchPress,
+  onChooseTopic,
+  ...props
+}: ExploreLayoutUiProps) {
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const s = width / 390;
+  const v = height / 874;
+  const f = Math.max(1, s);
+  const theme = useAppTheme();
+  const c = {
+    ...exploreColors,
+    ink: theme.ink,
+    muted: theme.muted,
+    blue: theme.blue,
+  };
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.background,
+        paddingTop: Math.max(40 * s, insets.top - 13 * s),
+      }}
+    >
+      <StatusBar style={theme.isDark ? "light" : "dark"} />
+      <View
+        style={{
+          height: 44 * v,
+          marginHorizontal: 14 * s,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 9 * s,
+        }}
+      >
+        <Image
+          source={require("../../assets/images/logo-2.png")}
+          tintColor={theme.isDark ? theme.ink : undefined}
+          style={{ width: 35 * s, height: 34 * v }}
+        />
+        <Text
+          style={{
+            flex: 1,
+            fontSize: 23 * s,
+            fontWeight: "700",
+            letterSpacing: -0.8 * s,
+            color: c.ink,
+          }}
+        >
+          nook
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search Explore"
+          onPress={onSearchPress}
+          style={[
+            styles.round,
+            { width: 34 * s, height: 34 * v, backgroundColor: theme.subtle },
+          ]}
+        >
+          <FeedIcon name="search" size={22 * s} color={c.ink} />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create a post"
+          onPress={props.onCompose}
+          style={[
+            styles.round,
+            { width: 34 * s, height: 34 * v, backgroundColor: theme.blueSoft },
+          ]}
+        >
+          <FeedIcon name="plus" size={23 * s} color={c.blue} />
+        </Pressable>
+      </View>
+      {props.notice}
+      <FlatList
+        ref={listRef}
+        data={props.posts}
+        numColumns={3}
+        keyExtractor={(item) => item.id}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentInsetAdjustmentBehavior="never"
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={{ gap: 6 * s, paddingHorizontal: 7 * s }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        onEndReached={props.onEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={props.footer}
+        ListEmptyComponent={
+          props.empty ?? (
+            <Text style={{ padding: 28, textAlign: "center", color: c.muted }}>
+              No posts found. Try another search or topic.
+            </Text>
+          )
+        }
+        ListHeaderComponent={
+          <>
+            <View
+              style={{
+                marginHorizontal: 14 * s,
+                marginTop: 4 * v,
+                height: 34 * v,
+                borderRadius: 22 * s,
+                backgroundColor: theme.input,
+                paddingHorizontal: 13 * s,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12 * s,
+              }}
+            >
+              <FeedIcon name="search" size={19 * s} color={c.muted} />
+              <TextInput
+                ref={searchRef}
+                accessibilityLabel="Search people, posts, or topics"
+                placeholder="Search people, posts, or topics..."
+                placeholderTextColor={c.muted}
+                value={props.query}
+                onChangeText={props.onQuery}
+                autoCorrect={false}
+                autoCapitalize="none"
+                clearButtonMode="while-editing"
+                style={{
+                  flex: 1,
+                  padding: 0,
+                  height: "100%",
+                  fontSize: 14 * f,
+                  color: c.ink,
+                }}
+              />
+            </View>
+            <View
+              style={{
+                marginHorizontal: 14 * s,
+                marginTop: 12 * v,
+                marginBottom: 4 * v,
+                height: 18 * v,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                accessibilityRole="header"
+                style={{
+                  fontSize: 15 * f,
+                  fontWeight: "700",
+                  letterSpacing: -0.4 * s,
+                  color: c.ink,
+                }}
+              >
+                Suggested for you
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="See all suggested people"
+                onPress={props.onPeople}
+                hitSlop={8}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 7 * s,
+                }}
+              >
+                <Text style={{ fontSize: 12 * f, color: c.blue }}>
+                  See all
+                </Text>
+                <View style={{ transform: [{ rotate: "180deg" }] }}>
+                  <FeedIcon name="back" size={10 * s} />
+                </View>
+              </Pressable>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingHorizontal: 16 * s,
+                gap: 19 * s,
+                minWidth: width,
+              }}
+            >
+              {props.people.map((person) => (
+                <View
+                  key={person.id}
+                  style={{ width: 57 * s, alignItems: "center" }}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${person.name}`}
+                    onPress={person.onPress}
+                  >
+                    {person.portrait}
+                  </Pressable>
+                  <Pressable onPress={person.onPress} style={{ width: "100%" }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        textAlign: "center",
+                        fontSize: 12 * f,
+                        lineHeight: 14 * f,
+                        fontWeight: "600",
+                        color: c.ink,
+                        letterSpacing: -0.4 * s,
+                        marginTop: 0,
+                      }}
+                    >
+                      {person.name}
+                    </Text>
+                  </Pressable>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={person.topic.length <= 18}
+                    minimumFontScale={0.8}
+                    style={{
+                      fontSize: 10 * f,
+                      lineHeight: 12 * f,
+                      color: c.muted,
+                      letterSpacing: -0.3 * s,
+                      marginBottom: 4 * v,
+                    }}
+                  >
+                    {person.topic}
+                  </Text>
+                  {person.follow}
+                </View>
+              ))}
+              {!props.people.length && (
+                <Text
+                  style={{
+                    height: 105 * s,
+                    color: c.muted,
+                    fontSize: 12 * s,
+                    paddingTop: 20 * s,
+                  }}
+                >
+                  No suggested people yet.
+                </Text>
+              )}
+            </ScrollView>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 5 * s,
+                marginHorizontal: 14 * s,
+                marginTop: 16 * v,
+                marginBottom: 10 * v,
+                height: 23 * v,
+              }}
+            >
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 5 * s }}
+                style={{ flex: 1 }}
+              >
+                {topics.map((value) => (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${value} topic`}
+                    accessibilityState={{ selected: props.topic === value }}
+                    onPress={() => onChooseTopic(value)}
+                    style={{
+                      backgroundColor:
+                        props.topic === value ? c.blue : theme.subtle,
+                      borderRadius: 16 * s,
+                      paddingHorizontal: (value === "All" ? 14 : 8) * s,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11 * f,
+                        color:
+                          props.topic === value ? "white" : theme.secondary,
+                      }}
+                    >
+                      {value}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose a topic"
+                onPress={props.onTopics}
+                style={[
+                  styles.round,
+                  {
+                    width: 24 * s,
+                    height: 23 * v,
+                    backgroundColor: theme.subtle,
+                  },
+                ]}
+              >
+                <View style={{ transform: [{ rotate: "-90deg" }] }}>
+                  <FeedIcon name="back" size={12 * s} color={theme.secondary} />
+                </View>
+              </Pressable>
+            </View>
+          </>
+        }
+        renderItem={({ item, index }) => (
+          <View
+            style={{
+              width: (width - 26 * s) / 3,
+              borderRadius: 8 * s,
+              backgroundColor: theme.background,
+              boxShadow: "0px 2px 4px #14233C0D",
+              marginBottom: 7 * v,
+            }}
+          >
+            <View
+              style={{
+                height: (index < 3 ? 155 : 149) * v,
+                borderRadius: 7 * s,
+                overflow: "hidden",
+              }}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${item.caption || item.name}`}
+                onPress={item.onPress}
+                style={StyleSheet.absoluteFill}
+              >
+                {item.media}
+              </Pressable>
+              <LinearGradient
+                pointerEvents="none"
+                colors={[
+                  "#00000015",
+                  "transparent",
+                  "transparent",
+                  "#00000040",
+                ]}
+                locations={[0, 0.28, 0.72, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  top: 5 * s,
+                  left: 5 * s,
+                  right: 5 * s,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4 * s,
+                }}
+                pointerEvents="box-none"
+              >
+                <Pressable
+                  accessibilityLabel={`View ${item.name}`}
+                  onPress={item.onAuthor}
+                  style={{
+                    borderRadius: 13 * s,
+                    borderWidth: s,
+                    borderColor: "white",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.avatar}
+                </Pressable>
+                <Pressable onPress={item.onAuthor} style={{ flex: 1 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: "white",
+                      fontSize: 10 * f,
+                      fontWeight: "600",
+                      letterSpacing: -0.3 * s,
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityLabel={`Options for ${item.caption || item.name}`}
+                  onPress={item.onPress}
+                  hitSlop={8}
+                >
+                  <Text
+                    style={{
+                      color: "white",
+                      fontSize: 11 * s,
+                      fontWeight: "700",
+                    }}
+                  >
+                    •••
+                  </Text>
+                </Pressable>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${item.liked ? "Unlike" : "Like"} ${item.caption || item.name}`}
+                accessibilityState={{
+                  selected: item.liked,
+                  disabled: item.pending,
+                }}
+                disabled={item.pending}
+                onPress={item.onLike}
+                hitSlop={4}
+                style={{
+                  position: "absolute",
+                  bottom: 4 * s,
+                  left: 7 * s,
+                  minHeight: 18 * s,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4 * s,
+                }}
+              >
+                <FeedIcon
+                  name="heart"
+                  size={15 * s}
+                  color={item.liked ? "#FF4565" : "white"}
+                  filled={item.liked}
+                />
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 12 * f,
+                    fontWeight: "600",
+                  }}
+                >
+                  {item.likes}
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={item.onPress}
+              style={{
+                height: 44 * v,
+                paddingHorizontal: 8 * s,
+                paddingVertical: 4 * v,
+              }}
+            >
+              <Text
+                numberOfLines={2}
+                style={{
+                  fontSize: 12 * f,
+                  lineHeight: 14 * f,
+                  letterSpacing: -0.15 * s,
+                  color: c.ink,
+                }}
+              >
+                {item.caption}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+const styles = StyleSheet.create({
+  round: {
+    borderRadius: 99,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F5F9",
+  },
+});
