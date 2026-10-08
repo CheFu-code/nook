@@ -12,13 +12,14 @@ import {
     type SocialPost,
     type SocialProfile,
 } from "@/lib/social";
-import { useNookApi } from "@/hooks/use-nook-api";
 import { useFollowMutation, usePostLikeMutation } from "@/hooks/use-social-mutations";
 import { FeedIcon } from "../feed-icon";
 import { Avatar, PostMedia } from "./media";
 import { DetailActions } from "./post-detail-actions";
 import { ui } from "./ui";
 import { useAppTheme } from "@/lib/theme";
+import { PostCardOptions } from "./post-card-options";
+import { usePostCardOptions } from "./use-post-card-options";
 
 function stopCardNavigation(event: GestureResponderEvent) {
     event.stopPropagation();
@@ -115,7 +116,10 @@ export function PostCard({
                 .trim()
             : post.caption;
     const router = useRouter();
-    const request = useNookApi();
+    const postOptions = usePostCardOptions(
+        post,
+        detail ? () => router.back() : undefined,
+    );
     const likeMutation = usePostLikeMutation();
     const liked = post.isLiked ?? false;
     const likes = post.likesCount ?? 0;
@@ -126,27 +130,6 @@ export function PostCard({
         } catch (e) {
             Alert.alert("Could not update like", errorMessage(e));
         }
-    }
-    function options() {
-        if (!post.isOwn) return;
-        Alert.alert(
-            "Delete post?",
-            "This removes the post, its media, likes, and comments.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => {
-                        void request(`/nook/posts/${encodeURIComponent(post._id)}`, {
-                            method: "DELETE",
-                        }).catch((e) =>
-                            Alert.alert("Could not delete post", errorMessage(e)),
-                        );
-                    },
-                },
-            ],
-        );
     }
     const member = () =>
         router.push({ pathname: "/member/[id]", params: { id: post.author._id } });
@@ -170,20 +153,21 @@ export function PostCard({
                     ? `${Math.floor(elapsed / 3600000)}h ago`
                     : `${Math.floor(elapsed / 86400000)}d ago`;
         return (
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Open post${post.caption ? `: ${post.caption}` : ""}`}
-                onPress={openPost}
-                style={{
-                    backgroundColor: theme.surface,
-                    marginHorizontal: 8 * s,
-                    marginBottom: 9 * v,
-                    borderRadius: 16 * s,
-                    paddingHorizontal: 5 * s,
-                    paddingBottom: 5 * v,
-                    boxShadow: "0px 3px 10px #1A284009",
-                }}
-            >
+            <>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open post${post.caption ? `: ${post.caption}` : ""}`}
+                    onPress={openPost}
+                    style={{
+                        backgroundColor: theme.surface,
+                        marginHorizontal: 8 * s,
+                        marginBottom: 9 * v,
+                        borderRadius: 16 * s,
+                        paddingHorizontal: 5 * s,
+                        paddingBottom: 5 * v,
+                        boxShadow: "0px 3px 10px #1A284009",
+                    }}
+                >
                 <View
                     style={{
                         height: 50 * v,
@@ -237,7 +221,7 @@ export function PostCard({
                         accessibilityLabel="Post options"
                         onPress={(event) => {
                             stopCardNavigation(event);
-                            if (post.isOwn) options();
+                            if (post.isOwn) postOptions.setOptionsOpen(true);
                             else comments();
                         }}
                         hitSlop={10}
@@ -390,36 +374,63 @@ export function PostCard({
                         <DetailActions post={post} scale={0.95 * s} />
                     </View>
                 </View>
-            </Pressable>
+                </Pressable>
+                {post.isOwn && (
+                    <PostCardOptions
+                        post={post}
+                        scale={s}
+                        optionsOpen={postOptions.optionsOpen}
+                        onOptionsClose={() => postOptions.setOptionsOpen(false)}
+                        onEdit={postOptions.beginEdit}
+                        onShare={() => void postOptions.sharePost()}
+                        deleteConfirmOpen={postOptions.deleteConfirmOpen}
+                        onDeleteRequest={() => {
+                            postOptions.setOptionsOpen(false);
+                            postOptions.setDeleteConfirmOpen(true);
+                        }}
+                        onDeleteCancel={() => postOptions.setDeleteConfirmOpen(false)}
+                        onDelete={() => void postOptions.deletePost()}
+                        editOpen={postOptions.editOpen}
+                        caption={postOptions.caption}
+                        onCaptionChange={postOptions.setCaption}
+                        onEditCancel={() => postOptions.setEditOpen(false)}
+                        onSave={() => void postOptions.saveCaption()}
+                        busy={postOptions.busy}
+                        feedback={postOptions.feedback}
+                        onDismissFeedback={() => postOptions.setFeedback(null)}
+                    />
+                )}
+            </>
         );
     }
     return (
-        <Pressable
-            accessibilityRole={detail ? undefined : "button"}
-            accessibilityLabel={
-                detail
-                    ? undefined
-                    : `Open post${post.caption ? `: ${post.caption}` : ""}`
-            }
-            disabled={detail}
-            onPress={openPost}
-            style={
-                detail
-                    ? {
-                        backgroundColor: theme.background,
-                        paddingHorizontal: 10,
-                        paddingTop: 8,
-                    }
-                    : {
-                        backgroundColor: theme.surface,
-                        marginHorizontal: 10,
-                        marginBottom: 12,
-                        padding: 8,
-                        borderRadius: 18,
-                        boxShadow: "0px 3px 10px #1A284009",
-                    }
-            }
-        >
+        <>
+            <Pressable
+                accessibilityRole={detail ? undefined : "button"}
+                accessibilityLabel={
+                    detail
+                        ? undefined
+                        : `Open post${post.caption ? `: ${post.caption}` : ""}`
+                }
+                disabled={detail}
+                onPress={openPost}
+                style={
+                    detail
+                        ? {
+                            backgroundColor: theme.background,
+                            paddingHorizontal: 10,
+                            paddingTop: 8,
+                        }
+                        : {
+                            backgroundColor: theme.surface,
+                            marginHorizontal: 10,
+                            marginBottom: 12,
+                            padding: 8,
+                            borderRadius: 18,
+                            boxShadow: "0px 3px 10px #1A284009",
+                        }
+                }
+            >
             <View
                 style={{
                     flexDirection: "row",
@@ -456,10 +467,10 @@ export function PostCard({
                 {post.isOwn ? (
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Delete your post"
+                        accessibilityLabel="Post options"
                         onPress={(event) => {
                             stopCardNavigation(event);
-                            options();
+                            postOptions.setOptionsOpen(true);
                         }}
                         hitSlop={12}
                         style={{ padding: 8 }}
@@ -595,6 +606,32 @@ export function PostCard({
                     {detail && <DetailActions post={post} scale={s} />}
                 </View>
             </View>
-        </Pressable>
+            </Pressable>
+            {post.isOwn && (
+                <PostCardOptions
+                    post={post}
+                    scale={s}
+                    optionsOpen={postOptions.optionsOpen}
+                    onOptionsClose={() => postOptions.setOptionsOpen(false)}
+                    onEdit={postOptions.beginEdit}
+                    onShare={() => void postOptions.sharePost()}
+                    deleteConfirmOpen={postOptions.deleteConfirmOpen}
+                    onDeleteRequest={() => {
+                        postOptions.setOptionsOpen(false);
+                        postOptions.setDeleteConfirmOpen(true);
+                    }}
+                    onDeleteCancel={() => postOptions.setDeleteConfirmOpen(false)}
+                    onDelete={() => void postOptions.deletePost()}
+                    editOpen={postOptions.editOpen}
+                    caption={postOptions.caption}
+                    onCaptionChange={postOptions.setCaption}
+                    onEditCancel={() => postOptions.setEditOpen(false)}
+                    onSave={() => void postOptions.saveCaption()}
+                    busy={postOptions.busy}
+                    feedback={postOptions.feedback}
+                    onDismissFeedback={() => postOptions.setFeedback(null)}
+                />
+            )}
+        </>
     );
 }
