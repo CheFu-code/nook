@@ -50,6 +50,7 @@ export type SocialStory = {
   _creationTime: number;
   expiresAt: number;
   caption: string;
+  viewerCount?: number;
   author: SocialProfile;
 };
 

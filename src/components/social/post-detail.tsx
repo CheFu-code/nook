@@ -15,10 +15,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useProfile } from "@/context/social-context";
+import { useAuth } from "@/lib/chefu-auth";
 import {
   errorMessage,
   type Id,
+  type Page,
   type SocialPost,
 } from "@/lib/social";
 import {
@@ -26,6 +29,7 @@ import {
   useNookPaginatedQuery,
   useNookQuery,
 } from "@/hooks/use-nook-api";
+import { nookApiQueryKey } from "@/lib/query-client";
 import { FeedIcon } from "../feed-icon";
 import { Avatar } from "./media";
 import { PostCard } from "./post-card";
@@ -43,16 +47,20 @@ export function PostDetail() {
   const { id } = useLocalSearchParams<{ id: Id<"posts"> }>();
   const insets = useSafeAreaInsets();
   const me = useProfile();
+  const { userId } = useAuth();
+  const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const s = width / 390;
   const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const commentsPath = `/nook/posts/${encodeURIComponent(id)}/comments?order=${order}`;
   const postQuery = useNookQuery<SocialPost | null>(
     id ? `/nook/posts/${encodeURIComponent(id)}` : null,
   );
   const post = postQuery.data;
   const comments = useNookPaginatedQuery<Comment>(
-    `/nook/posts/${encodeURIComponent(id)}/comments?order=${order}`,
+    commentsPath,
   );
+  const commentsQueryKey = nookApiQueryKey(userId, commentsPath);
   const requestApi = useNookApi();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -111,16 +119,40 @@ export function PostDetail() {
       ? text.trim()
       : `${replying ? `@${replying.username} ` : ""}${text.trim()}`;
     if (editingCommentId) {
+      let previous: InfiniteData<Page<Comment>> | undefined;
       try {
+        await queryClient.cancelQueries({ queryKey: commentsQueryKey });
+        previous = queryClient.getQueryData<InfiniteData<Page<Comment>>>(
+          commentsQueryKey,
+        );
+        queryClient.setQueryData<InfiniteData<Page<Comment>>>(
+          commentsQueryKey,
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  pages: current.pages.map((page) => ({
+                    ...page,
+                    items: page.items.map((item) =>
+                      item._id === editingCommentId
+                        ? { ...item, text: commentText }
+                        : item,
+                    ),
+                  })),
+                }
+              : current,
+        );
         await requestApi(
           `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(editingCommentId)}`,
           { method: "PATCH", body: { text: commentText } },
         );
-        comments.refresh();
         setText("");
         setEditingCommentId(null);
         Keyboard.dismiss();
       } catch (e) {
+        if (previous) {
+          queryClient.setQueryData(commentsQueryKey, previous);
+        }
         setError(errorMessage(e));
       } finally {
         setBusy(false);
@@ -132,7 +164,43 @@ export function PostDetail() {
       request.current.parentId !== replying?.id
     )
       request.current = { id: randomUUID(), text: commentText, parentId: replying?.id };
+    const optimisticId = `optimistic-${request.current.id}`;
+    const optimisticComment: Comment = {
+      _id: optimisticId,
+      _creationTime: Date.now(),
+      text: commentText,
+      ...(replying ? { parentId: replying.id } : {}),
+      author: me,
+      isOwn: true,
+      isLiked: false,
+    };
+    let previous: InfiniteData<Page<Comment>> | undefined;
     try {
+      await queryClient.cancelQueries({ queryKey: commentsQueryKey });
+      previous = queryClient.getQueryData<InfiniteData<Page<Comment>>>(
+        commentsQueryKey,
+      );
+      queryClient.setQueryData<InfiniteData<Page<Comment>>>(
+        commentsQueryKey,
+        (current) => {
+          const pages = current?.pages ?? [{ items: [], hasMore: false }];
+          const targetPage = order === "desc" ? 0 : pages.length - 1;
+          return {
+            pages: pages.map((page, index) =>
+              index === targetPage
+                ? {
+                    ...page,
+                    items:
+                      order === "desc"
+                        ? [optimisticComment, ...page.items]
+                        : [...page.items, optimisticComment],
+                  }
+                : page,
+            ),
+            pageParams: current?.pageParams ?? [0],
+          };
+        },
+      );
       await requestApi(`/nook/posts/${encodeURIComponent(id)}/comments`, {
         method: "POST",
         body: {
@@ -141,7 +209,6 @@ export function PostDetail() {
           parentId: request.current.parentId,
         },
       });
-      comments.refresh();
       setText("");
       setReplying(null);
       setEditingCommentId(null);
@@ -149,6 +216,25 @@ export function PostDetail() {
       request.current = { id: randomUUID(), text: "", parentId: undefined };
       Keyboard.dismiss();
     } catch (e) {
+      if (previous) {
+        queryClient.setQueryData(commentsQueryKey, previous);
+      } else {
+        queryClient.setQueryData<InfiniteData<Page<Comment>>>(
+          commentsQueryKey,
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  pages: current.pages.map((page) => ({
+                    ...page,
+                    items: page.items.filter(
+                      (comment) => comment._id !== optimisticId,
+                    ),
+                  })),
+                }
+              : current,
+        );
+      }
       setError(errorMessage(e));
     } finally {
       setBusy(false);
@@ -164,15 +250,53 @@ export function PostDetail() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            void requestApi(
-              `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`,
-              { method: "DELETE" },
-            )
-              .then(comments.refresh)
-              .catch((e) =>
-                Alert.alert("Could not delete comment", errorMessage(e)),
+          onPress: async () => {
+            let previous: InfiniteData<Page<Comment>> | undefined;
+            try {
+              await queryClient.cancelQueries({ queryKey: commentsQueryKey });
+              previous = queryClient.getQueryData<InfiniteData<Page<Comment>>>(
+                commentsQueryKey,
               );
+              const removedIds = new Set([item._id]);
+              let addedDescendant = true;
+              while (addedDescendant) {
+                addedDescendant = false;
+                for (const comment of previous?.pages.flatMap((page) => page.items) ?? []) {
+                  if (
+                    comment.parentId &&
+                    removedIds.has(comment.parentId) &&
+                    !removedIds.has(comment._id)
+                  ) {
+                    removedIds.add(comment._id);
+                    addedDescendant = true;
+                  }
+                }
+              }
+              queryClient.setQueryData<InfiniteData<Page<Comment>>>(
+                commentsQueryKey,
+                (current) =>
+                  current
+                    ? {
+                        ...current,
+                        pages: current.pages.map((page) => ({
+                          ...page,
+                          items: page.items.filter(
+                            (comment) => !removedIds.has(comment._id),
+                          ),
+                        })),
+                      }
+                    : current,
+              );
+              await requestApi(
+                `/nook/posts/${encodeURIComponent(id)}/comments/${encodeURIComponent(item._id)}`,
+                { method: "DELETE" },
+              );
+            } catch (e) {
+              if (previous) {
+                queryClient.setQueryData(commentsQueryKey, previous);
+              }
+              Alert.alert("Could not delete comment", errorMessage(e));
+            }
           },
         },
       ],

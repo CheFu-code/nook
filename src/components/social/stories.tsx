@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Animated, {
     cancelAnimation,
     Easing,
@@ -69,8 +69,12 @@ export function Stories() {
     const ordered = people.flatMap((person) =>
         active.filter((story) => story.author._id === person._id).reverse(),
     );
-    const index = ordered.findIndex((story) => story._id === selected);
-    const current = ordered[index];
+    const selectedIndex = ordered.findIndex((story) => story._id === selected);
+    const current = ordered[selectedIndex];
+    const currentStories = current
+        ? ordered.filter((story) => story.author._id === current.author._id)
+        : [];
+    const index = currentStories.findIndex((story) => story._id === selected);
     const open = (id: string) => {
         setSelected(id);
         setSeen((values) => (values.includes(id) ? values : [...values, id]));
@@ -80,7 +84,7 @@ export function Stories() {
         router.push({ pathname: "/member/[id]", params: { id } });
     };
     const next = () => {
-        if (ordered[index + 1]) open(ordered[index + 1]._id);
+        if (currentStories[index + 1]) open(currentStories[index + 1]._id);
         else setSelected(null);
     };
     return (
@@ -177,8 +181,8 @@ export function Stories() {
                                 </Pressable>
                                 <Pressable
                                     accessibilityRole="button"
-                                    accessibilityLabel={`View ${person.username}'s profile`}
-                                    onPress={() => openProfile(person._id)}
+                                    accessibilityLabel={`View ${person.username}'s stories`}
+                                    onPress={() => open((unread ?? group[0])._id)}
                                     style={{
                                         position: "absolute",
                                         top: 3 * s,
@@ -190,8 +194,8 @@ export function Stories() {
                             </View>
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel={`View ${person.username}'s profile`}
-                                onPress={() => openProfile(person._id)}
+                                accessibilityLabel={`View ${person.username}'s stories`}
+                                onPress={() => open((unread ?? group[0])._id)}
                                 style={{ maxWidth: "100%" }}
                             >
                                 <Text
@@ -233,10 +237,10 @@ export function Stories() {
                         story={current}
                         now={now}
                         index={index}
-                        count={ordered.length}
+                        count={currentStories.length}
                         onNext={next}
                         onPrevious={() => {
-                            if (ordered[index - 1]) open(ordered[index - 1]._id);
+                            if (currentStories[index - 1]) open(currentStories[index - 1]._id);
                         }}
                         onClose={() => setSelected(null)}
                         onAuthorPress={() => openProfile(current.author._id)}
@@ -269,6 +273,8 @@ function StoryViewer({
     const { source, error, retry } = useMediaSource(story._id, "story");
     const request = useNookApi();
     const [ready, setReady] = useState(false);
+    const [viewerCount, setViewerCount] = useState(story.viewerCount ?? 0);
+    const viewRecorded = useRef(false);
     const [failed, setFailed] = useState(false);
     const [paused, setPaused] = useState(false);
     const [foreground, setForeground] = useState(
@@ -329,6 +335,23 @@ function StoryViewer({
             ],
             { onDismiss: () => setPaused(false) },
         );
+    }
+    function recordView() {
+        if (viewRecorded.current) return;
+        viewRecorded.current = true;
+        void request<{ viewerCount: number }>(
+            `/nook/stories/${encodeURIComponent(story._id)}/view`,
+            {
+            method: "POST",
+            },
+        )
+            .then((result) => {
+                if (story.author.isOwn) setViewerCount(result.viewerCount);
+            })
+            .catch((error) => {
+                viewRecorded.current = false;
+                Alert.alert("Could not record story view", errorMessage(error));
+            });
     }
     return (
         <View
@@ -398,6 +421,11 @@ function StoryViewer({
                         <Text style={{ color: "#BBC4D5", fontSize: 11 }}>
                             Story · {formatStoryAge(now - story._creationTime)}
                         </Text>
+                        {story.author.isOwn && (
+                            <Text style={{ color: "#BBC4D5", fontSize: 11 }}>
+                                {viewerCount} {viewerCount === 1 ? "viewer" : "viewers"}
+                            </Text>
+                        )}
                     </View>
                 </Pressable>
                 {story.author.isOwn && (
@@ -426,7 +454,10 @@ function StoryViewer({
                         cachePolicy="memory"
                         contentFit="contain"
                         style={{ width: "100%", height: "100%" }}
-                        onLoad={() => setReady(true)}
+                        onLoad={() => {
+                            setReady(true);
+                            recordView();
+                        }}
                         onError={() => setFailed(true)}
                     />
                 )}
