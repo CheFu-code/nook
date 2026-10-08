@@ -54,7 +54,11 @@ function MessageBody({
                     fontSize: scale * 14,
                     lineHeight: 19 * vertical,
                     color: message.deletedForMe || message.deletedForEveryone
-                        ? theme.muted
+                        ? message.outgoing
+                            ? theme.isDark
+                                ? "#10233D"
+                                : "rgba(255,255,255,0.82)"
+                            : theme.muted
                         : message.outgoing
                           ? "white"
                           : theme.ink,
@@ -90,13 +94,32 @@ function MessageBody({
                 </Text>
                 {message.outgoing &&
                     message.status !== "pending" &&
-                    message.status !== "failed" && (
+                    message.status !== "failed" &&
+                    (message.delivered ? (
+                        <View
+                            accessibilityLabel="Delivered"
+                            style={{ flexDirection: "row" }}
+                        >
+                            <FeedIcon
+                                name="check"
+                                size={13 * scale}
+                                color="rgba(255,255,255,0.72)"
+                            />
+                            <View style={{ marginLeft: -8 * scale }}>
+                                <FeedIcon
+                                    name="check"
+                                    size={13 * scale}
+                                    color="rgba(255,255,255,0.72)"
+                                />
+                            </View>
+                        </View>
+                    ) : (
                         <FeedIcon
                             name="check"
                             size={13 * scale}
                             color="rgba(255,255,255,0.72)"
                         />
-                    )}
+                    ))}
             </View>
         </View>
     );
@@ -335,11 +358,16 @@ export function MessageRow({
             }}
             style={{
                 marginBottom: 4.5 * vertical,
+                width: "100%",
                 alignItems: message.outgoing ? "flex-end" : "flex-start",
                 transform: [{ translateX }],
             }}
         >
             <Pressable
+                style={{
+                    alignSelf: message.outgoing ? "flex-end" : "flex-start",
+                    maxWidth: "80%",
+                }}
                 disabled={!canReact}
                 onLongPress={() => {
                     bubbleRef.current?.measureInWindow((x, y, width, height) => {
@@ -360,6 +388,7 @@ export function MessageRow({
                     <View
                         style={{
                             maxWidth: fs(290),
+                            flexShrink: 1,
                             alignItems: message.outgoing ? "flex-end" : "flex-start",
                         }}
                     >

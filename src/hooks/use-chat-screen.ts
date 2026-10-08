@@ -12,6 +12,7 @@ export type ChatMessage = {
     backendId?: string;
     text: string;
     outgoing: boolean;
+    delivered?: boolean;
     createdAt?: number;
     time: string;
     edited?: boolean;
@@ -43,6 +44,7 @@ export function useChatScreenLogic({
     const scrollRef = useRef<ScrollView>(null);
     const shouldScroll = useRef(false);
     const nearBottom = useRef(true);
+    const initialScrollPending = useRef(true);
     const lastId = messages.at(-1)?.id;
 
     useEffect(() => {
@@ -81,6 +83,13 @@ export function useChatScreenLogic({
     }
 
     function handleContentSizeChange() {
+        if (initialScrollPending.current && messages.length > 0) {
+            initialScrollPending.current = false;
+            requestAnimationFrame(() =>
+                scrollRef.current?.scrollToEnd({ animated: false }),
+            );
+            return;
+        }
         if (!shouldScroll.current) return;
         scrollRef.current?.scrollToEnd({ animated: true });
         shouldScroll.current = false;

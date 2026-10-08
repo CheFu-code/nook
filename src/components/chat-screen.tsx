@@ -23,6 +23,7 @@ import {
     type MessageReactor,
 } from "./chat-screen-ui";
 import { useAppTheme } from "@/lib/theme";
+import { useUserPresenceStatus } from "@/hooks/use-user-presence";
 import { useChatScreenLogic, type ChatMessage } from "@/hooks/use-chat-screen";
 
 export type { ChatMessage } from "@/hooks/use-chat-screen";
@@ -43,6 +44,30 @@ function messageDateLabel(timestamp: number, now = new Date()) {
         return date.toLocaleDateString("en-GB", { weekday: "long" });
     }
     return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function lastSeenLabel(timestamp: number, now = new Date()) {
+    const date = new Date(timestamp);
+    const elapsed = Math.max(0, now.getTime() - date.getTime());
+    if (elapsed < 60_000) return "Last seen just now";
+    if (elapsed < 3_600_000) {
+        const minutes = Math.floor(elapsed / 60_000);
+        return `Last seen ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    }
+    const time = date.toLocaleTimeString("en-GB", {
+        hour: "numeric",
+        minute: "2-digit",
+    });
+    const dateDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const daysAgo = Math.round((todayDay - dateDay) / 86_400_000);
+    if (daysAgo === 0) return `Last seen today at ${time}`;
+    if (daysAgo === 1) return `Last seen yesterday at ${time}`;
+    return `Last seen ${date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    })} at ${time}`;
 }
 
 export function ChatScreen({
@@ -68,6 +93,7 @@ export function ChatScreen({
     onBack: () => void;
     messages: ChatMessage[];
     peer: {
+        uid: string;
         name: string;
         avatar: (size: number) => ReactNode;
         onPress: () => void;
@@ -116,8 +142,15 @@ export function ChatScreen({
         handleContentSizeChange,
         scrollToEnd,
     } = useChatScreenLogic({ messages, onSend, onAtBottom });
+    const presence = useUserPresenceStatus(peer.uid);
+    const [presenceClock, setPresenceClock] = useState(() => Date.now());
     const inputRef = useRef<TextInput>(null);
     const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+    useEffect(() => {
+        if (presence?.online || !presence?.lastSeen) return;
+        const interval = setInterval(() => setPresenceClock(Date.now()), 60_000);
+        return () => clearInterval(interval);
+    }, [presence?.lastSeen, presence?.online]);
     const [draftSelection, setDraftSelection] = useState({ start: 0, end: 0 });
     const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
     const blurTargetRef = useRef<View>(null);
@@ -313,8 +346,17 @@ export function ChatScreen({
                     >
                         {peer.name}
                     </Text>
-                    <Text style={{ color: theme.muted, fontSize: fs(12) }}>
-                        Private conversation
+                    <Text
+                        style={{
+                            color: presence?.online ? "#22C55E" : theme.muted,
+                            fontSize: fs(12),
+                        }}
+                    >
+                        {presence?.online
+                            ? "Online"
+                            : presence?.lastSeen
+                              ? lastSeenLabel(presence.lastSeen, new Date(presenceClock))
+                              : "Last seen unavailable"}
                     </Text>
                 </Pressable>
             </View>

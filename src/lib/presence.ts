@@ -13,14 +13,33 @@ import {
 } from "firebase/database";
 import { randomUUID } from "expo-crypto";
 
-type PresenceListener = (online: boolean) => void;
+export type UserPresence = {
+  online: boolean;
+  lastSeen: number | null;
+};
+type PresenceListener = (presence: UserPresence) => void;
 type PresenceSubscription = {
   listeners: Set<PresenceListener>;
   unsubscribe?: () => void;
 };
+export type ConversationEvent = {
+  eventId: string;
+  type: "message" | "reaction" | "delivery";
+  sequence: number;
+  sentAt: number;
+};
+type ConversationEventSubscription = {
+  listeners: Set<(event: ConversationEvent) => void>;
+  unsubscribe?: () => void;
+};
 
 const subscriptions = new Map<string, PresenceSubscription>();
+const conversationEventSubscriptions = new Map<
+  string,
+  ConversationEventSubscription
+>();
 let presenceDatabase: Database | null = null;
+let presenceAuthReady = false;
 
 function getPresenceDatabase() {
   const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
@@ -45,17 +64,73 @@ function getPresenceDatabase() {
 }
 
 function attachUserSubscription(uid: string, subscription: PresenceSubscription) {
-  if (!presenceDatabase || subscription.unsubscribe) return;
+  if (!presenceDatabase || !presenceAuthReady || subscription.unsubscribe) return;
   const userRef = ref(presenceDatabase, `presence/${uid}`);
   subscription.unsubscribe = onValue(
     userRef,
     (snapshot) => {
-      const online = snapshot.exists();
-      subscription.listeners.forEach((listener) => listener(online));
+      const sessions = snapshot.child("sessions");
+      const online = sessions.exists()
+        ? Object.values(sessions.val() as Record<string, { state?: unknown }>).some(
+            (session) => session?.state === "online",
+          )
+        : Object.entries(snapshot.val() ?? {}).some(
+            ([key, value]) =>
+              key !== "lastSeen" &&
+              key !== "sessions" &&
+              (value as { state?: unknown } | null)?.state === "online",
+          );
+      const rawLastSeen = snapshot.child("lastSeen").val();
+      const presence = {
+        online,
+        lastSeen:
+          typeof rawLastSeen === "number" && Number.isFinite(rawLastSeen)
+            ? rawLastSeen
+            : null,
+      };
+      subscription.listeners.forEach((listener) => listener(presence));
     },
     (error) => {
       console.error("Unable to read user presence.", error);
-      subscription.listeners.forEach((listener) => listener(false));
+      subscription.listeners.forEach((listener) =>
+        listener({ online: false, lastSeen: null }),
+      );
+    },
+  );
+}
+
+function attachConversationEventSubscription(
+  uid: string,
+  conversationId: string,
+  subscription: ConversationEventSubscription,
+) {
+  if (!presenceDatabase || !presenceAuthReady || subscription.unsubscribe) return;
+  subscription.unsubscribe = onValue(
+    ref(presenceDatabase, `chatEvents/${uid}/${conversationId}`),
+    (snapshot) => {
+      const value: unknown = snapshot.val();
+      if (
+        typeof value !== "object" ||
+        value === null ||
+        !("eventId" in value) ||
+        typeof value.eventId !== "string" ||
+        !("type" in value) ||
+        (value.type !== "message" &&
+          value.type !== "reaction" &&
+          value.type !== "delivery") ||
+        !("sequence" in value) ||
+        typeof value.sequence !== "number" ||
+        !("sentAt" in value) ||
+        typeof value.sentAt !== "number"
+      ) {
+        return;
+      }
+      subscription.listeners.forEach((listener) =>
+        listener(value as ConversationEvent),
+      );
+    },
+    (error) => {
+      console.error("Unable to subscribe to conversation updates.", error);
     },
   );
 }
@@ -83,6 +158,31 @@ export function subscribeToPresence(
   };
 }
 
+export function subscribeToConversationEvents(
+  uid: string,
+  conversationId: string,
+  listener: (event: ConversationEvent) => void,
+) {
+  const key = `${uid}:${conversationId}`;
+  let subscription = conversationEventSubscriptions.get(key);
+  if (!subscription) {
+    subscription = { listeners: new Set() };
+    conversationEventSubscriptions.set(key, subscription);
+  }
+  subscription.listeners.add(listener);
+  attachConversationEventSubscription(uid, conversationId, subscription);
+
+  return () => {
+    const current = conversationEventSubscriptions.get(key);
+    if (!current) return;
+    current.listeners.delete(listener);
+    if (!current.listeners.size) {
+      current.unsubscribe?.();
+      conversationEventSubscriptions.delete(key);
+    }
+  };
+}
+
 export async function startPresenceSession(
   uid: string,
   getCustomToken: () => Promise<string>,
@@ -90,27 +190,46 @@ export async function startPresenceSession(
   const database = getPresenceDatabase();
   const auth = getAuth(getApp("nook-presence"));
   if (auth.currentUser?.uid !== uid) {
+    presenceAuthReady = false;
     const token = await getCustomToken();
     const credentials = await signInWithCustomToken(auth, token);
     if (credentials.user.uid !== uid) {
+      presenceAuthReady = false;
       await auth.signOut();
       throw new Error("Firebase presence authentication returned the wrong user.");
     }
   }
 
+  presenceAuthReady = auth.currentUser?.uid === uid;
+  if (!presenceAuthReady) {
+    throw new Error("Firebase presence authentication is not ready for this user.");
+  }
+
   subscriptions.forEach((subscription, subscribedUid) =>
     attachUserSubscription(subscribedUid, subscription),
   );
+  conversationEventSubscriptions.forEach((subscription, key) => {
+    const separator = key.indexOf(":");
+    const subscribedUid = key.slice(0, separator);
+    const conversationId = key.slice(separator + 1);
+    attachConversationEventSubscription(
+      subscribedUid,
+      conversationId,
+      subscription,
+    );
+  });
 
   const ownPresenceRef = ref(
     database,
-    `presence/${uid}/${randomUUID()}`,
+    `presence/${uid}/sessions/${randomUUID()}`,
   );
+  const lastSeenRef = ref(database, `presence/${uid}/lastSeen`);
   let active = true;
   let closed = false;
   let writeInFlight: Promise<void> = Promise.resolve();
   const publishOnline = async () => {
     if (!active || closed) return;
+    await onDisconnect(lastSeenRef).set(serverTimestamp());
     await onDisconnect(ownPresenceRef).remove();
     if (active && !closed) {
       await set(ownPresenceRef, {
@@ -148,6 +267,7 @@ export async function startPresenceSession(
         return;
       }
       writeInFlight = writeInFlight
+        .then(() => set(lastSeenRef, serverTimestamp()))
         .then(() => set(ownPresenceRef, null))
         .then(() => {
           if (!active) goOffline(database);
@@ -164,6 +284,7 @@ export async function startPresenceSession(
       connectedUnsubscribe();
       try {
         await writeInFlight;
+        await set(lastSeenRef, serverTimestamp());
         await set(ownPresenceRef, null);
       } catch (error) {
         console.error("Unable to clear online presence on session end.", error);

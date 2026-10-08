@@ -76,6 +76,7 @@ export type Message = {
   sequence: number;
   _creationTime: number;
   outgoing: boolean;
+  delivered?: boolean;
   requestId?: string;
   edited?: boolean;
   canDeleteForEveryone?: boolean;

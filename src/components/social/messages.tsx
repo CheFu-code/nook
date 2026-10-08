@@ -29,6 +29,7 @@ import {
 import { useMessages } from "@/context/messages-context";
 import { useAuth } from "@/lib/chefu-auth";
 import { cacheNookConversationPreview } from "@/lib/query-client";
+import { subscribeToConversationEvents } from "@/lib/presence";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatScreen, type ChatMessage } from "../chat-screen";
 import type { MessageReactor } from "../chat-screen-ui";
@@ -53,6 +54,7 @@ export function inboxTime(timestamp: number) {
 }
 export function LiveChat() {
   const { id } = useLocalSearchParams<{ id: Id<"conversations"> }>();
+  const { userId } = useAuth();
   const router = useRouter();
   const theme = useAppTheme();
   const conversationQuery = useNookQuery<
@@ -131,13 +133,12 @@ export function LiveChat() {
   const refreshHistory = history.refresh;
   const refreshConversation = conversationQuery.refresh;
   useEffect(() => {
-    if (!focused || !active) return;
-    const timer = setInterval(() => {
+    if (!userId || !id || !focused || !active) return;
+    return subscribeToConversationEvents(userId, id, () => {
       void refreshHistory();
       refreshConversation();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [focused, active, refreshHistory, refreshConversation]);
+    });
+  }, [active, focused, id, refreshConversation, refreshHistory, userId]);
   const latest = history.results.reduce(
     (max, item) => Math.max(max, item.sequence),
     0,
@@ -196,6 +197,7 @@ export function LiveChat() {
       createdAt: item._creationTime,
       time: messageTime(item._creationTime),
       outgoing: item.outgoing,
+      delivered: item.delivered,
       edited: item.edited,
       canDeleteForEveryone: item.canDeleteForEveryone,
       deletedForMe: item.deletedForMe,
@@ -372,6 +374,7 @@ export function LiveChat() {
         }
       }}
       peer={{
+        uid: conversation.other._id,
         name: conversation.other.username,
         avatar: (size) => (
           <Avatar profile={conversation.other} size={size} showPresence />
