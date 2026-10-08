@@ -75,8 +75,8 @@ export function useNookPaginatedQuery<T>(path: string, enabled = true) {
         if (hasNextPage) void fetchNextPage();
     }, [data, fetchNextPage, hasNextPage, isError, isFetchingNextPage, refetch]);
 
-    const refresh = useCallback(() => {
-        void refetch();
+    const refresh = useCallback(async () => {
+        await refetch();
     }, [refetch]);
     return { results, status, error: error ?? null, loadMore, refresh };
 }

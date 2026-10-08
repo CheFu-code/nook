@@ -9,6 +9,7 @@ import {
 
 export type ChatMessage = {
     id: string;
+    backendId?: string;
     text: string;
     outgoing: boolean;
     time: string;
@@ -19,6 +20,7 @@ export type ChatMessage = {
         text: string;
         outgoing: boolean;
     };
+    reactions?: { emoji: string; count: number; reacted: boolean }[];
 };
 
 export function useChatScreenLogic({

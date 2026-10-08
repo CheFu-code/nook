@@ -67,6 +67,9 @@ export function LiveChat() {
   const [atBottom, setAtBottom] = useState(true);
   const [focused, setFocused] = useState(true);
   const [active, setActive] = useState(AppState.currentState === "active");
+  const [reactionOverrides, setReactionOverrides] = useState<
+    Record<string, Message["reactions"]>
+  >({});
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
@@ -110,10 +113,12 @@ export function LiveChat() {
     .reverse()
     .map((item) => ({
       id: item.requestId ?? item._id,
+      backendId: item._id,
       text: item.text,
       time: `${new Date(item._creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${messageTime(item._creationTime)}`,
       outgoing: item.outgoing,
       replyTo: item.replyTo,
+      reactions: reactionOverrides[item._id] ?? item.reactions,
     }));
   for (const item of outbox.pending.filter(
     (item) =>
@@ -163,6 +168,54 @@ export function LiveChat() {
       onBack={() => router.back()}
       messages={messages}
       onSend={(text, replyTo) => outbox.send(id, text, replyTo)}
+      onReact={async (message, emoji) => {
+        if (!message.backendId) return;
+        const previous = message.reactions ?? [];
+        const next = previous
+          .map((reaction) => ({
+            ...reaction,
+            count: reaction.count - (reaction.reacted ? 1 : 0),
+            reacted: false,
+          }))
+          .filter((reaction) => reaction.count > 0);
+        if (emoji) {
+          const existing = next.find((reaction) => reaction.emoji === emoji);
+          if (existing) {
+            existing.count += 1;
+            existing.reacted = true;
+          } else {
+            next.push({ emoji, count: 1, reacted: true });
+          }
+        }
+        setReactionOverrides((current) => ({
+          ...current,
+          [message.backendId!]: next,
+        }));
+        try {
+          const reactions = await request<
+            { emoji: string; count: number; reacted: boolean }[]
+          >(
+            `/nook/messages/${encodeURIComponent(id)}/messages/${encodeURIComponent(message.backendId)}/reaction`,
+            { method: "POST", body: { emoji } },
+          );
+          setReactionOverrides((current) => ({
+            ...current,
+            [message.backendId!]: reactions,
+          }));
+          await history.refresh();
+          setReactionOverrides((current) => {
+            const updated = { ...current };
+            delete updated[message.backendId!];
+            return updated;
+          });
+        } catch (error) {
+          setReactionOverrides((current) => ({
+            ...current,
+            [message.backendId!]: previous,
+          }));
+          Alert.alert("Could not react to message", errorMessage(error));
+        }
+      }}
       peer={{
         name: conversation.other.username,
         avatar: (size) => <Avatar profile={conversation.other} size={size} />,

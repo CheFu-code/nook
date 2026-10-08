@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { BlurTargetView, BlurView } from "expo-blur";
 import {
     Animated,
     KeyboardAvoidingView,
@@ -24,6 +25,7 @@ export function ChatScreen({
     messages,
     peer,
     onSend,
+    onReact,
     beforeMessages,
     onAtBottom,
 }: {
@@ -35,6 +37,10 @@ export function ChatScreen({
         onPress: () => void;
     };
     onSend: (text: string, replyTo?: ChatMessage["replyTo"]) => void;
+    onReact: (
+        message: ChatMessage,
+        emoji: string | null,
+    ) => void;
     beforeMessages?: ReactNode;
     onAtBottom?: (atBottom: boolean) => void;
 }) {
@@ -52,10 +58,53 @@ export function ChatScreen({
         scrollToEnd,
     } = useChatScreenLogic({ messages, onSend, onAtBottom });
     const inputRef = useRef<TextInput>(null);
+    const blurTargetRef = useRef<View>(null);
+    const [reactionTarget, setReactionTarget] = useState<{
+        message: ChatMessage;
+        frame: { x: number; y: number; width: number; height: number };
+    } | null>(null);
+    const [reactionAnimation] = useState(() => new Animated.Value(0));
+    const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const replyToMessage = (message: ChatMessage) => {
-        setReplyTo(message);
-        inputRef.current?.focus();
+        setReplyTo({ ...message, id: message.backendId ?? message.id });
+        if (focusTimer.current) clearTimeout(focusTimer.current);
+        if (!keyboardVisible) inputRef.current?.blur();
+        focusTimer.current = setTimeout(() => {
+            inputRef.current?.focus();
+            focusTimer.current = null;
+        }, keyboardVisible ? 0 : 80);
     };
+    const openReactionPicker = (
+        message: ChatMessage,
+        frame: { x: number; y: number; width: number; height: number },
+    ) => {
+        setReactionTarget({
+            message,
+            frame: { ...frame, y: frame.y - insets.top },
+        });
+        reactionAnimation.setValue(0);
+        Animated.spring(reactionAnimation, {
+            toValue: 1,
+            useNativeDriver: true,
+            damping: 18,
+            stiffness: 220,
+        }).start();
+    };
+    const closeReactionPicker = () => {
+        Animated.timing(reactionAnimation, {
+            toValue: 0,
+            duration: 130,
+            useNativeDriver: true,
+        }).start(({ finished }) => {
+            if (finished) setReactionTarget(null);
+        });
+    };
+    useEffect(
+        () => () => {
+            if (focusTimer.current) clearTimeout(focusTimer.current);
+        },
+        [],
+    );
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const theme = useAppTheme();
@@ -71,6 +120,7 @@ export function ChatScreen({
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <StatusBar style={theme.isDark ? "light" : "dark"} />
+            <BlurTargetView ref={blurTargetRef} style={{ flex: 1 }}>
             <View
                 style={[
                     styles.header,
@@ -155,6 +205,7 @@ export function ChatScreen({
                         scale={s}
                         vertical={v}
                         onReply={replyToMessage}
+                        onLongPress={openReactionPicker}
                     />
                 ))}
             </ScrollView>
@@ -193,7 +244,10 @@ export function ChatScreen({
                         <Pressable
                             accessibilityRole="button"
                             accessibilityLabel="Cancel reply"
-                            onPress={() => setReplyTo(null)}
+                            onPress={() => {
+                                if (focusTimer.current) clearTimeout(focusTimer.current);
+                                setReplyTo(null);
+                            }}
                             hitSlop={10}
                         >
                             <FeedIcon name="close" size={fs(18)} color={theme.muted} />
@@ -250,7 +304,236 @@ export function ChatScreen({
                     </Pressable>
                 </View>
             </View>
+            </BlurTargetView>
+            {reactionTarget && (
+                    <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
+                        <BlurView
+                            intensity={theme.isDark ? 42 : 34}
+                            tint={theme.isDark ? "dark" : "light"}
+                            blurTarget={blurTargetRef}
+                            blurMethod={
+                                Platform.OS === "android"
+                                    ? "dimezisBlurViewSdk31Plus"
+                                    : undefined
+                            }
+                            style={StyleSheet.absoluteFill}
+                        />
+                        <Animated.View
+                            pointerEvents="none"
+                            style={[
+                                StyleSheet.absoluteFill,
+                                {
+                                    backgroundColor: theme.isDark
+                                        ? "rgba(0,0,0,0.38)"
+                                        : "rgba(13,21,41,0.28)",
+                                    opacity: reactionAnimation,
+                                },
+                            ]}
+                        />
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Dismiss reactions"
+                            onPress={closeReactionPicker}
+                            style={StyleSheet.absoluteFill}
+                        />
+                        <Animated.View
+                            pointerEvents="none"
+                            style={{
+                                position: "absolute",
+                                left: reactionTarget.frame.x,
+                                top: reactionTarget.frame.y,
+                                width: reactionTarget.frame.width,
+                                minHeight: reactionTarget.frame.height,
+                                justifyContent: "center",
+                                transform: [
+                                    {
+                                        scale: reactionAnimation.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.96, 1],
+                                        }),
+                                    },
+                                ],
+                                shadowColor: "#000",
+                                shadowOpacity: 0.3,
+                                shadowRadius: 22,
+                                shadowOffset: { width: 0, height: 10 },
+                                elevation: 18,
+                            }}
+                        >
+                            <SpotlightMessage
+                                message={reactionTarget.message}
+                                peerName={peer.name}
+                                theme={theme}
+                                scale={s}
+                                vertical={v}
+                            />
+                        </Animated.View>
+                        <Animated.View
+                            style={{
+                                position: "absolute",
+                                top: Math.max(
+                                    12,
+                                    reactionTarget.frame.y - 62 * s,
+                                ),
+                                left: reactionTarget.message.outgoing
+                                    ? Math.max(
+                                        12 * s,
+                                        Math.min(
+                                            width - 310 * s,
+                                            reactionTarget.frame.x +
+                                                reactionTarget.frame.width -
+                                                310 * s,
+                                        ),
+                                    )
+                                    : Math.min(width - 310 * s, 12 * s),
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 3 * s,
+                                padding: 6 * s,
+                                borderRadius: 28 * s,
+                                backgroundColor: theme.surface,
+                                borderColor: theme.border,
+                                borderWidth: StyleSheet.hairlineWidth,
+                                shadowColor: "#000",
+                                shadowOpacity: 0.22,
+                                shadowRadius: 20,
+                                shadowOffset: { width: 0, height: 8 },
+                                elevation: 20,
+                                opacity: reactionAnimation,
+                                transform: [
+                                    {
+                                        scale: reactionAnimation.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.72, 1],
+                                        }),
+                                    },
+                                    {
+                                        translateY: reactionAnimation.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [14, 0],
+                                        }),
+                                    },
+                                ],
+                            }}
+                        >
+                            {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => {
+                                const selected =
+                                    reactionTarget.message.reactions?.some(
+                                        (reaction) =>
+                                            reaction.emoji === emoji && reaction.reacted,
+                                    ) ?? false;
+                                return (
+                                    <Pressable
+                                        key={emoji}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`${selected ? "Remove" : "React with"} ${emoji}`}
+                                        onPress={() => {
+                                            closeReactionPicker();
+                                            onReact(
+                                                reactionTarget.message,
+                                                selected ? null : emoji,
+                                            );
+                                        }}
+                                        style={{
+                                            width: 42 * s,
+                                            height: 44 * s,
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            borderRadius: 22 * s,
+                                            backgroundColor: selected
+                                                ? theme.blueSoft
+                                                : "transparent",
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 25 * s }}>{emoji}</Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </Animated.View>
+                    </View>
+            )}
         </KeyboardAvoidingView>
+    );
+}
+
+function SpotlightMessage({
+    message,
+    peerName,
+    theme,
+    scale,
+    vertical,
+}: {
+    message: ChatMessage;
+    peerName: string;
+    theme: ReturnType<typeof useAppTheme>;
+    scale: number;
+    vertical: number;
+}) {
+    const fs = (value: number) => value * scale;
+    return (
+        <View
+            style={{
+                alignSelf: message.outgoing ? "flex-end" : "flex-start",
+                maxWidth: "100%",
+                padding: 3,
+                borderRadius: fs(20),
+                backgroundColor: theme.background,
+            }}
+        >
+            <View
+                style={{
+                    backgroundColor: message.outgoing ? theme.blue : theme.subtle,
+                    borderRadius: fs(16),
+                    paddingHorizontal: fs(14),
+                    paddingVertical: 9 * vertical,
+                    maxWidth: fs(310),
+                }}
+            >
+                {message.replyTo && (
+                    <View
+                        style={{
+                            borderLeftWidth: 3,
+                            borderLeftColor: message.outgoing ? "#FFFFFFB3" : theme.blue,
+                            backgroundColor: message.outgoing ? "#FFFFFF26" : theme.input,
+                            borderRadius: fs(7),
+                            padding: fs(7),
+                            marginBottom: 6 * vertical,
+                        }}
+                    >
+                        <Text
+                            numberOfLines={1}
+                            style={{
+                                color: message.outgoing ? "white" : theme.blue,
+                                fontSize: fs(11),
+                                fontWeight: "700",
+                            }}
+                        >
+                            {message.replyTo.outgoing ? "You" : peerName}
+                        </Text>
+                        <Text
+                            numberOfLines={2}
+                            style={{
+                                color: message.outgoing ? "white" : theme.ink,
+                                opacity: 0.8,
+                                fontSize: fs(12),
+                            }}
+                        >
+                            {message.replyTo.text}
+                        </Text>
+                    </View>
+                )}
+                <Text
+                    style={{
+                        fontSize: fs(14),
+                        lineHeight: 19 * vertical,
+                        color: message.outgoing ? "white" : theme.ink,
+                        letterSpacing: -0.2,
+                    }}
+                >
+                    {message.text}
+                </Text>
+            </View>
+        </View>
     );
 }
 
@@ -260,6 +543,7 @@ function MessageRow({
     scale,
     vertical,
     onReply,
+    onLongPress,
 }: {
     message: ChatMessage;
     peer: {
@@ -269,10 +553,15 @@ function MessageRow({
     scale: number;
     vertical: number;
     onReply: (message: ChatMessage) => void;
+    onLongPress: (
+        message: ChatMessage,
+        frame: { x: number; y: number; width: number; height: number },
+    ) => void;
 }) {
     const theme = useAppTheme();
     const fs = (value: number) => value * scale;
     const [translateX] = useState(() => new Animated.Value(0));
+    const bubbleRef = useRef<View>(null);
     const panResponder = useMemo(
         () =>
             PanResponder.create({
@@ -320,6 +609,9 @@ function MessageRow({
         [message, onReply, scale, translateX],
     );
     const quoteAuthor = message.replyTo?.outgoing ? "You" : peer.name;
+    const canReact = Boolean(message.backendId) &&
+        message.status !== "pending" &&
+        message.status !== "failed";
     return (
         <Animated.View
             {...panResponder.panHandlers}
@@ -329,6 +621,15 @@ function MessageRow({
                 transform: [{ translateX }],
             }}
         >
+            <Pressable
+                disabled={!canReact}
+                onLongPress={() => {
+                    bubbleRef.current?.measureInWindow((x, y, width, height) => {
+                        onLongPress(message, { x, y, width, height });
+                    });
+                }}
+                delayLongPress={300}
+            >
             <View
                 style={{
                     flexDirection: "row",
@@ -345,6 +646,7 @@ function MessageRow({
                     }}
                 >
                     <View
+                        ref={bubbleRef}
                         style={{
                             backgroundColor: message.outgoing ? theme.blue : theme.subtle,
                             borderRadius: fs(16),
@@ -398,6 +700,43 @@ function MessageRow({
                     </View>
                 </View>
             </View>
+            </Pressable>
+            {!!message.reactions?.length && (
+                <View
+                    style={{
+                        flexDirection: "row",
+                        gap: fs(4),
+                        marginTop: 3 * vertical,
+                        alignSelf: message.outgoing ? "flex-end" : "flex-start",
+                        marginLeft: message.outgoing ? 0 : fs(47),
+                    }}
+                >
+                    {message.reactions.map((reaction) => (
+                        <View
+                            key={reaction.emoji}
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: fs(3),
+                                paddingHorizontal: fs(7),
+                                paddingVertical: 2 * vertical,
+                                borderRadius: fs(12),
+                                backgroundColor: reaction.reacted ? theme.blueSoft : theme.subtle,
+                            }}
+                        >
+                            <Text style={{ fontSize: fs(13) }}>{reaction.emoji}</Text>
+                            <Text
+                                style={{
+                                    color: reaction.reacted ? theme.blue : theme.muted,
+                                    fontSize: fs(11),
+                                }}
+                            >
+                                {reaction.count}
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+            )}
             <View
                 style={{
                     flexDirection: "row",

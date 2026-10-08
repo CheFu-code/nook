@@ -75,6 +75,7 @@ export type Message = {
     text: string;
     outgoing: boolean;
   };
+  reactions?: { emoji: string; count: number; reacted: boolean }[];
 };
 
 export type Page<T> = { items: T[]; hasMore: boolean };
