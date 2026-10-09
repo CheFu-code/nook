@@ -4,7 +4,7 @@ import { useAppTheme } from "@/lib/theme";
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Alert,
     Linking,
@@ -13,6 +13,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     useWindowDimensions,
     View,
@@ -21,6 +22,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedIcon } from "./feed-icon";
 import { Row, SettingsProps } from "./settings-screen.types";
 import { useBiometricAppLock } from "@/lib/biometric-app-lock";
+import {
+    getPresenceAuthRemembered,
+    setPresenceAuthRemembered,
+} from "@/lib/presence";
 
 
 export function SettingsScreen({
@@ -47,6 +52,52 @@ export function SettingsScreen({
     const [languageOpen, setLanguageOpen] = useState(false);
     const [savingLanguage, setSavingLanguage] = useState(false);
     const [savingBiometricLock, setSavingBiometricLock] = useState(false);
+    const [presenceAuthRemembered, setPresenceAuthRememberedState] = useState(true);
+    const [presenceAuthPreferenceLoaded, setPresenceAuthPreferenceLoaded] = useState(false);
+    const [presenceAuthPreferenceLoadFailed, setPresenceAuthPreferenceLoadFailed] = useState(false);
+    const [savingPresenceAuthPreference, setSavingPresenceAuthPreference] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+        void getPresenceAuthRemembered()
+            .then((remembered) => {
+                if (active) {
+                    setPresenceAuthRememberedState(remembered);
+                    setPresenceAuthPreferenceLoaded(true);
+                }
+            })
+            .catch((error: unknown) => {
+                console.error("Unable to load presence sign-in preference.", error);
+                if (active) {
+                    setPresenceAuthPreferenceLoadFailed(true);
+                    setPresenceAuthPreferenceLoaded(true);
+                }
+                Alert.alert(
+                    t("Unable to load sign-in preference"),
+                    t("Please try again."),
+                );
+            });
+        return () => {
+            active = false;
+        };
+    }, [t]);
+
+    async function togglePresenceAuthRemembered() {
+        if (savingPresenceAuthPreference || !presenceAuthPreferenceLoaded) return;
+        const nextValue = !presenceAuthRemembered;
+        setSavingPresenceAuthPreference(true);
+        try {
+            await setPresenceAuthRemembered(nextValue);
+            setPresenceAuthRememberedState(nextValue);
+        } catch (error) {
+            Alert.alert(
+                t("Could not update sign-in preference"),
+                t(error instanceof Error ? error.message : "Please try again."),
+            );
+        } finally {
+            setSavingPresenceAuthPreference(false);
+        }
+    }
 
     async function toggleBiometricLock() {
         if (savingBiometricLock) return;
@@ -86,6 +137,22 @@ export function SettingsScreen({
                 ? () => void toggleBiometricLock()
                 : undefined,
         }];
+    const signInPreferenceRows: Row[] = [{
+        label: t("Remember presence sign-in"),
+        icon: "lock",
+        detail: !presenceAuthPreferenceLoaded
+            ? t("Checking…")
+            : presenceAuthPreferenceLoadFailed
+                ? t("Unavailable")
+                : undefined,
+        description: t("Keeps Nook presence sign-in saved on this device between app launches."),
+        switchValue: presenceAuthPreferenceLoaded && !presenceAuthPreferenceLoadFailed
+            ? presenceAuthRemembered
+            : undefined,
+        action: presenceAuthPreferenceLoaded && !presenceAuthPreferenceLoadFailed && !savingPresenceAuthPreference
+            ? () => void togglePresenceAuthRemembered()
+            : undefined,
+    }];
     const accountRows: Row[] = [
         { label: t("Edit profile"), icon: "profile", action: onEdit },
         {
@@ -108,6 +175,7 @@ export function SettingsScreen({
     const preferences = accountRows.filter(row => row.label === t("Language"));
     const privacy = [
         ...biometricRows,
+        ...signInPreferenceRows,
         ...accountRows.filter(row => row.label === t("Blocked users")),
     ];
     const activity = accountRows.filter(row => row.label === t("Saved posts"));
@@ -163,10 +231,16 @@ export function SettingsScreen({
             {rows.map((row, index) => (
                 <Pressable
                     key={row.label}
-                    accessibilityRole={row.action ? "button" : undefined}
+                    accessibilityRole={row.switchValue !== undefined ? "switch" : row.action ? "button" : undefined}
+                    accessibilityState={
+                        row.switchValue !== undefined
+                            ? { checked: row.switchValue, disabled: !row.action }
+                            : undefined
+                    }
                     accessibilityLabel={
                         row.detail ? `${row.label}, ${row.detail}` : row.label
                     }
+                    accessibilityHint={row.description}
                     disabled={!row.action}
                     onPress={row.action}
                     style={({ pressed }) => ({
@@ -193,16 +267,29 @@ export function SettingsScreen({
                             gap: 8 * s,
                         }}
                     >
-                        <Text
-                            style={{
-                                flex: 1,
-                                color: theme.ink,
-                                fontSize: 14.5 * s,
-                                letterSpacing: -0.35 * s,
-                            }}
-                        >
-                            {row.label}
-                        </Text>
+                        <View style={{ flex: 1 }}>
+                            <Text
+                                style={{
+                                    color: theme.ink,
+                                    fontSize: 14.5 * s,
+                                    letterSpacing: -0.35 * s,
+                                }}
+                            >
+                                {row.label}
+                            </Text>
+                            {row.description ? (
+                                <Text
+                                    style={{
+                                        color: theme.muted,
+                                        fontSize: 12 * s,
+                                        lineHeight: 16 * s,
+                                        marginTop: 2 * s,
+                                    }}
+                                >
+                                    {row.description}
+                                </Text>
+                            ) : null}
+                        </View>
                         {row.detail ? (
                             <Text
                                 style={{
@@ -213,6 +300,17 @@ export function SettingsScreen({
                             >
                                 {row.detail}
                             </Text>
+                        ) : row.switchValue !== undefined ? (
+                            <View pointerEvents="none">
+                                <Switch
+                                    value={row.switchValue}
+                                    trackColor={{
+                                        false: theme.border,
+                                        true: theme.blue,
+                                    }}
+                                    thumbColor={theme.surface}
+                                />
+                            </View>
                         ) : row.action ? (
                             <FeedIcon
                                 name={row.trailingIcon ?? "chevron-right"}

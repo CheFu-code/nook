@@ -14,4 +14,6 @@ export type Row = {
     trailingIcon?: IconName;
     action?: () => void;
     detail?: string;
+    description?: string;
+    switchValue?: boolean;
 };

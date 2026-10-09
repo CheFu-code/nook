@@ -41,9 +41,6 @@ jobs:
           node -e "const c=require('./google-services.json').client||[]; if(!c.some(x=>x.client_info?.android_client_info?.package_name==='co.za.chefu.nook')) process.exit(1)"
           echo "GOOGLE_SERVICES_JSON=google-services.json" >> "$GITHUB_ENV"
 
-      - name: Generate native Android project
-        run: npx expo prebuild --platform android --non-interactive
-
       - name: Validate Sentry auth token
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

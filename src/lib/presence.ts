@@ -1,13 +1,13 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import {
-  getAuth,
-  getReactNativePersistence,
-  initializeAuth,
   signInWithCustomToken,
   type Auth,
 } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
+import {
+  initializePresenceAuth,
+  updatePresenceAuthPersistence,
+} from "./presence-auth";
 import {
   getDatabase,
   goOffline,
@@ -49,6 +49,7 @@ const conversationEventSubscriptions = new Map<
 let presenceDatabase: Database | null = null;
 let presenceAuth: Auth | null = null;
 let presenceAuthReady = false;
+const PRESENCE_AUTH_REMEMBER_KEY = "nook_presence_auth_remember";
 
 function getPresenceDatabase() {
   const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
@@ -72,28 +73,42 @@ function getPresenceDatabase() {
   return presenceDatabase;
 }
 
-function getPresenceAuth() {
+function getPresenceAuth(remember: boolean) {
   if (presenceAuth) return presenceAuth;
 
-  const app = getApp("nook-presence");
-  if (Platform.OS === "web") {
-    presenceAuth = getAuth(app);
-    return presenceAuth;
-  }
+  const auth = initializePresenceAuth(getApp("nook-presence"), remember);
+  presenceAuth = auth;
+  return auth;
+}
 
+export async function getPresenceAuthRemembered() {
+  const storedPreference = await AsyncStorage.getItem(PRESENCE_AUTH_REMEMBER_KEY);
+  if (storedPreference === null) return true;
+  if (storedPreference === "true") return true;
+  if (storedPreference === "false") return false;
+  throw new Error("The saved presence sign-in preference is invalid.");
+}
+
+export async function setPresenceAuthRemembered(remember: boolean) {
+  const previousPreference = await getPresenceAuthRemembered();
+  if (presenceAuth) {
+    await updatePresenceAuthPersistence(presenceAuth, remember);
+  }
   try {
-    presenceAuth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-    return presenceAuth;
+    await AsyncStorage.setItem(
+      PRESENCE_AUTH_REMEMBER_KEY,
+      String(remember),
+    );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      "code" in error &&
-      error.code === "auth/already-initialized"
-    ) {
-      presenceAuth = getAuth(app);
-      return presenceAuth;
+    if (presenceAuth && previousPreference !== remember) {
+      try {
+        await updatePresenceAuthPersistence(presenceAuth, previousPreference);
+      } catch (rollbackError) {
+        console.error(
+          "Unable to restore the previous presence authentication persistence.",
+          rollbackError,
+        );
+      }
     }
     throw error;
   }
@@ -224,7 +239,7 @@ export async function startPresenceSession(
   getCustomToken: () => Promise<string>,
 ) {
   const database = getPresenceDatabase();
-  const auth = getPresenceAuth();
+  const auth = getPresenceAuth(await getPresenceAuthRemembered());
   if (auth.currentUser?.uid !== uid) {
     presenceAuthReady = false;
     const token = await getCustomToken();
