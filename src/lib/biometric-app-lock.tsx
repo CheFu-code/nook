@@ -1,4 +1,5 @@
 import * as LocalAuthentication from "expo-local-authentication";
+import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import {
     createContext,
@@ -10,23 +11,32 @@ import {
     useState,
     type ReactNode,
 } from "react";
-import { AppState, Modal, Platform, Pressable, Text, View } from "react-native";
+import { AppState, Platform } from "react-native";
+import { BiometricAppLockOffer } from "@/components/biometric-app-lock-offer";
+import { BiometricAppLockScreen } from "@/components/biometric-app-lock-screen";
 import { useAuth } from "./chefu-auth";
 import { useNookLanguage } from "./language";
-import { useAppTheme } from "./theme";
-import { FeedIcon } from "@/components/feed-icon";
 
 type BiometricLockContextValue = {
     isAvailable: boolean;
     isLoaded: boolean;
     isEnabled: boolean;
-    setEnabled: (enabled: boolean) => Promise<void>;
+    setEnabled: (enabled: boolean) => Promise<boolean>;
 };
 
 const BiometricLockContext = createContext<BiometricLockContextValue | null>(null);
+const BIOMETRIC_OFFER_DELAY_MS = 24 * 60 * 60 * 1000;
 
-function preferenceKey(userId: string) {
-    return `nook_biometric_lock:${userId}`;
+async function userStorageKey(userId: string, name: string) {
+    const userIdHash = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        userId,
+    );
+    return `nook_${name}_${userIdHash}`;
+}
+
+async function preferenceKey(userId: string) {
+    return userStorageKey(userId, "biometric_lock");
 }
 
 async function authenticate(promptMessage: string, cancelLabel: string) {
@@ -47,11 +57,15 @@ async function authenticate(promptMessage: string, cancelLabel: string) {
 export function BiometricAppLockProvider({ children }: { children: ReactNode }) {
     const { isLoaded: authLoaded, isSignedIn, userId, signOut } = useAuth();
     const { t } = useNookLanguage();
-    const theme = useAppTheme();
     const [isAvailable, setIsAvailable] = useState(false);
     const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
     const [isEnabled, setIsEnabled] = useState(false);
     const [lockedUserId, setLockedUserId] = useState<string | null>(null);
+    const [firstUse, setFirstUse] = useState<{ userId: string; timestamp: number } | null>(null);
+    const [offerHandledUserId, setOfferHandledUserId] = useState<string | null>(null);
+    const [offerVisibleUserId, setOfferVisibleUserId] = useState<string | null>(null);
+    const [offerBusy, setOfferBusy] = useState(false);
+    const [offerError, setOfferError] = useState<string | null>(null);
     const [unlocking, setUnlocking] = useState(false);
     const [unlockError, setUnlockError] = useState<string | null>(null);
     const isLoaded = Platform.OS === "web" || !isSignedIn || (!!userId && loadedUserId === userId);
@@ -59,6 +73,7 @@ export function BiometricAppLockProvider({ children }: { children: ReactNode }) 
     const isEnabledRef = useRef(isEnabled);
     const signedInRef = useRef(isSignedIn);
     const unlockingRef = useRef(false);
+    const offerScheduledUserId = useRef<string | null>(null);
 
     useEffect(() => {
         isEnabledRef.current = isEnabled;
@@ -77,15 +92,35 @@ export function BiometricAppLockProvider({ children }: { children: ReactNode }) 
             }
 
             try {
-                const [hasHardware, isEnrolled, types, saved] = await Promise.all([
+                const [key, firstUseKey, offerKey, hasHardware, isEnrolled, types] = await Promise.all([
+                    preferenceKey(userId),
+                    userStorageKey(userId, "biometric_first_use"),
+                    userStorageKey(userId, "biometric_offer"),
                     LocalAuthentication.hasHardwareAsync(),
                     LocalAuthentication.isEnrolledAsync(),
                     LocalAuthentication.supportedAuthenticationTypesAsync(),
-                    SecureStore.getItemAsync(preferenceKey(userId)),
                 ]);
+                const [saved, firstUseValue, offerStatus] = await Promise.all([
+                    SecureStore.getItemAsync(key),
+                    SecureStore.getItemAsync(firstUseKey),
+                    SecureStore.getItemAsync(offerKey),
+                ]);
+                const firstUseTimestamp = firstUseValue
+                    ? Number(firstUseValue)
+                    : Date.now();
+                if (!Number.isFinite(firstUseTimestamp) || firstUseTimestamp <= 0) {
+                    throw new Error("Stored biometric offer start time is invalid.");
+                }
+                if (!firstUseValue) {
+                    await SecureStore.setItemAsync(firstUseKey, String(firstUseTimestamp));
+                }
                 if (!active) return;
                 setIsAvailable(hasHardware && isEnrolled && types.length > 0);
                 setIsEnabled(saved === "enabled");
+                setFirstUse({ userId, timestamp: firstUseTimestamp });
+                setOfferHandledUserId(offerStatus === "shown" ? userId : null);
+                setOfferVisibleUserId(null);
+                setOfferError(null);
                 setLockedUserId(
                     authLoaded && isSignedIn && saved === "enabled" ? userId : null,
                 );
@@ -95,6 +130,9 @@ export function BiometricAppLockProvider({ children }: { children: ReactNode }) 
                 if (active) {
                     setIsAvailable(false);
                     setIsEnabled(false);
+                    setFirstUse(null);
+                    setOfferHandledUserId(null);
+                    setOfferVisibleUserId(null);
                     setLockedUserId(null);
                     setLoadedUserId(userId);
                 }
@@ -106,6 +144,65 @@ export function BiometricAppLockProvider({ children }: { children: ReactNode }) 
             active = false;
         };
     }, [authLoaded, isSignedIn, userId]);
+
+    useEffect(() => {
+        if (
+            !userId ||
+            !isSignedIn ||
+            !isLoaded ||
+            !isAvailable ||
+            isEnabled ||
+            isLocked ||
+            firstUse?.userId !== userId ||
+            offerHandledUserId === userId ||
+            offerScheduledUserId.current === userId
+        ) {
+            return;
+        }
+
+        const offerKeyPromise = userStorageKey(userId, "biometric_offer");
+        const delay = Math.max(
+            0,
+            firstUse.timestamp + BIOMETRIC_OFFER_DELAY_MS - Date.now(),
+        );
+        offerScheduledUserId.current = userId;
+        let active = true;
+        const timer = setTimeout(() => {
+            void (async () => {
+                try {
+                    const offerKey = await offerKeyPromise;
+                    await SecureStore.setItemAsync(offerKey, "shown");
+                    if (active) {
+                        setOfferHandledUserId(userId);
+                        setOfferVisibleUserId(userId);
+                    }
+                } catch (error) {
+                    console.error("Unable to record biometric app-lock offer.", error);
+                } finally {
+                    if (offerScheduledUserId.current === userId) {
+                        offerScheduledUserId.current = null;
+                    }
+                }
+            })();
+        }, delay);
+
+        return () => {
+            active = false;
+            clearTimeout(timer);
+            if (offerScheduledUserId.current === userId) {
+                offerScheduledUserId.current = null;
+            }
+        };
+    }, [
+        firstUse,
+        isAvailable,
+        isEnabled,
+        isLoaded,
+        isLocked,
+        isSignedIn,
+        offerHandledUserId,
+        userId,
+    ]);
 
     useEffect(() => {
         let previousState = AppState.currentState;
@@ -144,19 +241,40 @@ export function BiometricAppLockProvider({ children }: { children: ReactNode }) 
         } finally {
             unlockingRef.current = false;
         }
-        if (!verified) return;
+        if (!verified) return false;
 
+        const key = await preferenceKey(userId);
         if (enabled) {
-            await SecureStore.setItemAsync(preferenceKey(userId), "enabled");
+            await SecureStore.setItemAsync(key, "enabled");
             setIsEnabled(true);
             isEnabledRef.current = true;
         } else {
-            await SecureStore.deleteItemAsync(preferenceKey(userId));
+            await SecureStore.deleteItemAsync(key);
             setIsEnabled(false);
             isEnabledRef.current = false;
             setLockedUserId(null);
         }
+        return true;
     }, [isAvailable, t, userId]);
+
+    const dismissOffer = useCallback(() => {
+        setOfferVisibleUserId(null);
+        setOfferError(null);
+    }, []);
+
+    const enableFromOffer = useCallback(async () => {
+        if (offerBusy) return;
+        setOfferBusy(true);
+        setOfferError(null);
+        try {
+            const enabled = await setEnabled(true);
+            if (enabled) setOfferVisibleUserId(null);
+        } catch (error) {
+            setOfferError(error instanceof Error ? error.message : "Please try again.");
+        } finally {
+            setOfferBusy(false);
+        }
+    }, [offerBusy, setEnabled]);
 
     const unlock = useCallback(async () => {
         if (unlockingRef.current) return;
@@ -185,101 +303,28 @@ export function BiometricAppLockProvider({ children }: { children: ReactNode }) 
         <BiometricLockContext.Provider value={value}>
             {children}
             {Platform.OS !== "web" && isSignedIn && (!isLoaded || isLocked) && (
-                <Modal
-                    visible
-                    animationType="fade"
-                    statusBarTranslucent
-                    onRequestClose={() => undefined}
-                >
-                    <View
-                        style={{
-                            flex: 1,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: 28,
-                            backgroundColor: theme.background,
-                        }}
-                    >
-                        <View
-                            style={{
-                                width: 76,
-                                height: 76,
-                                borderRadius: 24,
-                                alignItems: "center",
-                                justifyContent: "center",
-                                backgroundColor: theme.blueSoft,
-                            }}
-                        >
-                            <FeedIcon name="lock" size={34} color={theme.blue} />
-                        </View>
-
-                        <Text
-                            accessibilityRole="header"
-                            style={{
-                                marginTop: 24,
-                                color: theme.ink,
-                                fontSize: 25,
-                                fontWeight: "700",
-                            }}
-                        >
-                            {t(isLoaded ? "Nook is locked" : "Checking…")}
-                        </Text>
-                        {isLoaded && <Text
-                            style={{
-                                marginTop: 8,
-                                color: theme.muted,
-                                fontSize: 15,
-                                lineHeight: 22,
-                                textAlign: "center",
-                            }}
-                        >
-                            {t("Verify your identity to continue.")}
-                        </Text>}
-                        {!!unlockError && (
-                            <Text
-                                accessibilityRole="alert"
-                                style={{
-                                    marginTop: 16,
-                                    color: "#E5485D",
-                                    textAlign: "center",
-                                }}
-                            >
-                                {t(unlockError)}
-                            </Text>
-                        )}
-                        {isLoaded && <Pressable
-                            accessibilityRole="button"
-                            accessibilityState={{ busy: unlocking, disabled: unlocking }}
-                            disabled={unlocking}
-                            onPress={() => void unlock()}
-                            style={{
-                                minHeight: 50,
-                                minWidth: 210,
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginTop: 24,
-                                paddingHorizontal: 24,
-                                borderRadius: 16,
-                                backgroundColor: theme.blue,
-                                opacity: unlocking ? 0.7 : 1,
-                            }}
-                        >
-                            <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
-                                {unlocking ? t("Verifying…") : t("Unlock with biometrics")}
-                            </Text>
-                        </Pressable>}
-                        {isLoaded && <Pressable
-                            accessibilityRole="button"
-                            onPress={() => void signOut()}
-                            style={{ minHeight: 48, justifyContent: "center", marginTop: 12, paddingHorizontal: 16 }}
-                        >
-                            <Text style={{ color: theme.muted, fontSize: 14 }}>
-                                {t("Sign out")}
-                            </Text>
-                        </Pressable>}
-                    </View>
-                </Modal>
+                <BiometricAppLockScreen
+                    isLoaded={isLoaded}
+                    unlocking={unlocking}
+                    unlockError={unlockError}
+                    t={t}
+                    onUnlock={() => void unlock()}
+                    onSignOut={() => void signOut()}
+                />
             )}
+            {Platform.OS !== "web" &&
+                isSignedIn &&
+                isLoaded &&
+                offerVisibleUserId === userId &&
+                !isLocked && (
+                    <BiometricAppLockOffer
+                        t={t}
+                        error={offerError}
+                        busy={offerBusy}
+                        onEnable={() => void enableFromOffer()}
+                        onDismiss={dismissOffer}
+                    />
+                )}
         </BiometricLockContext.Provider>
     );
 }

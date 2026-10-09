@@ -86,8 +86,7 @@ export function SettingsScreen({
                 ? () => void toggleBiometricLock()
                 : undefined,
         }];
-    const account: Row[] = [
-        ...biometricRows,
+    const accountRows: Row[] = [
         { label: t("Edit profile"), icon: "profile", action: onEdit },
         {
             label: t("Account"),
@@ -103,6 +102,15 @@ export function SettingsScreen({
         { label: t("Blocked users"), icon: "blocked", action: onBlockedUsers },
         { label: t("Saved posts"), icon: "bookmark", action: onSaved },
     ];
+    const profileRows = accountRows.filter(row =>
+        row.label === t("Edit profile") || row.label === t("Account"),
+    );
+    const preferences = accountRows.filter(row => row.label === t("Language"));
+    const privacy = [
+        ...biometricRows,
+        ...accountRows.filter(row => row.label === t("Blocked users")),
+    ];
+    const activity = accountRows.filter(row => row.label === t("Saved posts"));
     const support: Row[] = [
         {
             label: t("Help & support"),
@@ -217,6 +225,26 @@ export function SettingsScreen({
             ))}
         </View>
     );
+    const section = (title: string, rows: Row[], first = false) => (
+        <View>
+            <Text
+                accessibilityRole="header"
+                style={[
+                    styles.section,
+                    {
+                        color: theme.ink,
+                        fontSize: 16 * s,
+                        marginHorizontal: 8 * s,
+                        marginTop: first ? 0 : 17 * v,
+                        marginBottom: 8 * v,
+                    },
+                ]}
+            >
+                {t(title)}
+            </Text>
+            {group(rows)}
+        </View>
+    );
    
     return (
         <View
@@ -268,21 +296,10 @@ export function SettingsScreen({
                         {t("Settings")}
                     </Text>
                 </View>
-                <Text
-                    accessibilityRole="header"
-                    style={[
-                        styles.section,
-                        {
-                            color: theme.ink,
-                            fontSize: 16 * s,
-                            marginHorizontal: 8 * s,
-                            marginBottom: 9 * v,
-                        },
-                    ]}
-                >
-                    {t("Account")}
-                </Text>
-                {group(account)}
+                {section("Account", profileRows, true)}
+                {section("Preferences", preferences)}
+                {privacy.length > 0 && section("Privacy & security", privacy)}
+                {section("Your activity", activity)}
                 {/* <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Share feedback"
@@ -337,22 +354,7 @@ export function SettingsScreen({
                         </Text>
                     </View>
                 </Pressable> */}
-                <Text
-                    accessibilityRole="header"
-                    style={[
-                        styles.section,
-                        {
-                            color: theme.ink,
-                            fontSize: 16 * s,
-                            marginHorizontal: 8 * s,
-                            marginTop: 17 * v,
-                            marginBottom: 8 * v,
-                        },
-                    ]}
-                >
-                    {t("Support & Legal")}
-                </Text>
-                {group(support)}
+                {section("Support & Legal", support)}
                 
                
                 <Pressable

@@ -1,8 +1,8 @@
 import { useAuth } from '@/lib/chefu-auth';
 import { useAppTheme } from '@/lib/theme';
-import { Redirect } from 'expo-router';
-import { ActivityIndicator, StatusBar, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { Redirect } from 'expo-router';
+import { StatusBar, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SSOCallback() {
@@ -70,35 +70,8 @@ export default function SSOCallback() {
         >
           Your account is being connected securely. This will only take a moment.
         </Text>
-        <View
-          style={{
-            width: 52,
-            height: 52,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 32,
-            borderRadius: 18,
-            backgroundColor: theme.blueSoft,
-          }}
-        >
-          <ActivityIndicator
-            color={theme.blue}
-            size="small"
-            accessibilityLabel="Signing in"
-          />
-        </View>
-        <Text
-          style={{
-            marginTop: 24,
-            color: theme.secondary,
-            fontSize: 11,
-            fontWeight: '600',
-            letterSpacing: 1.6,
-            textTransform: 'uppercase',
-          }}
-        >
-          Secure sign-in
-        </Text>
+        
+        
       </View>
     );
   }

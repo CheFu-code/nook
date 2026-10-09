@@ -29,6 +29,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Restore Firebase Android configuration
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "::error::Configure GOOGLE_SERVICES_JSON_BASE64 with the Base64-encoded Firebase google-services.json for co.za.chefu.nook."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+          node -e "const c=require('./google-services.json').client||[]; if(!c.some(x=>x.client_info?.android_client_info?.package_name==='co.za.chefu.nook')) process.exit(1)"
+          echo "GOOGLE_SERVICES_JSON=google-services.json" >> "$GITHUB_ENV"
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --non-interactive
+
       - name: Validate Sentry auth token
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
