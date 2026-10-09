@@ -11,6 +11,10 @@ import { MessageNotifications } from '@/components/message-notifications';
 import { PresenceSession } from '@/components/presence-session';
 import { LanguageProvider, useNookLanguage } from '@/lib/language';
 import { BiometricAppLockProvider } from '@/lib/biometric-app-lock';
+import {
+  restoreChatHistoryCache,
+  startChatHistoryPersistence,
+} from '@/lib/chat-history-cache';
 
 Sentry.init({
   dsn: 'https://b763f67faea237307e894e7707208c9a@o4512011915296768.ingest.de.sentry.io/4512221576101968',
@@ -51,7 +55,7 @@ function AuthenticatedRoutes() {
     return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color={theme.blue} accessibilityLabel="Loading your account" /></View>;
   }
   return (
-    <UserScopedQueryProvider key={userId ?? "signed-out"}>
+    <UserScopedQueryProvider key={userId ?? "signed-out"} userId={userId}>
       <PresenceSession />
       <MessagesProvider>
         <MessageNotifications />
@@ -92,8 +96,18 @@ function LanguageReadyRoutes() {
   return <AuthenticatedRoutes />;
 }
 
-function UserScopedQueryProvider({ children }: { children: ReactNode }) {
+function UserScopedQueryProvider({
+  children,
+  userId,
+}: {
+  children: ReactNode;
+  userId?: string;
+}) {
   const [queryClient] = useState(createNookQueryClient);
+  const theme = useAppTheme();
+  const [chatHistoryReady, setChatHistoryReady] = useState(
+    Platform.OS === 'web' || !userId,
+  );
   useEffect(() => {
     focusManager.setEventListener(handleFocus => {
       const subscription = AppState.addEventListener('change', state => {
@@ -102,6 +116,33 @@ function UserScopedQueryProvider({ children }: { children: ReactNode }) {
       return () => subscription.remove();
     });
   }, []);
+  useEffect(() => {
+    if (Platform.OS === 'web' || !userId) return;
+
+    let active = true;
+    let stopPersistence: (() => void) | undefined;
+    void restoreChatHistoryCache(queryClient, userId)
+      .catch((error: unknown) => {
+        console.error("Unable to restore encrypted chat history cache.", error);
+      })
+      .finally(() => {
+        if (!active) return;
+        stopPersistence = startChatHistoryPersistence(queryClient, userId);
+        setChatHistoryReady(true);
+      });
+    return () => {
+      active = false;
+      stopPersistence?.();
+      queryClient.clear();
+    };
+  }, [queryClient, userId]);
+  if (!chatHistoryReady) {
+    return (
+      <View style={[styles.loading, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.blue} />
+      </View>
+    );
+  }
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 

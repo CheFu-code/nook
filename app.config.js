@@ -2,6 +2,15 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 module.exports = ({ config }) => {
+  const configWithSqlCipher = {
+    ...config,
+    plugins: [
+      ...(config.plugins || []).filter((plugin) =>
+        Array.isArray(plugin) ? plugin[0] !== "expo-sqlite" : plugin !== "expo-sqlite",
+      ),
+      ["expo-sqlite", { useSQLCipher: true }],
+    ],
+  };
   const configuredPath = process.env.GOOGLE_SERVICES_JSON || "google-services.json";
   const googleServicesPath = path.isAbsolute(configuredPath)
     ? configuredPath
@@ -13,7 +22,7 @@ module.exports = ({ config }) => {
         "GOOGLE_SERVICES_JSON must point to the Firebase google-services.json for co.za.chefu.nook.",
       );
     }
-    return config;
+    return configWithSqlCipher;
   }
 
   const googleServices = JSON.parse(fs.readFileSync(googleServicesPath, "utf8"));
@@ -29,7 +38,7 @@ module.exports = ({ config }) => {
   }
 
   return {
-    ...config,
+    ...configWithSqlCipher,
     android: {
       ...config.android,
       googleServicesFile: googleServicesPath,

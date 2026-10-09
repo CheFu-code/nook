@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import type { SocialProfile } from './social';
+import { clearPersistedChatHistory } from './chat-history-cache';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -299,6 +300,13 @@ export function ChefuAuthProvider({ children }: { children: ReactNode }) {
       }
     },
     signOut: async () => {
+      try {
+        await clearPersistedChatHistory(
+          session?.user.uid || session?.user.email,
+        );
+      } catch (error) {
+        console.error("Unable to clear persisted chat history on sign-out.", error);
+      }
       setSession(null);
       await writeStoredSession(null);
     },
