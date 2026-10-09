@@ -1,5 +1,13 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, signInWithCustomToken } from "firebase/auth";
+import {
+  getAuth,
+  getReactNativePersistence,
+  initializeAuth,
+  signInWithCustomToken,
+  type Auth,
+} from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import {
   getDatabase,
   goOffline,
@@ -39,6 +47,7 @@ const conversationEventSubscriptions = new Map<
   ConversationEventSubscription
 >();
 let presenceDatabase: Database | null = null;
+let presenceAuth: Auth | null = null;
 let presenceAuthReady = false;
 
 function getPresenceDatabase() {
@@ -61,6 +70,33 @@ function getPresenceDatabase() {
     );
   presenceDatabase ??= getDatabase(app);
   return presenceDatabase;
+}
+
+function getPresenceAuth() {
+  if (presenceAuth) return presenceAuth;
+
+  const app = getApp("nook-presence");
+  if (Platform.OS === "web") {
+    presenceAuth = getAuth(app);
+    return presenceAuth;
+  }
+
+  try {
+    presenceAuth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+    return presenceAuth;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "auth/already-initialized"
+    ) {
+      presenceAuth = getAuth(app);
+      return presenceAuth;
+    }
+    throw error;
+  }
 }
 
 function attachUserSubscription(uid: string, subscription: PresenceSubscription) {
@@ -188,7 +224,7 @@ export async function startPresenceSession(
   getCustomToken: () => Promise<string>,
 ) {
   const database = getPresenceDatabase();
-  const auth = getAuth(getApp("nook-presence"));
+  const auth = getPresenceAuth();
   if (auth.currentUser?.uid !== uid) {
     presenceAuthReady = false;
     const token = await getCustomToken();
