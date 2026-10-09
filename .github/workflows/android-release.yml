@@ -39,6 +39,9 @@ jobs:
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
           node -e "const c=require('./google-services.json').client||[]; if(!c.some(x=>x.client_info?.android_client_info?.package_name==='co.za.chefu.nook')) process.exit(1)"
+          mkdir -p android/app
+          cp google-services.json android/app/google-services.json
+          test -s android/app/google-services.json
           echo "GOOGLE_SERVICES_JSON=google-services.json" >> "$GITHUB_ENV"
 
       - name: Validate Sentry auth token
@@ -67,6 +70,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           cd android
+          test -s app/google-services.json
           chmod +x gradlew
           ./gradlew assembleRelease
 
