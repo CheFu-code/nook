@@ -42,19 +42,12 @@ function MessageBody({
     scale: number;
     vertical: number;
 }) {
-    const { t } = useNookLanguage();
     return (
-        <View
-            style={{
-                flexDirection: "row",
-                alignItems: "flex-end",
-            }}
-        >
+        <View>
             <Text
                 style={{
-                    flexShrink: 1,
-                    fontSize: scale * 14,
-                    lineHeight: 19 * vertical,
+                    fontSize: scale * 16,
+                    lineHeight: 23 * vertical,
                     color: message.deletedForMe || message.deletedForEveryone
                         ? message.outgoing
                             ? theme.isDark
@@ -64,7 +57,7 @@ function MessageBody({
                         : message.outgoing
                           ? "white"
                           : theme.ink,
-                    letterSpacing: -0.2,
+                    letterSpacing: -0.25,
                     fontStyle:
                         message.deletedForMe || message.deletedForEveryone
                             ? "italic"
@@ -73,56 +66,6 @@ function MessageBody({
             >
                 {message.text}
             </Text>
-            <View
-                style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flexShrink: 0,
-                    gap: 3 * scale,
-                    marginLeft: 6 * scale,
-                }}
-            >
-                <Text
-                    style={{
-                        color: message.outgoing
-                            ? "rgba(255,255,255,0.72)"
-                            : theme.muted,
-                        fontSize: 10 * scale,
-                        lineHeight: 13 * vertical,
-                    }}
-                >
-                    {message.edited ? `${t("Edited")} · ` : ""}
-                    {message.status === "pending" ? t("Sending…") : message.time}
-                </Text>
-                {message.outgoing &&
-                    message.status !== "pending" &&
-                    message.status !== "failed" &&
-                    (message.delivered ? (
-                        <View
-                            accessibilityLabel={t("Delivered")}
-                            style={{ flexDirection: "row" }}
-                        >
-                            <FeedIcon
-                                name="check"
-                                size={13 * scale}
-                                color="rgba(255,255,255,0.72)"
-                            />
-                            <View style={{ marginLeft: -8 * scale }}>
-                                <FeedIcon
-                                    name="check"
-                                    size={13 * scale}
-                                    color="rgba(255,255,255,0.72)"
-                                />
-                            </View>
-                        </View>
-                    ) : (
-                        <FeedIcon
-                            name="check"
-                            size={13 * scale}
-                            color="rgba(255,255,255,0.72)"
-                        />
-                    ))}
-            </View>
         </View>
     );
 }
@@ -275,6 +218,7 @@ export function MessageRow({
     onReactionPress: (message: ChatMessage, emoji: string) => void;
 }) {
     const theme = useAppTheme();
+    const { t } = useNookLanguage();
     const fs = (value: number) => value * scale;
     const [translateX] = useState(() => new Animated.Value(0));
     const [highlightOpacity] = useState(() => new Animated.Value(0));
@@ -360,7 +304,7 @@ export function MessageRow({
                 onMessageLayout(message.id, y);
             }}
             style={{
-                marginBottom: 4.5 * vertical,
+                marginBottom: 9 * vertical,
                 width: "100%",
                 alignItems: message.outgoing ? "flex-end" : "flex-start",
                 transform: [{ translateX }],
@@ -369,7 +313,7 @@ export function MessageRow({
             <Pressable
                 style={{
                     alignSelf: message.outgoing ? "flex-end" : "flex-start",
-                    maxWidth: "80%",
+                    maxWidth: "84%",
                 }}
                 disabled={!canReact}
                 onLongPress={() => {
@@ -390,7 +334,7 @@ export function MessageRow({
                     {!message.outgoing && peer.avatar(fs(35))}
                     <View
                         style={{
-                            maxWidth: fs(290),
+                            maxWidth: fs(280),
                             flexShrink: 1,
                             alignItems: message.outgoing ? "flex-end" : "flex-start",
                         }}
@@ -401,9 +345,9 @@ export function MessageRow({
                                 backgroundColor: message.outgoing
                                     ? theme.blue
                                     : theme.subtle,
-                                borderRadius: fs(16),
-                                paddingHorizontal: fs(14),
-                                paddingVertical: 9 * vertical,
+                                borderRadius: fs(22),
+                                paddingHorizontal: fs(15),
+                                paddingVertical: 10 * vertical,
                                 overflow: "hidden",
                             }}
                         >
@@ -439,6 +383,35 @@ export function MessageRow({
                     </View>
                 </View>
             </Pressable>
+            <View
+                style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    alignSelf: message.outgoing ? "flex-end" : "flex-start",
+                    marginTop: 2 * vertical,
+                    marginRight: message.outgoing ? fs(5) : 0,
+                    marginLeft: message.outgoing ? 0 : fs(47),
+                    gap: fs(4),
+                }}
+            >
+                <Text style={{ color: theme.muted, fontSize: fs(11), lineHeight: fs(16) }}>
+                    {message.edited ? `${t("Edited")} · ` : ""}
+                    {message.status === "pending" ? t("Sending…") : message.time}
+                </Text>
+                {message.outgoing &&
+                    message.status !== "pending" &&
+                    message.status !== "failed" &&
+                    (message.delivered ? (
+                        <View accessibilityLabel={t("Delivered")} style={{ flexDirection: "row" }}>
+                            <FeedIcon name="check" size={fs(14)} color={theme.blue} />
+                            <View style={{ marginLeft: -fs(8) }}>
+                                <FeedIcon name="check" size={fs(14)} color={theme.blue} />
+                            </View>
+                        </View>
+                    ) : (
+                        <FeedIcon name="check" size={fs(14)} color={theme.muted} />
+                    ))}
+            </View>
             {!!message.reactions?.length && (
                 <View
                     style={{

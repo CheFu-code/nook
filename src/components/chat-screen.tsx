@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BlurTargetView } from "expo-blur";
 import {
     Animated,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -320,10 +321,10 @@ export function ChatScreen({
                 style={[
                     styles.header,
                     {
-                        height: 62 * v,
-                        paddingBottom: 8 * v,
+                        height: 76 * v,
+                        paddingBottom: 6 * v,
                         paddingHorizontal: fs(12),
-                        gap: fs(12),
+                        gap: fs(10),
                     },
                 ]}
             >
@@ -339,7 +340,7 @@ export function ChatScreen({
                     accessibilityRole="button"
                     accessibilityLabel={`View ${peer.name}'s profile`}
                     onPress={peer.onPress}
-                    style={{ marginLeft: fs(14) }}
+                    style={{ marginLeft: fs(8) }}
                 >
                     {peer.avatar(fs(49))}
                 </Pressable>
@@ -360,18 +361,59 @@ export function ChatScreen({
                     >
                         {peer.name}
                     </Text>
-                    <Text
+                    <View
                         style={{
-                            color: presence?.online ? "#22C55E" : theme.muted,
-                            fontSize: fs(12),
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: fs(6),
                         }}
                     >
-                        {presence?.online
-                            ? "Online"
-                            : presence?.lastSeen
-                              ? lastSeenLabel(presence.lastSeen, new Date(presenceClock))
-                              : "Last seen unavailable"}
-                    </Text>
+                        {presence?.online && (
+                            <View
+                                accessibilityLabel={t("Online")}
+                                style={{
+                                    width: fs(8),
+                                    height: fs(8),
+                                    borderRadius: fs(4),
+                                    backgroundColor: "#22C55E",
+                                }}
+                            />
+                        )}
+                        <Text style={{ color: theme.muted, fontSize: fs(12) }}>
+                            {presence?.online
+                                ? "Online"
+                                : presence?.lastSeen
+                                  ? lastSeenLabel(presence.lastSeen, new Date(presenceClock))
+                                  : "Last seen unavailable"}
+                        </Text>
+                    </View>
+                </Pressable>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Voice calls are not available yet"
+                    accessibilityState={{ disabled: true }}
+                    disabled
+                    style={{ padding: fs(5), opacity: 0.72 }}
+                >
+                    <FeedIcon name="phone" size={fs(23)} color={theme.ink} />
+                </Pressable>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Video calls are not available yet"
+                    accessibilityState={{ disabled: true }}
+                    disabled
+                    style={{ padding: fs(5), opacity: 0.72 }}
+                >
+                    <FeedIcon name="video-call" size={fs(24)} color={theme.ink} />
+                </Pressable>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${peer.name}'s profile options`}
+                    onPress={peer.onPress}
+                    hitSlop={8}
+                    style={{ padding: fs(5) }}
+                >
+                    <FeedIcon name="more-vertical" size={fs(23)} color={theme.ink} />
                 </Pressable>
             </View>
             <ScrollView
@@ -386,6 +428,7 @@ export function ChatScreen({
                 maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
                 contentContainerStyle={{
                     paddingHorizontal: fs(11),
+                    paddingTop: 5 * v,
                     paddingBottom: 10 * v,
                 }}
             >
@@ -405,19 +448,15 @@ export function ChatScreen({
                                     key={`date-${key}`}
                                     style={{
                                         alignSelf: "center",
-                                        marginTop: 12 * v,
-                                        marginBottom: 10 * v,
-                                        paddingHorizontal: 12 * s,
-                                        paddingVertical: 5 * v,
-                                        borderRadius: 14 * s,
-                                        backgroundColor: theme.subtle,
+                                        marginTop: 17 * v,
+                                        marginBottom: 14 * v,
                                     }}
                                 >
                                     <Text
                                         style={{
-                                            color: theme.secondary,
-                                            fontSize: fs(11),
-                                            fontWeight: "600",
+                                            color: theme.muted,
+                                            fontSize: fs(12),
+                                            fontWeight: "500",
                                         }}
                                     >
                                         {messageDateLabel(message.createdAt!, language, t)}
@@ -451,7 +490,7 @@ export function ChatScreen({
                 style={{
                     flexDirection: "column",
                     paddingHorizontal: fs(11),
-                    paddingTop: 7 * v,
+                    paddingTop: 8 * v,
                     paddingBottom: keyboardVisible
                         ? 8
                         : Math.max(Math.min(insets.bottom, 34), 12),
@@ -580,31 +619,38 @@ export function ChatScreen({
                         </View>
                     </View>
                 ) : canSendRequestMessage || editingMessage ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: fs(9) }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: fs(8) }}>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={t("Open emoji picker")}
-                        onPress={() => setEmojiPickerVisible(true)}
+                        accessibilityLabel="Attachments are not available yet"
+                        onPress={() =>
+                            Alert.alert("Add to message", undefined, [
+                                { text: "Emoji", onPress: () => setEmojiPickerVisible(true) },
+                                { text: "Photo (not available yet)", style: "default" },
+                                { text: t("Cancel"), style: "cancel" },
+                            ])
+                        }
                         hitSlop={6}
                         style={{
-                            width: fs(40),
-                            height: fs(45),
+                            width: fs(46),
+                            height: fs(46),
                             alignItems: "center",
                             justifyContent: "center",
+                            borderRadius: fs(23),
+                            backgroundColor: theme.input,
                         }}
                     >
-                        <FeedIcon name="emoji" size={fs(24)} color={theme.muted} />
+                        <FeedIcon name="plus" size={fs(28)} color={theme.ink} />
                     </Pressable>
                     <View
                         style={[
                             styles.inputWrap,
                             {
-                                minHeight: fs(45),
-                                borderRadius: fs(25),
-                                paddingHorizontal: fs(15),
+                                minHeight: fs(50),
+                                borderRadius: fs(26),
+                                paddingLeft: fs(15),
+                                paddingRight: fs(8),
                                 backgroundColor: theme.input,
-                                borderWidth: 1,
-                                borderColor: theme.border,
                             },
                         ]}
                     >
@@ -625,11 +671,20 @@ export function ChatScreen({
                             style={{
                                 flex: 1,
                                 color: theme.ink,
-                                fontSize: fs(14),
+                                fontSize: fs(15),
                                 paddingVertical: 10,
                                 maxHeight: 110,
                             }}
                         />
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Photo messages are not available yet"
+                            onPress={() => Alert.alert("Photo messages", "Photo messages are not available yet.")}
+                            hitSlop={8}
+                            style={{ padding: fs(5) }}
+                        >
+                            <FeedIcon name="photo" size={fs(23)} color={theme.ink} />
+                        </Pressable>
                     </View>
                     <Pressable
                         accessibilityRole="button"
@@ -639,10 +694,10 @@ export function ChatScreen({
                         onPress={() => void submitComposer()}
                         style={[
                             styles.circle,
-                            { width: fs(46), height: fs(46), backgroundColor: theme.blue },
+                            { width: fs(50), height: fs(50), backgroundColor: theme.blue },
                         ]}
                     >
-                        <FeedIcon name="chat-send" size={fs(23)} color="white" />
+                        <FeedIcon name="chat-send" size={fs(25)} color="white" />
                     </Pressable>
                 </View>
                 ) : (
