@@ -224,8 +224,7 @@ export function PostCard({
                         accessibilityLabel={t("Post options")}
                         onPress={(event) => {
                             stopCardNavigation(event);
-                            if (post.isOwn) postOptions.setOptionsOpen(true);
-                            else comments();
+                            postOptions.setOptionsOpen(true);
                         }}
                         hitSlop={10}
                         style={{ padding: 6 * s }}
@@ -378,8 +377,7 @@ export function PostCard({
                     </View>
                 </View>
                 </Pressable>
-                {post.isOwn && (
-                    <PostCardOptions
+                <PostCardOptions
                         post={post}
                         scale={s}
                         optionsOpen={postOptions.optionsOpen}
@@ -401,8 +399,7 @@ export function PostCard({
                         busy={postOptions.busy}
                         feedback={postOptions.feedback}
                         onDismissFeedback={() => postOptions.setFeedback(null)}
-                    />
-                )}
+                />
             </>
         );
     }
@@ -467,7 +464,7 @@ export function PostCard({
                         {post.author.location ? ` · ${post.author.location}` : ""}
                     </Text>
                 </Pressable>
-                {post.isOwn ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t("Post options")}
@@ -480,9 +477,8 @@ export function PostCard({
                     >
                         <Text style={{ color: theme.muted }}>•••</Text>
                     </Pressable>
-                ) : (
-                    <FollowButton profile={author} />
-                )}
+                    {!post.isOwn && <FollowButton profile={author} />}
+                </View>
             </View>
             {post.kind === "text" ? null : <PostMedia post={post} visible={visible} />}
             <View
@@ -610,8 +606,7 @@ export function PostCard({
                 </View>
             </View>
             </Pressable>
-            {post.isOwn && (
-                <PostCardOptions
+            <PostCardOptions
                     post={post}
                     scale={s}
                     optionsOpen={postOptions.optionsOpen}
@@ -633,8 +628,7 @@ export function PostCard({
                     busy={postOptions.busy}
                     feedback={postOptions.feedback}
                     onDismissFeedback={() => postOptions.setFeedback(null)}
-                />
-            )}
+            />
         </>
     );
 }

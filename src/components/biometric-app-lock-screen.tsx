@@ -130,7 +130,6 @@ export function BiometricAppLockScreen({
                                         },
                                     ]}
                                 >
-                                    <FeedIcon name="lock" size={18} color="#FFFFFF" />
                                     <Text style={styles.unlockLabel}>
                                         {unlocking ? t("Verifying…") : t("Unlock with biometrics")}
                                     </Text>
@@ -264,15 +263,15 @@ const styles: {
         textAlign: "center",
     },
     unlockButton: {
-        width: "100%",
-        minHeight: 54,
+        width: "90%",
+        minHeight: 48,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        marginTop: 26,
-        paddingHorizontal: 18,
-        borderRadius: 16,
+        gap: 8,
+        marginTop: 22,
+        paddingHorizontal: 14,
+        borderRadius: 14,
     },
     unlockLabel: {
         color: "#FFFFFF",

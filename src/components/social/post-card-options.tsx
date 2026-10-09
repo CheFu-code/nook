@@ -108,14 +108,18 @@ export function PostCardOptions({
                                 backgroundColor: theme.background,
                             }}
                         >
-                            <PostOptionRow
-                                icon="compose"
-                                title={t("Edit")}
-                                subtitle={t(post.kind === "text" ? "Edit your post" : "Edit your caption")}
-                                scale={scale}
-                                onPress={onEdit}
-                            />
-                            <View style={{ height: 1, marginHorizontal: 10 * scale, backgroundColor: theme.border }} />
+                            {post.isOwn && (
+                                <>
+                                    <PostOptionRow
+                                        icon="compose"
+                                        title={t("Edit")}
+                                        subtitle={t(post.kind === "text" ? "Edit your post" : "Edit your caption")}
+                                        scale={scale}
+                                        onPress={onEdit}
+                                    />
+                                    <View style={{ height: 1, marginHorizontal: 10 * scale, backgroundColor: theme.border }} />
+                                </>
+                            )}
                             <PostOptionRow
                                 icon="post-share"
                                 title={t("Share")}
@@ -123,15 +127,19 @@ export function PostCardOptions({
                                 scale={scale}
                                 onPress={onShare}
                             />
-                            <View style={{ height: 1, marginHorizontal: 10 * scale, backgroundColor: theme.border }} />
-                            <PostOptionRow
-                                icon="trash"
-                                title={t("Delete")}
-                                subtitle={t("Remove this post")}
-                                destructive
-                                scale={scale}
-                                onPress={onDeleteRequest}
-                            />
+                            {post.isOwn && (
+                                <>
+                                    <View style={{ height: 1, marginHorizontal: 10 * scale, backgroundColor: theme.border }} />
+                                    <PostOptionRow
+                                        icon="trash"
+                                        title={t("Delete")}
+                                        subtitle={t("Remove this post")}
+                                        destructive
+                                        scale={scale}
+                                        onPress={onDeleteRequest}
+                                    />
+                                </>
+                            )}
                         </View>
                         <Pressable
                             accessibilityRole="button"

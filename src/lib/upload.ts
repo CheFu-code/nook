@@ -67,21 +67,20 @@ function encodeBase64(bytes: Uint8Array) {
 }
 
 export function validateMedia(asset: ImagePickerAsset, avatar = false) {
-  const video = asset.type === 'video';
-  if (avatar && video) throw new Error('Choose a photo for your avatar.');
+  if (asset.type !== 'image') {
+    throw new Error(avatar ? 'Choose a photo for your avatar.' : 'Video posts are not supported. Choose a photo.');
+  }
   if (!asset.width || !asset.height) throw new Error('Unable to read media dimensions. Select a different file.');
-  const max = (avatar ? 5 : video ? 50 : 10) * 1024 * 1024;
+  const max = (avatar ? 5 : 10) * 1024 * 1024;
   if (asset.fileSize != null && asset.fileSize > max) throw new Error(`Choose a file under ${max / 1024 / 1024} MB.`);
-  if (video && (!asset.duration || asset.duration > 30_000)) throw new Error('Choose a video no longer than 30 seconds.');
-  const mime = asset.mimeType?.toLowerCase() ?? (video ? 'video/mp4' : 'image/jpeg');
-  if (!(video ? ['video/mp4', 'video/quicktime'] : ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']).includes(mime)) {
-    throw new Error('Choose a JPG, PNG, WebP, HEIC photo or an MP4/MOV video.');
+  const mime = asset.mimeType?.toLowerCase() ?? 'image/jpeg';
+  if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(mime)) {
+    throw new Error('Choose a JPG, PNG, WebP, HEIC or HEIF photo.');
   }
   return {
-    kind: video ? 'video' as const : 'image' as const,
+    kind: 'image' as const,
     width: asset.width,
     height: asset.height,
-    ...(video ? { duration: asset.duration! / 1000 } : {}),
     mime,
     max,
   };

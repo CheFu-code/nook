@@ -130,10 +130,9 @@ export function Composer({ story = false }: { story?: boolean }) {
 		setError("");
 		try {
 			const result = await ImagePicker.launchImageLibraryAsync({
-				mediaTypes: story ? ["images"] : ["images", "videos"],
+				mediaTypes: ["images"],
 				allowsMultipleSelection: false,
 				quality: 1,
-				videoMaxDuration: 30,
 			});
 			if (result.canceled) return;
 			validateMedia(result.assets[0]);
@@ -181,7 +180,6 @@ export function Composer({ story = false }: { story?: boolean }) {
 						kind: meta.kind,
 						width: meta.width,
 						height: meta.height,
-						...(meta.duration ? { duration: meta.duration } : {}),
 					},
 				});
 				uploadId.current = created.id;
@@ -324,7 +322,7 @@ export function Composer({ story = false }: { story?: boolean }) {
 						<Pressable
 							accessibilityRole="button"
 							accessibilityLabel={t(asset ? "Change media" : "Add media")}
-							accessibilityHint={t(story ? "Select a photo for your story" : "Select a photo or video for your post")}
+							accessibilityHint={t(story ? "Select a photo for your story" : "Select a photo for your post")}
 							accessibilityState={{ disabled: phase !== "idle" || picking, busy: picking }}
 							disabled={phase !== "idle" || picking}
 							onPress={() => void pick()}
@@ -356,22 +354,13 @@ export function Composer({ story = false }: { story?: boolean }) {
 								width: "100%",
 								height: 230 * scale,
 								borderRadius: 18 * scale,
-								backgroundColor: asset.type === "video" ? "#101B32" : theme.subtle,
+								backgroundColor: theme.subtle,
 								overflow: "hidden",
 								alignItems: "center",
 								justifyContent: "center",
 							}}
 						>
-							{asset.type === "image" ? (
-								<Image source={{ uri: asset.uri }} style={{ width: "100%", height: "100%" }} contentFit="contain" />
-							) : (
-								<View style={{ alignItems: "center", gap: 10 * scale }}>
-									<FeedIcon name="video" size={36 * scale} color="#FFFFFF" />
-									<Text style={{ color: "#FFFFFF", fontSize: 14 * scale, fontWeight: "600" }}>
-										{Math.round((asset.duration ?? 0) / 1000)} {t("sec")} · {asset.fileName || t("Selected video")}
-									</Text>
-								</View>
-							)}
+							<Image source={{ uri: asset.uri }} style={{ width: "100%", height: "100%" }} contentFit="contain" />
 						</Pressable>
 					)}
 				</View>
